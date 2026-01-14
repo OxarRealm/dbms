@@ -41,7 +41,7 @@
 - [x] SELECT多表查询（50测试通过）
 - [x] SELECT连接查询（57测试通过）
 - [x] 查询执行器整合（24测试通过）
-- **完成时间**：2025-01-12
+- **完成时间**：2026-01-12
 - **测试统计**：161个测试全部通过
 
 ### v0.6.0 - GUI开发阶段（计划中）
@@ -55,13 +55,14 @@
 - [ ] 推荐界面集成
 - [ ] 算法测试
 
-### v0.8.0 - 数据库新技术实现阶段（计划中）
-- [ ] 相邻索引实现（3-5天）
+### v0.8.0 - 数据库新技术实现阶段（进行中）
+- [x] 相邻索引实现（28测试通过）✅
 - [ ] 哈希索引实现（4-6天）
 - [ ] 智能索引建议系统（5-7天）
 - [ ] 索引性能测试和优化
 - **技术方案**：方案A（索引技术 + 智能推荐）
-- **预计时间**：12-18天
+- **完成时间**：2026-01-14（相邻索引）
+- **预计剩余时间**：9-13天
 
 ### v1.0.0 - 完整系统（计划中）
 - [ ] 系统集成测试
@@ -75,7 +76,7 @@
 
 ### v0.1.0 - 项目初始化
 
-**发布日期**：2025-01-12
+**发布日期**：2026-01-12
 
 **更新内容**：
 - 初始化项目结构（src, include, tests, scripts等完整结构）
@@ -104,7 +105,7 @@
 
 ### v0.2.0 - 核心数据结构与文件存储
 
-**发布日期**：2025-01-12
+**发布日期**：2026-01-12
 
 **更新内容**：
 - 完成核心数据结构定义（TableMode, TableInfo, Record, TableData）
@@ -140,105 +141,10 @@
 
 ---
 
-### v0.4.0 - DML实现
-
-**发布日期**：2025-01-12
-
-**更新内容**：
-- 完成INSERT语句解析和执行
-- 完成DELETE语句解析和执行（WHERE子句条件评估）
-- 完成UPDATE语句解析和执行（SET和WHERE子句）
-- 完成DML执行器统一调度
-- 编写并运行所有功能的测试脚本（166个测试全部通过）
-
-**主要文件**：
-- `include/dml/insert_handler.h`, `src/dml/insert_handler.cpp` - INSERT处理器
-- `include/dml/delete_handler.h`, `src/dml/delete_handler.cpp` - DELETE处理器
-- `include/dml/update_handler.h`, `src/dml/update_handler.cpp` - UPDATE处理器
-- `include/dml/dml_executor.h`, `src/dml/dml_executor.cpp` - DML执行器
-- `src/sql_parser/parser.cpp` - 扩展Parser支持DML语句解析
-- `scripts/unit_tests/test_insert_handler.cpp` - INSERT测试
-- `scripts/unit_tests/test_delete_handler.cpp` - DELETE测试
-- `scripts/unit_tests/test_update_handler.cpp` - UPDATE测试
-- `scripts/unit_tests/test_dml_executor.cpp` - DML执行器测试
-
-**功能特性**：
-- 完整的DML语句支持（INSERT、DELETE、UPDATE）
-- WHERE子句条件评估（等号比较）
-- SET子句处理（UPDATE）
-- 数据类型验证和转换
-- NULL值处理
-- 软删除机制（DELETE）
-- 批量操作支持
-- 统一的DML执行器接口
-
-**测试结果**：
-- 任务3.1：43/43测试通过
-- 任务3.2：38/38测试通过
-- 任务3.3：43/43测试通过
-- 任务3.4：42/42测试通过
-- **总计：166/166测试通过**
-
-**开发者**：项目组
-
----
-
-### v0.5.0 - 查询实现
-
-**发布日期**：2025-01-12
-
-**更新内容**：
-- 完成SELECT单表查询实现（投影操作、WHERE子句条件过滤）
-- 完成SELECT多表查询实现（笛卡尔积、多表投影、多表WHERE条件）
-- 完成SELECT连接查询实现（INNER JOIN、LEFT JOIN、JOIN条件评估）
-- 完成查询执行器统一调度（QueryExecutor、结果格式化）
-- 扩展SQL解析器支持SELECT和JOIN语法
-- 编写并运行所有功能的测试脚本（161个测试全部通过）
-
-**主要文件**：
-- `include/query/select_handler.h`, `src/query/select_handler.cpp` - SELECT查询处理器
-- `include/query/query_executor.h`, `src/query/query_executor.cpp` - 查询执行器
-- `include/sql_parser/ast_node.h` - 扩展SelectNode和JoinInfo结构
-- `src/sql_parser/parser.cpp` - 扩展Parser支持SELECT和JOIN语法解析
-- `include/sql_parser/token.h`, `src/sql_parser/token.cpp` - 添加JOIN相关关键词
-- `scripts/unit_tests/test_select_handler.cpp` - SELECT测试
-- `scripts/unit_tests/test_query_executor.cpp` - QueryExecutor测试
-
-**功能特性**：
-- 完整的SELECT语句支持（单表、多表、JOIN）
-- 投影操作（字段选择，支持*和指定字段）
-- WHERE子句条件过滤（等号比较）
-- 笛卡尔积计算（多表查询）
-- JOIN连接查询（INNER JOIN、LEFT JOIN）
-- JOIN条件评估（ON子句中的等值连接）
-- 查询结果格式化输出（表格格式）
-- 统一的查询执行器接口（QueryExecutor）
-- 自动语句类型识别和路由
-
-**测试结果**：
-- 任务4.1：30/30测试通过
-- 任务4.2：50/50测试通过
-- 任务4.3：57/57测试通过
-- 任务4.4：24/24测试通过
-- **总计：161/161测试通过**
-
-**开发者**：项目组
-
----
-
-## 版本号规则
-
-采用语义化版本号：主版本号.次版本号.修订号 (MAJOR.MINOR.PATCH)
-
-- **MAJOR**：重大架构变更或功能重构
-- **MINOR**：新功能添加（向后兼容）
-- **PATCH**：Bug修复或小改进（向后兼容）
-
----
 
 ### v0.3.0 - DDL实现
 
-**发布日期**：2025-01-12
+**发布日期**：2026-01-12
 
 **更新内容**：
 - 完成SQL解析器基础框架（词法分析器、语法分析器、AST节点结构）
@@ -287,6 +193,184 @@
 
 ---
 
-**最后更新**：2025-01-12
+### v0.4.0 - DML实现
 
-**状态**：阶段1、阶段2和阶段3（核心数据结构与文件存储、DDL实现、DML实现）已完成，522个测试全部通过，准备开始阶段4（查询实现）开发
+**发布日期**：2026-01-12
+
+**更新内容**：
+- 完成INSERT语句解析和执行
+- 完成DELETE语句解析和执行（WHERE子句条件评估）
+- 完成UPDATE语句解析和执行（SET和WHERE子句）
+- 完成DML执行器统一调度
+- 编写并运行所有功能的测试脚本（166个测试全部通过）
+
+**主要文件**：
+- `include/dml/insert_handler.h`, `src/dml/insert_handler.cpp` - INSERT处理器
+- `include/dml/delete_handler.h`, `src/dml/delete_handler.cpp` - DELETE处理器
+- `include/dml/update_handler.h`, `src/dml/update_handler.cpp` - UPDATE处理器
+- `include/dml/dml_executor.h`, `src/dml/dml_executor.cpp` - DML执行器
+- `src/sql_parser/parser.cpp` - 扩展Parser支持DML语句解析
+- `scripts/unit_tests/test_insert_handler.cpp` - INSERT测试
+- `scripts/unit_tests/test_delete_handler.cpp` - DELETE测试
+- `scripts/unit_tests/test_update_handler.cpp` - UPDATE测试
+- `scripts/unit_tests/test_dml_executor.cpp` - DML执行器测试
+
+**功能特性**：
+- 完整的DML语句支持（INSERT、DELETE、UPDATE）
+- WHERE子句条件评估（等号比较）
+- SET子句处理（UPDATE）
+- 数据类型验证和转换
+- NULL值处理
+- 软删除机制（DELETE）
+- 批量操作支持
+- 统一的DML执行器接口
+
+**测试结果**：
+- 任务3.1：43/43测试通过
+- 任务3.2：38/38测试通过
+- 任务3.3：43/43测试通过
+- 任务3.4：42/42测试通过
+- **总计：166/166测试通过**
+
+**开发者**：项目组
+
+---
+
+### v0.5.0 - 查询实现
+
+**发布日期**：2026-01-12
+
+**更新内容**：
+- 完成SELECT单表查询实现（投影操作、WHERE子句条件过滤）
+- 完成SELECT多表查询实现（笛卡尔积、多表投影、多表WHERE条件）
+- 完成SELECT连接查询实现（INNER JOIN、LEFT JOIN、JOIN条件评估）
+- 完成查询执行器统一调度（QueryExecutor、结果格式化）
+- 扩展SQL解析器支持SELECT和JOIN语法
+- 编写并运行所有功能的测试脚本（161个测试全部通过）
+
+**主要文件**：
+- `include/query/select_handler.h`, `src/query/select_handler.cpp` - SELECT查询处理器
+- `include/query/query_executor.h`, `src/query/query_executor.cpp` - 查询执行器
+- `include/sql_parser/ast_node.h` - 扩展SelectNode和JoinInfo结构
+- `src/sql_parser/parser.cpp` - 扩展Parser支持SELECT和JOIN语法解析
+- `include/sql_parser/token.h`, `src/sql_parser/token.cpp` - 添加JOIN相关关键词
+- `scripts/unit_tests/test_select_handler.cpp` - SELECT测试
+- `scripts/unit_tests/test_query_executor.cpp` - QueryExecutor测试
+
+**功能特性**：
+- 完整的SELECT语句支持（单表、多表、JOIN）
+- 投影操作（字段选择，支持*和指定字段）
+- WHERE子句条件过滤（等号比较）
+- 笛卡尔积计算（多表查询）
+- JOIN连接查询（INNER JOIN、LEFT JOIN）
+- JOIN条件评估（ON子句中的等值连接）
+- 查询结果格式化输出（表格格式）
+- 统一的查询执行器接口（QueryExecutor）
+- 自动语句类型识别和路由
+
+**测试结果**：
+- 任务4.1：30/30测试通过
+- 任务4.2：50/50测试通过
+- 任务4.3：57/57测试通过
+- 任务4.4：24/24测试通过
+- **总计：161/161测试通过**
+
+**开发者**：项目组
+
+---
+
+### v0.8.0 - 数据库新技术实现（相邻索引）
+
+**发布日期**：2026-01-14
+
+**更新内容**：
+- 完成相邻索引（Adjacent Index）实现
+- 实现索引构建、更新、删除功能
+- 实现基于相邻索引的范围查询优化
+- 实现基于相邻索引的顺序扫描优化
+- 测试脚本分类整理（按模块组织）
+- 编写并运行所有功能的测试脚本（28个测试全部通过）
+
+**主要文件**：
+- `include/core/adjacent_index.h`, `src/core/adjacent_index.cpp` - 相邻索引实现
+- `scripts/unit_tests/index/test_adjacent_index.cpp` - 相邻索引测试
+- `scripts/unit_tests/index/run_test_adjacent_index.ps1` - 测试运行脚本
+- `scripts/unit_tests/README.md` - 测试脚本分类说明
+
+**功能特性**：
+- 支持多字段索引（可为不同字段分别构建索引）
+- 自动排序（构建索引时按字段值排序）
+- 相邻关系维护（维护每个记录的上一个和下一个相邻记录指针）
+- 范围查询优化（利用索引快速定位范围内的记录）
+- 顺序扫描优化（按排序顺序遍历记录）
+- 索引更新和删除支持
+
+**测试结果**：
+- 任务8.1：28/28测试通过
+  - 索引构建测试：通过
+  - 相邻关系测试：通过
+  - 顺序扫描测试：通过（正确排序：1, 2, 5, 8, 9）
+  - 范围查询测试：通过（正确返回：2, 5, 8）
+  - 索引更新测试：通过
+  - 索引删除测试：通过
+  - 空表索引测试：通过
+
+**开发者**：项目组
+
+---
+
+### v0.8.0 - 数据库新技术实现（相邻索引）
+
+**发布日期**：2026-01-14
+
+**更新内容**：
+- 完成相邻索引（Adjacent Index）实现
+- 实现索引构建、更新、删除功能
+- 实现基于相邻索引的范围查询优化
+- 实现基于相邻索引的顺序扫描优化
+- 测试脚本分类整理（按模块组织）
+- 编写并运行所有功能的测试脚本（28个测试全部通过）
+
+**主要文件**：
+- `include/core/adjacent_index.h`, `src/core/adjacent_index.cpp` - 相邻索引实现
+- `scripts/unit_tests/index/test_adjacent_index.cpp` - 相邻索引测试
+- `scripts/unit_tests/index/run_test_adjacent_index.ps1` - 测试运行脚本
+- `scripts/unit_tests/README.md` - 测试脚本分类说明
+
+**功能特性**：
+- 支持多字段索引（可为不同字段分别构建索引）
+- 自动排序（构建索引时按字段值排序）
+- 相邻关系维护（维护每个记录的上一个和下一个相邻记录指针）
+- 范围查询优化（利用索引快速定位范围内的记录）
+- 顺序扫描优化（按排序顺序遍历记录）
+- 索引更新和删除支持
+
+**测试结果**：
+- 任务8.1：28/28测试通过
+  - 索引构建测试：通过
+  - 相邻关系测试：通过
+  - 顺序扫描测试：通过（正确排序：1, 2, 5, 8, 9）
+  - 范围查询测试：通过（正确返回：2, 5, 8）
+  - 索引更新测试：通过
+  - 索引删除测试：通过
+  - 空表索引测试：通过
+
+**开发者**：项目组
+
+---
+
+## 版本号规则
+
+采用语义化版本号：主版本号.次版本号.修订号 (MAJOR.MINOR.PATCH)
+
+- **MAJOR**：重大架构变更或功能重构
+- **MINOR**：新功能添加（向后兼容）
+- **PATCH**：Bug修复或小改进（向后兼容）
+
+---
+
+**最后更新**：2026-01-14
+
+**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）已开始，相邻索引实现已完成（28个测试全部通过）。
+
+---

@@ -41,11 +41,13 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include/sql_parser
     ${CMAKE_CURRENT_SOURCE_DIR}/include/ai
     ${CMAKE_CURRENT_SOURCE_DIR}/include/gui
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/index
 )
 
 # 源文件（后续根据实际文件添加）
 file(GLOB_RECURSE CORE_SOURCES 
     "src/core/*.cpp"
+    "src/index/*.cpp"
 )
 
 file(GLOB_RECURSE DDL_SOURCES 

@@ -69,4 +69,4 @@ cmake .. 2>&1 | Select-String -Pattern "Qt|Found|Configuring|Generating"
 
 ---
 
-**最后更新**：2025-01-12
+**最后更新**：2026-01-12
