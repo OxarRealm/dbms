@@ -184,6 +184,8 @@ SELECT * FROM TableName1, TableName2 WHERE Condition;
 - `docs/core/project_report.md` - 项目报告（完成功能模块后补充相应内容）
 - `docs/README.md` - 文档目录说明（新增文档时更新）
 - `README.md` - 项目主README（重要更新时同步）
+- `USER_GUIDE.md` - 用户操作指南（功能变更时同步更新）
+- GUI中的Guide标签页内容（与USER_GUIDE.md保持同步）
 
 **文档更新流程**：
 1. 完成功能模块后，AI应提示用户是否需要更新文档

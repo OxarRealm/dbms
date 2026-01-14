@@ -83,6 +83,7 @@ file(GLOB_RECURSE GUI_SOURCES
 # 显式添加需要 MOC 处理的头文件
 set(GUI_HEADERS
     "include/gui/main_window.h"
+    "include/gui/table_management_widget.h"
 )
 
 # 所有源文件

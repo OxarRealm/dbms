@@ -616,6 +616,127 @@
 
 ---
 
+### 2026-01-14（下午）
+
+#### GUI主界面布局实现
+
+**完成工作**：
+1. ✅ 实现标签页系统（QTabWidget）
+   - 创建5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide
+   - 标签页顺序优化（Index Management在Table Management和Data Operation之间）
+   - Guide标签页重命名（原Recommendation）
+
+2. ✅ 界面文字和字体统一
+   - 所有界面文字改为英文
+   - 所有英文文字使用Segoe UI字体（通过QFont设置）
+   - 更新.cursorrules添加字体规范
+
+3. ✅ 状态栏增强
+   - 显示当前数据库名称和当前时间（格式：`database_name  yyyy/MM/dd hh:mm`）
+   - 使用QTimer每秒更新一次时间
+   - 未加载数据库时仅显示时间
+
+4. ✅ 全局键盘快捷键
+   - Ctrl+Q：退出程序
+   - F1：显示About对话框
+   - Ctrl+Tab：切换到下一个标签页
+   - Ctrl+Shift+Tab：切换到上一个标签页
+
+5. ✅ 窗口标题版本号
+   - 窗口标题包含项目版本号（v0.6.1）
+   - 从iteration_records.md读取版本信息
+
+6. ✅ Guide标签页实现
+   - 创建USER_GUIDE.md文件（项目根目录）
+   - Guide标签页显示USER_GUIDE.md内容
+   - 使用QTextEdit和QScrollArea实现滚动显示
+   - 更新.cursorrules确保USER_GUIDE.md和GUI Guide内容同步
+
+**技术决策**：
+- 使用QTabWidget实现标签页系统，便于功能模块化
+- 使用QTimer实现状态栏时间更新，避免阻塞UI
+- 使用QFile和QTextStream读取USER_GUIDE.md，便于维护
+
+**文件位置**：
+- `include/gui/main_window.h` - 主窗口头文件（已更新）
+- `src/gui/main_window.cpp` - 主窗口实现（已更新）
+- `USER_GUIDE.md` - 用户操作指南（新建）
+
+---
+
+### 2026-01-14（晚上）
+
+#### 数据库管理和表结构管理界面实现
+
+**完成工作**：
+1. ✅ 数据库管理功能
+   - 实现Create Database功能（File -> Create Database，Ctrl+N）
+     - 使用文件对话框选择保存位置和文件名
+     - 自动创建.dbf和.dat文件（空文件）
+     - 创建成功后自动加载数据库
+   - 实现Open Database功能（File -> Open Database，Ctrl+O）
+     - 使用文件对话框选择.dbf文件
+     - 自动提取数据库路径并加载
+     - 打开成功后更新状态栏和表列表
+   - 数据库路径管理
+     - MainWindow保存当前数据库路径（m_databasePath）
+     - 所有操作使用当前选中的数据库
+     - 状态栏显示当前数据库名称
+
+2. ✅ 表结构管理界面
+   - 实现TableManagementWidget组件
+     - 左侧：表列表（QListWidget）
+     - 右侧：表信息显示（字段列表、类型、属性等）
+     - 底部：操作按钮（Create, Edit, Delete, Refresh）
+   - 实现TableEditDialog对话框
+     - 创建表模式：输入表名和字段定义
+     - 编辑表模式：加载现有表结构并允许修改
+     - 字段管理：添加、删除、上移、下移字段
+     - 字段属性：类型、大小、KEY/NOT_KEY、NULL/NO_NULL、VALID/INVALID
+   - 集成TableManager后端
+     - 创建表：调用TableManager::createTable()
+     - 编辑表：调用TableManager::updateTable()
+     - 删除表：调用TableManager::deleteTable()
+     - 刷新列表：调用TableManager::getAllTableNames()
+
+3. ✅ 界面优化和问题修复
+   - "No table selected"文本居中显示
+   - Edit Table对话框：按钮文本动态更新（Create/Edit）
+   - Edit Table对话框：数据库名称输入框隐藏（使用当前数据库）
+   - 修复关闭事件处理：点击X时弹出确认对话框，防止意外关闭
+
+**技术决策**：
+- 使用QFileDialog实现文件选择，提供更好的用户体验
+- 数据库路径统一由MainWindow管理，避免重复输入
+- 使用QDialogButtonBox实现标准对话框按钮，保持一致性
+- 实现closeEvent()处理关闭事件，防止数据丢失
+
+**遇到的问题和解决方案**：
+1. **问题**：点击Edit Table对话框的X按钮时程序崩溃
+   - **原因**：未实现closeEvent()处理函数
+   - **解决**：实现closeEvent()，弹出确认对话框，与Cancel按钮行为一致
+
+2. **问题**：Edit Table模式下仍显示数据库名称输入框
+   - **原因**：数据库路径应由主窗口管理，不应在编辑对话框中输入
+   - **解决**：在编辑模式下隐藏数据库名称输入框和标签
+
+3. **问题**："No table selected"文本未居中
+   - **解决**：使用setAlignment(Qt::AlignCenter)设置文本对齐
+
+**文件位置**：
+- `include/gui/main_window.h` - 主窗口头文件（已更新，添加数据库管理功能）
+- `src/gui/main_window.cpp` - 主窗口实现（已更新）
+- `include/gui/table_management_widget.h` - 表管理组件头文件（新建）
+- `src/gui/table_management_widget.cpp` - 表管理组件实现（新建）
+
+**下一步计划**：
+1. 实现数据操作界面（插入、更新、删除记录）
+2. 实现SQL执行界面（SQL输入和执行）
+3. 实现索引管理界面
+4. 实现推荐系统界面
+
+---
+
 **记录格式说明**：
 - 日期：YYYY-MM-DD
 - 完成工作：列出当日完成的主要任务

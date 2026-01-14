@@ -233,13 +233,33 @@
 - **实际完成时间**：2026-01-14
 - **状态**：GUI能够正常显示 ✅
 
-#### 任务5.2：表管理界面
-- [ ] 设计表结构管理界面（Qt Designer）
-- [ ] 实现表创建功能
-- [ ] 实现表查看功能
-- [ ] 实现表结构修改功能
-- **文件位置**：`src/gui/table_management_widget.cpp`
+#### 任务5.2：主界面布局 ✅（已完成）
+- [x] 实现标签页系统（QTabWidget）
+- [x] 5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide
+- [x] 所有文字改为英文
+- [x] 所有字体使用Segoe UI
+- [x] 状态栏显示数据库名称和当前时间
+- [x] 全局键盘快捷键
+- [x] 窗口标题包含版本号
+- [x] Guide标签页显示USER_GUIDE.md内容
+- **文件位置**：`include/gui/main_window.h`, `src/gui/main_window.cpp`
+- **预计时间**：1天
+- **实际完成时间**：2026-01-14
+- **状态**：主界面布局已完成 ✅
+
+#### 任务5.3：数据库管理和表管理界面 ✅（已完成）
+- [x] 实现数据库管理功能（Create Database, Open Database）
+- [x] 实现表列表显示
+- [x] 实现表信息显示
+- [x] 实现创建表功能（TableEditDialog）
+- [x] 实现编辑表功能
+- [x] 实现删除表功能
+- [x] 实现刷新表列表功能
+- [x] 界面优化和问题修复
+- **文件位置**：`include/gui/table_management_widget.h`, `src/gui/table_management_widget.cpp`
 - **预计时间**：2-3天
+- **实际完成时间**：2026-01-14
+- **状态**：数据库管理和表管理界面已完成 ✅
 
 #### 任务5.3：数据操作界面
 - [ ] 设计数据操作界面

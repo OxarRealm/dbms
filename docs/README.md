@@ -53,6 +53,7 @@ docs/
 
 环境配置、初始化和使用指南：
 
+- **[compilation_guide.md](guides/compilation_guide.md)** ⭐ - **编译指南**（编译配置与故障排查）
 - **[environment_setup.md](guides/environment_setup.md)** - 环境配置详细指南
 - **[initialization_guide.md](guides/initialization_guide.md)** - 初始化指南
 - **[initialization_status.md](guides/initialization_status.md)** - 初始化状态总结
@@ -133,6 +134,7 @@ docs/
 - [AI技术分析](technical/ai_technology_analysis.md) - AI技术选项
 
 ### 环境配置
+- [编译指南](guides/compilation_guide.md) ⭐ - **编译配置与故障排查**（重要！）
 - [环境配置指南](guides/environment_setup.md) - 环境配置详细说明
 - [初始化指南](guides/initialization_guide.md) - 初始化步骤
 
@@ -143,4 +145,16 @@ docs/
 
 ---
 
-**最后更新**：2026-01-14（阶段4：查询实现已完成；阶段8：数据库新技术实现全部完成，包括相邻索引、哈希索引和智能索引建议系统；阶段5.1：GUI最小可运行程序已完成）
+**最后更新**：2026-01-14
+
+---
+
+## 最新更新
+
+### 2026-01-14（晚上）
+
+- ✅ **GUI数据库管理和表结构管理界面完成**
+  - 实现数据库管理功能（Create Database, Open Database）
+  - 实现表结构管理界面（创建、编辑、删除表）
+  - 界面优化和问题修复
+  - 详细内容见：`docs/core/development_log.md`（阶段4：查询实现已完成；阶段8：数据库新技术实现全部完成，包括相邻索引、哈希索引和智能索引建议系统；阶段5.1：GUI最小可运行程序已完成；新增编译指南文档）

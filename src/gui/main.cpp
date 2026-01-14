@@ -12,20 +12,20 @@ int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
 
-    // 设置应用程序信息
-    app.setApplicationName("智能音乐播放管理系统");
+    // Set application information
+    app.setApplicationName("Intelligent Music Playback Management System");
     app.setApplicationVersion("0.4.0");
-    app.setOrganizationName("数据库新技术实践");
+    app.setOrganizationName("Database New Technology Practice");
 
-    // 设置全局字体（英文使用Segoe UI）
+    // Set global font (Segoe UI for all text)
     QFont segoeFont("Segoe UI", 9);
     segoeFont.setStyleHint(QFont::SansSerif);
     app.setFont(segoeFont);
 
-    // 设置应用程序样式（使用系统默认样式）
+    // Set application style (Fusion style for modern look)
     app.setStyle(QStyleFactory::create("Fusion"));
 
-    // 创建并显示主窗口
+    // Create and show main window
     MainWindow window;
     window.show();
 

@@ -130,11 +130,12 @@
   - `ContentBasedFiltering` - 内容推荐算法
   - `SimilarityCalculator` - 相似度计算器
 
-#### 2.2.8 GUI模块（进行中）
+#### 2.2.8 GUI模块（部分实现）
 - **职责**：用户界面
 - **主要类**：
   - `MainWindow` - 主窗口 ✅（已完成，2026-01-14）
-  - `TableManagementWidget` - 表管理界面（待开发）
+  - `TableManagementWidget` - 表管理界面 ✅（已完成，2026-01-14）
+  - `TableEditDialog` - 表编辑对话框 ✅（已完成，2026-01-14）
   - `DataOperationWidget` - 数据操作界面（待开发）
   - `SQLQueryWidget` - SQL查询界面（待开发）
   - `RecommendationWidget` - 推荐界面（待开发）
@@ -144,8 +145,28 @@
   - ✅ 基础UI组件：已完成（标签、按钮、菜单栏、状态栏）
   - ✅ 字体设置：已完成（英文使用Segoe UI）
   - ✅ 编译配置：已完成（CMakeLists.txt支持Qt和MOC）
-  - ⏳ 主界面布局：待开发
-  - ⏳ 功能模块界面：待开发
+  - ✅ 主界面布局：已完成（2026-01-14）
+    - 标签页系统（5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide）
+    - 状态栏显示数据库名称和当前时间
+    - 全局键盘快捷键（Ctrl+Q, F1, Ctrl+Tab等）
+    - 窗口标题包含版本号（v0.6.1）
+    - Guide标签页显示USER_GUIDE.md内容
+  - ✅ 数据库管理功能：已完成（2026-01-14）
+    - Create Database（创建数据库，Ctrl+N）
+    - Open Database（打开数据库，Ctrl+O）
+    - 数据库路径统一管理（由MainWindow管理）
+    - 状态栏显示当前数据库名称
+  - ✅ 表结构管理界面：已完成（2026-01-14）
+    - 表列表显示（左侧列表）
+    - 表信息显示（右侧详细信息面板）
+    - 创建表功能（TableEditDialog，支持字段定义）
+    - 编辑表功能（修改表结构）
+    - 删除表功能（带确认对话框）
+    - 刷新表列表功能
+  - ⏳ 数据操作界面：待开发
+  - ⏳ SQL执行界面：待开发
+  - ⏳ 推荐系统界面：待开发
+  - ⏳ 索引管理界面：待开发
 
 ## 3. 数据结构设计
 
