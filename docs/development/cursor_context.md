@@ -1,0 +1,435 @@
+# 项目进度跟踪文档 (cursor_context.md)
+
+> **说明**：本文档用于跟踪项目的最新进度和状态，当对话token达到限制需要开启新对话时，新对话可以参考此文档了解项目全貌。
+
+---
+
+## 项目基本信息
+
+- **项目名称**：智能音乐播放管理系统 (Intelligent Music Playback Management System)
+- **课程名称**：数据库新技术实践
+- **编程语言**：C++
+- **GUI框架**：Qt (C++)
+- **开发环境**：VSCode (Cursor)
+- **AI新技术**：智能音乐推荐系统
+- **项目开始时间**：2025年1月
+
+---
+
+## 项目当前状态
+
+### 整体进度
+- **阶段**：阶段4（查询实现）已完成 ✅
+- **当前任务**：准备开始阶段5（GUI开发）
+- **完成度**：80% (阶段1、阶段2、阶段3和阶段4全部完成，683个测试全部通过)
+
+### 已完成工作
+
+#### 项目初始化（已完成）
+1. ✅ 项目技术栈确定（C++, Qt 5.15.2, 智能音乐推荐系统）
+2. ✅ 项目文件夹结构创建（src, include, tests, scripts等完整结构）
+3. ✅ 基础文档创建（.cursorrules, README, 开发日志等）
+4. ✅ Git仓库初始化（.gitignore配置）
+5. ✅ 开发环境配置完成（CMake 4.2.1, Qt 5.15.2, MSVC编译器）
+6. ✅ CMake配置验证通过（Qt已正确找到并配置）
+7. ✅ 测试脚本框架创建（unit_tests, module_tests, integration_tests等）
+8. ✅ 文档结构重新组织（按core, development, project, technical, guides分类）
+9. ✅ .cursorrules文档更新规范添加完成
+
+#### 阶段1：核心数据结构与文件存储（已完成）
+1. ✅ **任务1.1**：定义核心数据结构
+   - TableMode结构体定义（字段结构）
+   - TableInfo结构（表结构信息）
+   - Record结构（记录数据）
+   - TableData结构（表数据信息）
+   - 常量定义（FIELD_NAME_LENGTH等）
+   - 辅助函数实现
+   - **测试结果**：36/36测试通过
+   - **文件**：`include/core/table_mode.h`
+
+2. ✅ **任务1.2**：实现.dbf文件读写
+   - TableManager类实现
+   - 表结构文件的读写操作
+   - 多表存储管理（使用'~'分隔符）
+   - 表的增删改查操作
+   - **测试结果**：30/30测试通过
+   - **文件**：`include/core/table_manager.h`, `src/core/table_manager.cpp`
+
+3. ✅ **任务1.3**：实现.dat文件读写
+   - DataManager类实现
+   - 数据文件的读写操作
+   - 多表数据存储管理
+   - 记录有效性标识管理（软删除）
+   - 记录的增删改查操作
+   - **测试结果**：38/38测试通过
+   - **文件**：`include/core/data_manager.h`, `src/core/data_manager.cpp`
+
+4. ✅ **任务1.4**：基础文件I/O封装
+   - FileManager类实现
+   - 文件操作基础接口封装
+   - 错误处理机制
+   - 文件路径管理（跨平台支持）
+   - **测试结果**：41/41测试通过
+   - **文件**：`include/core/file_manager.h`, `src/core/file_manager.cpp`
+
+**阶段1测试统计**：145个测试全部通过 ✅
+
+#### 阶段2：DDL实现（已完成）
+1. ✅ **任务2.1**：SQL解析器基础框架
+   - Token定义和TokenType枚举
+   - Lexer类实现（词法分析器）
+   - Parser类实现（语法分析器，支持DDL语句）
+   - AST节点结构定义（CreateTableNode, EditTableNode, RenameTableNode, DropTableNode）
+   - **测试结果**：78/78测试通过
+   - **文件**：`include/sql_parser/token.h`, `src/sql_parser/token.cpp`, `include/sql_parser/lexer.h`, `src/sql_parser/lexer.cpp`, `include/sql_parser/parser.h`, `src/sql_parser/parser.cpp`, `include/sql_parser/ast_node.h`, `src/sql_parser/ast_node.cpp`
+
+2. ✅ **任务2.2**：CREATE TABLE实现
+   - CreateTableHandler类实现
+   - CREATE TABLE语句解析和执行
+   - 表结构验证
+   - 调用TableManager创建表
+   - **测试结果**：24/24测试通过
+   - **文件**：`include/ddl/create_table_handler.h`, `src/ddl/create_table_handler.cpp`
+
+3. ✅ **任务2.3**：EDIT TABLE实现
+   - EditTableHandler类实现
+   - EDIT TABLE语句解析和执行
+   - 支持添加新字段和修改现有字段
+   - 字段定义验证
+   - **测试结果**：21/21测试通过
+   - **文件**：`include/ddl/edit_table_handler.h`, `src/ddl/edit_table_handler.cpp`
+
+4. ✅ **任务2.4**：RENAME TABLE实现
+   - RenameTableHandler类实现
+   - RENAME TABLE语句解析和执行
+   - 支持表名重命名（.dbf和.dat文件）
+   - 支持数据迁移（重命名时保留记录）
+   - **测试结果**：23/23测试通过
+   - **文件**：`include/ddl/rename_table_handler.h`, `src/ddl/rename_table_handler.cpp`
+
+5. ✅ **任务2.5**：DROP TABLE实现
+   - DropTableHandler类实现
+   - DROP TABLE语句解析和执行
+   - 支持删除表结构（.dbf文件）和表数据（.dat文件）
+   - **测试结果**：27/27测试通过
+   - **文件**：`include/ddl/drop_table_handler.h`, `src/ddl/drop_table_handler.cpp`
+
+6. ✅ **任务2.6**：DDL执行器整合
+   - DDLExecutor类实现
+   - 统一调度所有DDL语句
+   - 自动识别SQL语句类型
+   - 路由到对应的处理器
+   - **测试结果**：38/38测试通过
+   - **文件**：`include/ddl/ddl_executor.h`, `src/ddl/ddl_executor.cpp`
+
+**阶段2测试统计**：211个测试全部通过 ✅
+
+#### 阶段3：DML实现（已完成）
+1. ✅ **任务3.1**：INSERT实现
+   - InsertHandler类实现
+   - INSERT语句解析和执行
+   - 数据类型验证（int, float, double, char, string）
+   - NULL值处理
+   - 值数量验证
+   - **测试结果**：43/43测试通过
+   - **文件**：`include/dml/insert_handler.h`, `src/dml/insert_handler.cpp`
+
+2. ✅ **任务3.2**：DELETE实现
+   - DeleteHandler类实现
+   - DELETE语句解析和执行
+   - WHERE子句条件评估器
+   - 记录删除逻辑（软删除，标记为无效）
+   - 支持删除单条和多条记录
+   - **测试结果**：38/38测试通过
+   - **文件**：`include/dml/delete_handler.h`, `src/dml/delete_handler.cpp`
+
+3. ✅ **任务3.3**：UPDATE实现
+   - UpdateHandler类实现
+   - UPDATE语句解析和执行
+   - SET子句处理（更新字段值）
+   - WHERE子句条件评估
+   - 数据类型验证和转换
+   - NULL值处理
+   - 支持更新单条和多条记录
+   - **测试结果**：43/43测试通过
+   - **文件**：`include/dml/update_handler.h`, `src/dml/update_handler.cpp`
+
+4. ✅ **任务3.4**：DML执行器整合
+   - DMLExecutor类实现
+   - 统一调度所有DML语句（INSERT/DELETE/UPDATE）
+   - 自动识别SQL语句类型
+   - 路由到对应的处理器
+   - 统一的错误处理接口
+   - getAffectedRows方法获取影响的记录数
+   - **测试结果**：42/42测试通过
+   - **文件**：`include/dml/dml_executor.h`, `src/dml/dml_executor.cpp`
+
+**阶段3测试统计**：166个测试全部通过 ✅
+
+#### 阶段4：查询实现（已完成）
+1. ✅ **任务4.1**：SELECT单表查询
+   - SelectHandler类实现
+   - SELECT语句解析和执行
+   - 投影操作（字段选择，支持*和指定字段）
+   - WHERE子句条件过滤（支持等号比较）
+   - QueryResult结果结构
+   - **测试结果**：30/30测试通过
+   - **文件**：`include/query/select_handler.h`, `src/query/select_handler.cpp`
+
+2. ✅ **任务4.2**：SELECT多表查询
+   - 扩展SelectHandler支持多表查询
+   - 实现笛卡尔积计算（generateCartesianProduct）
+   - 实现多表投影操作（projectMultiTableFields）
+   - 实现多表WHERE条件评估（evaluateMultiTableCondition）
+   - 支持简单字段名和TableName.FieldName格式
+   - SELECT *自动生成TableName.FieldName格式的列名
+   - **测试结果**：50/50测试通过
+   - **文件**：`src/query/select_handler.cpp`（扩展）
+
+3. ✅ **任务4.3**：SELECT连接查询（JOIN）
+   - 在TokenType中添加JOIN相关关键词（JOIN, ON, INNER, LEFT, RIGHT）
+   - 在AST节点中添加JoinInfo结构
+   - 扩展Parser支持JOIN语法解析
+   - 实现executeJoinQuery方法
+   - 支持INNER JOIN（内连接）
+   - 支持LEFT JOIN（左连接，包括NULL值处理）
+   - 支持JOIN条件（ON子句中的等值连接）
+   - 支持JOIN查询带WHERE条件
+   - **测试结果**：57/57测试通过
+   - **文件**：`include/sql_parser/token.h`, `src/sql_parser/token.cpp`, `include/sql_parser/ast_node.h`, `src/sql_parser/parser.cpp`, `src/query/select_handler.cpp`（扩展）
+
+4. ✅ **任务4.4**：查询执行器整合
+   - QueryExecutor统一执行器创建
+   - SQL语句类型识别（DDL、DML、QUERY）
+   - 语句路由（自动分发到相应执行器）
+   - ExecutionResult结果结构
+   - 查询结果格式化输出（表格格式）
+   - 支持DDL、DML、查询语句统一执行
+   - 错误处理和错误信息返回
+   - **测试结果**：24/24测试通过
+   - **文件**：`include/query/query_executor.h`, `src/query/query_executor.cpp`
+
+**阶段4测试统计**：161个测试全部通过 ✅
+
+### 待开始工作
+1. ⏳ 阶段5：Qt GUI界面开发
+2. ⏳ 阶段6：AI智能推荐算法实现
+3. ⏳ 阶段7：系统测试与优化
+
+---
+
+## 项目结构
+
+```
+database-design/
+├── src/                    # 源代码目录
+│   ├── core/              # 核心功能（文件操作、数据结构）
+│   ├── ddl/               # DDL实现
+│   ├── dml/               # DML实现
+│   ├── query/             # 查询实现
+│   ├── sql_parser/        # SQL解析
+│   ├── ai/                # AI推荐算法
+│   └── gui/               # Qt界面
+├── include/                # 头文件目录（与src结构对应）
+├── resources/              # 资源文件
+├── tests/                  # 测试代码
+├── build/                  # 构建输出
+├── examples/               # 示例文件
+├── data/                   # 数据文件（.dbf, .dat）
+├── docs/                   # 文档目录（已分类组织）
+│   ├── core/              # 核心文档（开发日志、迭代记录、项目报告）
+│   ├── development/       # 开发相关文档（进度跟踪、任务指南）
+│   ├── project/           # 项目相关文档（架构设计、初始化总结）
+│   ├── technical/         # 技术文档（技术分析、需求对齐、流程分析）
+│   ├── guides/            # 指南文档（环境配置、初始化指南）
+│   └── README.md          # 文档目录说明
+├── .cursorrules            # Cursor项目规则
+├── README.md               # 项目说明
+└── .gitignore              # Git忽略文件
+```
+
+---
+
+## 数据库设计（智能音乐播放管理系统）
+
+### 核心数据表设计（计划）
+
+#### 1. 用户表 (Users)
+- 用户ID (UserID, int, KEY)
+- 用户名 (UserName, char[50])
+- 注册时间 (RegisterTime, char[20])
+
+#### 2. 歌曲表 (Songs)
+- 歌曲ID (SongID, int, KEY)
+- 歌曲名 (SongName, char[100])
+- 艺术家 (Artist, char[50])
+- 风格 (Genre, char[30])
+- 年代 (Year, int)
+- 时长 (Duration, int) - 单位：秒
+
+#### 3. 播放记录表 (PlayRecords)
+- 记录ID (RecordID, int, KEY)
+- 用户ID (UserID, int)
+- 歌曲ID (SongID, int)
+- 播放时间 (PlayTime, char[20])
+- 播放次数 (PlayCount, int)
+
+#### 4. 歌单表 (Playlists)
+- 歌单ID (PlaylistID, int, KEY)
+- 用户ID (UserID, int)
+- 歌单名 (PlaylistName, char[100])
+- 创建时间 (CreateTime, char[20])
+
+#### 5. 歌单-歌曲关联表 (PlaylistSongs)
+- 关联ID (RelationID, int, KEY)
+- 歌单ID (PlaylistID, int)
+- 歌曲ID (SongID, int)
+
+---
+
+## AI推荐系统设计
+
+### 技术方案
+- **主要算法**：协同过滤（用户协同/物品协同）
+- **辅助算法**：内容推荐（基于歌曲特征相似度）
+- **相似度计算**：余弦相似度、欧氏距离
+
+### 实现计划
+1. 构建用户-歌曲播放矩阵
+2. 提取歌曲特征向量
+3. 实现相似度计算函数
+4. 实现推荐算法核心逻辑
+5. 在Qt界面展示推荐结果
+
+---
+
+## 关键技术决策
+
+1. **文件存储格式**
+   - .dbf文件：存储表结构（使用分隔符'~'）
+   - .dat文件：存储记录数据（使用分隔符'~'）
+   - 存储方式：先使用变长方式，后续可优化
+
+2. **SQL语法**
+   - 自定义SQL语法（参考课程要求格式）
+   - 支持DDL、DML、查询语句
+
+3. **Qt版本**
+   - 建议使用Qt 5.15+ 或 Qt 6.x
+   - 使用Qt Designer设计界面
+
+4. **C++标准**
+   - 使用C++14或C++17
+
+---
+
+## 开发计划（初步）
+
+### 第一阶段：核心数据结构与文件存储 ✅（已完成）
+- ✅ 定义TableMode结构
+- ✅ 实现.dbf文件读写
+- ✅ 实现.dat文件读写
+- ✅ 基础文件I/O封装
+- ✅ 基础测试（145个测试全部通过）
+
+### 第二阶段：DDL实现 ✅（已完成）
+- ✅ SQL解析器（词法分析、语法分析、AST设计）
+- ✅ CREATE TABLE实现
+- ✅ EDIT TABLE实现
+- ✅ RENAME TABLE实现
+- ✅ DROP TABLE实现
+- ✅ DDL执行器整合
+- ✅ 基础测试（211个测试全部通过）
+
+### 第三阶段：DML实现 ✅（已完成）
+- ✅ INSERT实现
+- ✅ DELETE实现
+- ✅ UPDATE实现
+- ✅ DML执行器整合
+- ✅ 基础测试（166个测试全部通过）
+
+### 第四阶段：查询实现 ✅（已完成）
+- ✅ SELECT单表查询（30测试通过）
+- ✅ SELECT多表查询（50测试通过）
+- ✅ SELECT连接查询（57测试通过）
+- ✅ 查询执行器整合（24测试通过）
+- ✅ 基础测试（161个测试全部通过）
+
+### 第五阶段：GUI开发
+- Qt界面设计
+- 表管理界面
+- 数据操作界面
+- SQL执行界面
+- 推荐系统界面
+
+### 第六阶段：AI推荐系统
+- 推荐算法实现
+- 推荐界面集成
+- 算法测试与优化
+
+### 第七阶段：测试与优化
+- 单元测试
+- 集成测试
+- 性能优化
+- 文档完善
+
+---
+
+## 当前遇到的问题
+
+暂无（阶段1开发顺利，所有测试通过）
+
+---
+
+## 下一步行动
+
+1. 开始阶段4：查询实现
+   - SELECT单表查询实现
+   - SELECT多表查询实现
+   - SELECT连接查询实现
+   - 查询执行器整合
+
+---
+
+## 重要链接和参考
+
+- Qt文档：https://doc.qt.io/
+- C++参考：https://en.cppreference.com/
+- 课程参考书籍：《数据库管理系统内部结构及其C语言实现》
+
+---
+
+## 更新记录
+
+- **2025-01-12**：项目初始化，创建项目结构和基础文档
+- **2025-01-12**：环境配置完成（CMake, Qt, MSVC），文档结构重新组织，准备开始开发
+- **2025-01-12**：阶段1全部完成
+  - 任务1.1：定义核心数据结构（36测试通过）
+  - 任务1.2：实现.dbf文件读写（30测试通过）
+  - 任务1.3：实现.dat文件读写（38测试通过）
+  - 任务1.4：基础文件I/O封装（41测试通过）
+  - 总计：145个测试全部通过
+- **2025-01-12**：阶段2全部完成
+  - 任务2.1：SQL解析器基础框架（78测试通过）
+  - 任务2.2：CREATE TABLE实现（24测试通过）
+  - 任务2.3：EDIT TABLE实现（21测试通过）
+  - 任务2.4：RENAME TABLE实现（23测试通过）
+  - 任务2.5：DROP TABLE实现（27测试通过）
+  - 任务2.6：DDL执行器整合（38测试通过）
+  - 总计：211个测试全部通过
+- **2025-01-12**：阶段3全部完成
+  - 任务3.1：INSERT实现（43测试通过）
+  - 任务3.2：DELETE实现（38测试通过）
+  - 任务3.3：UPDATE实现（43测试通过）
+  - 任务3.4：DML执行器整合（42测试通过）
+  - 总计：166个测试全部通过
+- **2025-01-12**：阶段4全部完成
+  - 任务4.1：SELECT单表查询（30测试通过）
+  - 任务4.2：SELECT多表查询（50测试通过）
+  - 任务4.3：SELECT连接查询（57测试通过）
+  - 任务4.4：查询执行器整合（24测试通过）
+  - 总计：161个测试全部通过
+
+---
+
+**最后更新时间**：2025-01-12
