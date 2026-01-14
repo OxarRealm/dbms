@@ -5,10 +5,13 @@
 
 #include "query/query_executor.h"
 #include "sql_parser/lexer.h"
+#include "sql_parser/parser.h"
+#include "sql_parser/ast_node.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <cstring>
+#include <chrono>
 
 QueryExecutor::QueryExecutor() {
 }
@@ -63,6 +66,11 @@ void QueryExecutor::setDatabasePath(const std::string& dbPath) {
     m_ddlExecutor.setDatabasePath(dbPath);
     m_dmlExecutor.setDatabasePath(dbPath);
     m_selectHandler.setDatabasePath(dbPath);
+    m_indexAdvisor.setDatabasePath(dbPath);
+}
+
+IndexAdvisor& QueryExecutor::getIndexAdvisor() {
+    return m_indexAdvisor;
 }
 
 std::string QueryExecutor::getLastError() const {
@@ -201,10 +209,44 @@ bool QueryExecutor::executeDML(const std::string& sql, ExecutionResult& result) 
 }
 
 bool QueryExecutor::executeQuery(const std::string& sql, ExecutionResult& result) {
-    if (!m_selectHandler.execute(sql, result.queryResult)) {
+    // 记录查询开始时间
+    auto startTime = std::chrono::high_resolution_clock::now();
+    
+    // 解析SQL以提取表名和WHERE字段
+    Parser parser(sql);
+    std::unique_ptr<ASTNode> ast = parser.parse();
+    std::string tableName = "";
+    std::vector<std::string> whereFields;
+    
+    if (ast) {
+        SelectNode* selectNode = dynamic_cast<SelectNode*>(ast.get());
+        if (selectNode && !selectNode->fromTables.empty()) {
+            tableName = selectNode->fromTables[0];  // 单表查询，取第一个表
+            if (!selectNode->whereField.empty()) {
+                whereFields.push_back(selectNode->whereField);
+            }
+        }
+    }
+    
+    // 执行查询
+    bool success = m_selectHandler.execute(sql, result.queryResult);
+    
+    // 记录查询结束时间
+    auto endTime = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(endTime - startTime);
+    double executionTimeMs = duration.count() / 1000.0;  // 转换为毫秒
+    
+    // 记录查询日志（无论成功与否，都记录用于分析）
+    if (!tableName.empty()) {
+        size_t resultCount = success ? result.queryResult.rowCount : 0;
+        m_indexAdvisor.logQuery(sql, tableName, whereFields, executionTimeMs, resultCount);
+    }
+    
+    if (!success) {
         setError(m_selectHandler.getLastError());
         return false;
     }
+    
     result.affectedRows = result.queryResult.rowCount;
     return true;
 }

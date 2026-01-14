@@ -4,8 +4,10 @@
 #include "dml/dml_executor.h"
 #include "query/select_handler.h"
 #include "sql_parser/parser.h"
+#include "index/index_advisor.h"
 #include <string>
 #include <memory>
+#include <chrono>
 
 /**
  * @file query_executor.h
@@ -58,6 +60,12 @@ public:
      * @param dbPath 数据库文件路径（不含扩展名）
      */
     void setDatabasePath(const std::string& dbPath);
+
+    /**
+     * @brief 获取索引建议器（用于查询日志记录和索引推荐）
+     * @return IndexAdvisor引用
+     */
+    IndexAdvisor& getIndexAdvisor();
     
     /**
      * @brief 获取最后的错误信息
@@ -82,6 +90,7 @@ private:
     DDLExecutor m_ddlExecutor;        // DDL执行器
     DMLExecutor m_dmlExecutor;        // DML执行器
     SelectHandler m_selectHandler;    // SELECT查询处理器
+    IndexAdvisor m_indexAdvisor;      // 索引建议器
     std::string m_lastError;          // 最后的错误信息
     std::string m_databasePath;      // 数据库路径
     

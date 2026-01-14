@@ -32,7 +32,9 @@ unit_tests/
 │   ├── test_adjacent_index.cpp
 │   ├── run_test_adjacent_index.ps1
 │   ├── test_hash_index.cpp
-│   └── run_test_hash_index.ps1
+│   ├── run_test_hash_index.ps1
+│   ├── test_index_advisor.cpp
+│   └── run_test_index_advisor.ps1
 └── run_unit_tests.ps1 # 运行所有测试的主脚本
 ```
 
@@ -54,6 +56,10 @@ cd index
 # 例如：运行哈希索引测试
 cd index
 .\run_test_hash_index.ps1
+
+# 例如：运行智能索引建议系统测试
+cd index
+.\run_test_index_advisor.ps1
 ```
 
 ### 运行所有测试
@@ -97,6 +103,12 @@ cd index
 - test_select_handler: 161个测试（包含单表、多表、JOIN查询）
 - test_query_executor: 24个测试
 - **总计**: 185个测试
+
+### 索引技术 (index)
+- test_adjacent_index: 28个测试
+- test_hash_index: 29个测试
+- test_index_advisor: 14个测试（智能索引建议系统）
+- **总计**: 71个测试
 
 ### 索引技术 (index)
 - test_adjacent_index: 28个测试
