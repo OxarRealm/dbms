@@ -430,13 +430,86 @@ IndexAdvisor类：
 - 设置窗口标题和初始大小（800x600）
 - 设置字体（英文使用Segoe UI，符合项目规范）
 
-**3.9.2 界面布局**（待开发）
-- 主界面布局结构（标签页系统、功能导航）
-- 表结构管理界面
-- 数据操作界面
-- SQL执行界面
-- 推荐系统界面
-- 索引管理界面
+**3.9.2 主界面布局** ✅（已完成，2026-01-14）
+- 实现标签页系统（QTabWidget）
+- 5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide
+- 所有文字改为英文，字体使用Segoe UI
+- 状态栏显示数据库名称和当前时间（实时更新）
+- 全局键盘快捷键（Ctrl+Q退出, F1关于, Ctrl+Tab切换标签页等）
+- 窗口标题包含版本号（v0.6.1）
+- Guide标签页显示USER_GUIDE.md内容（与文档同步）
+
+**3.9.3 数据库管理功能** ✅（已完成，2026-01-14）
+- 实现Create Database功能（File -> Create Database，Ctrl+N）
+  - 使用QFileDialog选择保存位置和文件名
+  - 自动创建.dbf和.dat文件（空文件）
+  - 创建成功后自动加载数据库
+- 实现Open Database功能（File -> Open Database，Ctrl+O）
+  - 使用QFileDialog选择.dbf文件
+  - 自动提取数据库路径并加载
+  - 打开成功后更新状态栏和所有相关界面
+
+**3.9.4 表结构管理界面** ✅（已完成，2026-01-14）
+- 实现TableManagementWidget组件
+  - 左侧：表列表（QListWidget）
+  - 右侧：表信息显示（字段列表、类型、属性等）
+  - 底部：操作按钮（Create, Edit, Delete, Refresh）
+- 实现TableEditDialog对话框
+  - 创建表模式：输入表名和字段定义
+  - 编辑表模式：加载现有表结构并允许修改
+  - 字段管理：添加、删除、上移、下移字段
+  - 字段属性：类型、大小、KEY/NOT_KEY、NULL/NO_NULL、VALID/INVALID
+- 集成TableManager后端
+  - 创建表：调用TableManager::createTable()
+  - 编辑表：调用TableManager::updateTable()
+  - 删除表：调用TableManager::deleteTable()
+  - 刷新列表：调用TableManager::getAllTableNames()
+
+**3.9.5 数据操作界面** ✅（已完成，2026-01-14）
+- 实现DataOperationWidget组件
+  - 表选择下拉框（QComboBox）
+  - 数据表格显示（QTableWidget，显示所有有效记录）
+  - 操作按钮（Insert, Edit, Delete, Refresh）
+  - 状态标签（显示表名和记录数）
+- 实现RecordEditDialog对话框
+  - 动态生成字段输入表单（根据表结构）
+  - 字段标签显示KEY和必填标识（*）
+  - 数据类型验证（int, float, double）
+  - NULL约束检查
+  - 关闭事件处理（确认对话框）
+- 实现插入记录功能
+  - 打开RecordEditDialog对话框
+  - 数据验证和类型转换
+  - 调用DataManager插入记录
+  - 插入成功后自动刷新表格
+- 实现编辑记录功能
+  - 选择记录后打开编辑对话框
+  - 加载选中记录的数据
+  - 修改后保存（处理有效记录索引映射）
+  - 更新成功后自动刷新表格
+- 实现删除记录功能
+  - 选择记录后显示确认对话框
+  - 标记记录为无效（软删除）
+  - 处理有效记录索引映射
+  - 删除成功后自动刷新表格
+- 实现表列表自动刷新
+  - 切换标签页时自动刷新（onTabChanged）
+  - 设置数据库路径时自动刷新（setCurrentDatabase）
+  - 创建新表后自动刷新（通过标签页切换触发）
+
+**3.9.6 SQL执行界面**（待开发）
+- SQL输入区域（QTextEdit）
+- SQL执行按钮
+- 结果显示区域（QTableWidget）
+- 错误提示
+
+**3.9.7 推荐系统界面**（待开发）
+- 推荐查询输入
+- 推荐结果展示
+
+**3.9.8 索引管理界面**（待开发）
+- 索引列表显示
+- 索引创建和管理
 
 **实现文件**：
 - `include/gui/main_window.h` - 主窗口头文件
@@ -607,5 +680,9 @@ IndexAdvisor类：
 
 **更新内容**：
 - 阶段5.1（GUI最小可运行程序）已完成
+- 阶段5.2（GUI主界面布局）已完成
+- 阶段5.3（GUI数据库管理和表结构管理界面）已完成
+- 阶段5.4（GUI数据操作界面）已完成
 - GUI程序能够成功编译并运行
 - 主窗口正常显示，所有基础功能正常工作
+- 数据库管理、表管理、数据操作功能已实现并测试通过

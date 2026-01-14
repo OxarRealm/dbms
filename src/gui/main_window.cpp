@@ -5,6 +5,7 @@
 
 #include "gui/main_window.h"
 #include "gui/table_management_widget.h"
+#include "gui/data_operation_widget.h"
 #include <QMessageBox>
 #include <QApplication>
 #include <QMenu>
@@ -34,6 +35,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_currentDatabase("")
     , m_databasePath("")
     , m_tableManagementWidget(nullptr)
+    , m_dataOperationWidget(nullptr)
 {
     setupFonts();
     setupUI();
@@ -116,26 +118,12 @@ QWidget* MainWindow::createTableManagementTab()
 
 QWidget* MainWindow::createDataOperationTab()
 {
-    QWidget *tab = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(tab);
-    layout->setSpacing(10);
-    layout->setContentsMargins(15, 15, 15, 15);
-
-    // Title label
-    QLabel *titleLabel = new QLabel("Data Operation", tab);
-    titleLabel->setFont(QFont("Segoe UI", 12, QFont::Bold));
-    layout->addWidget(titleLabel);
-
-    // Info label
-    QLabel *infoLabel = new QLabel("This section allows you to insert, update, delete, and view records in database tables.", tab);
-    infoLabel->setFont(QFont("Segoe UI", 9));
-    infoLabel->setWordWrap(true);
-    layout->addWidget(infoLabel);
-
-    // Add stretch
-    layout->addStretch();
-
-    return tab;
+    m_dataOperationWidget = new DataOperationWidget(this);
+    // If database is already loaded, set it
+    if (!m_databasePath.empty()) {
+        m_dataOperationWidget->setDatabasePath(m_databasePath);
+    }
+    return m_dataOperationWidget;
 }
 
 QWidget* MainWindow::createSQLExecutionTab()
@@ -401,6 +389,12 @@ void MainWindow::setCurrentDatabase(const std::string& dbPath)
         m_tableManagementWidget->refreshTableList();
     }
     
+    // Update data operation widget if it exists
+    if (m_dataOperationWidget) {
+        m_dataOperationWidget->setDatabasePath(m_databasePath);
+        m_dataOperationWidget->loadTableList();  // Refresh table list
+    }
+    
     // Update status bar message
     statusBar()->showMessage(QString("Database: %1").arg(m_currentDatabase), 3000);
 }
@@ -469,5 +463,10 @@ void MainWindow::onTabChanged(int index)
 {
     QString tabName = m_tabWidget->tabText(index);
     statusBar()->showMessage(QString("Switched to: %1").arg(tabName), 2000);
+    
+    // Refresh Data Operation tab when switching to it
+    if (tabName == "Data Operation" && m_dataOperationWidget) {
+        m_dataOperationWidget->loadTableList();
+    }
 }
 

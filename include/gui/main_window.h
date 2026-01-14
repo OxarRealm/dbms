@@ -149,5 +149,6 @@ private:
     
     // Tab widgets (for updating database path)
     class TableManagementWidget *m_tableManagementWidget;  // Table management widget
+    class DataOperationWidget *m_dataOperationWidget;     // Data operation widget
 };
 

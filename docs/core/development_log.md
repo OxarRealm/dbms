@@ -730,10 +730,80 @@
 - `src/gui/table_management_widget.cpp` - 表管理组件实现（新建）
 
 **下一步计划**：
-1. 实现数据操作界面（插入、更新、删除记录）
+1. ✅ 实现数据操作界面（已完成，2026-01-14）
 2. 实现SQL执行界面（SQL输入和执行）
 3. 实现索引管理界面
 4. 实现推荐系统界面
+
+---
+
+### 数据操作界面开发
+
+**时间**：2026-01-14
+
+**完成工作**：
+1. ✅ 创建DataOperationWidget类
+   - 实现数据表格显示（QTableWidget）
+   - 实现表选择下拉框（QComboBox）
+   - 实现操作按钮（Insert, Edit, Delete, Refresh）
+
+2. ✅ 实现RecordEditDialog对话框
+   - 动态生成字段输入表单（根据表结构）
+   - 字段标签显示KEY和必填标识（*）
+   - 数据类型验证（int, float, double）
+   - NULL约束检查
+   - 关闭事件处理（确认对话框）
+
+3. ✅ 实现插入记录功能
+   - 打开RecordEditDialog对话框
+   - 数据验证和类型转换
+   - 调用DataManager插入记录
+   - 插入成功后自动刷新表格
+
+4. ✅ 实现编辑记录功能
+   - 选择记录后打开编辑对话框
+   - 加载选中记录的数据
+   - 修改后保存（处理有效记录索引映射）
+   - 更新成功后自动刷新表格
+
+5. ✅ 实现删除记录功能
+   - 选择记录后显示确认对话框
+   - 标记记录为无效（软删除）
+   - 处理有效记录索引映射
+   - 删除成功后自动刷新表格
+
+6. ✅ 实现表列表自动刷新
+   - 切换标签页时自动刷新（onTabChanged）
+   - 设置数据库路径时自动刷新（setCurrentDatabase）
+   - 创建新表后自动刷新（通过标签页切换触发）
+
+7. ✅ 修复编译错误
+   - 修复`TableInfo`未定义问题（改为包含`core/table_mode.h`而非前向声明）
+   - 更新CMakeLists.txt添加`data_operation_widget.h`到MOC处理列表
+
+**遇到的问题和解决方案**：
+1. **问题**：编译错误 - `TableInfo`未定义
+   - **原因**：在头文件中只使用了前向声明，但`TableInfo`作为对象成员需要完整定义
+   - **解决方案**：在`data_operation_widget.h`中包含`#include "core/table_mode.h"`
+
+2. **问题**：创建新表后，Data Operation标签页的表列表没有更新
+   - **原因**：`TableManagementWidget`创建表后只刷新了自己的列表，没有通知`DataOperationWidget`
+   - **解决方案**：
+     - 在`MainWindow::onTabChanged()`中添加切换到Data Operation标签页时自动刷新表列表
+     - 在`MainWindow::setCurrentDatabase()`中添加刷新表列表的逻辑
+     - 将`DataOperationWidget::loadTableList()`设为public方法
+
+**文件**：
+- `include/gui/data_operation_widget.h` - 数据操作界面头文件
+- `src/gui/data_operation_widget.cpp` - 数据操作界面实现
+- `include/gui/main_window.h` - 主窗口头文件（更新）
+- `src/gui/main_window.cpp` - 主窗口实现（更新）
+- `CMakeLists.txt` - 构建配置（更新）
+
+**下一步计划**：
+1. 实现SQL执行界面（SQL输入和执行）
+2. 实现索引管理界面
+3. 实现推荐系统界面
 
 ---
 

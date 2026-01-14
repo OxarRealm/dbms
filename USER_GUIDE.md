@@ -157,15 +157,44 @@ DROP TABLE TableName IN MusicDB;
 
 ## Data Operations
 
+The **Data Operation** tab allows you to insert, view, edit, and delete records in database tables.
+
+### Selecting a Table
+
+1. Navigate to the **Data Operation** tab
+2. Select a table from the **Table** dropdown
+3. The table's records will be automatically displayed in the data table below
+4. The status bar shows the table name and record count
+
+**Note**: The table list is automatically refreshed when you:
+- Switch to the Data Operation tab
+- Create a new table in the Table Management tab (switch to Data Operation tab to see it)
+- Open a database
+
+### Viewing Records
+
+1. Navigate to the **Data Operation** tab
+2. Select a table from the dropdown
+3. All valid records will be displayed in a table view:
+   - Each row represents one record
+   - Each column represents one field
+   - Key fields are marked with "(KEY)" in the column header
+   - The table shows only valid (non-deleted) records
+
 ### Inserting Records
 
 **Method 1: Using GUI**
 
 1. Navigate to the **Data Operation** tab
 2. Select a table from the dropdown
-3. Click **Insert Record**
-4. Enter field values in the form
-5. Click **Insert**
+3. Click the **Insert** button
+4. In the "Insert Record" dialog:
+   - Enter values for each field
+   - Fields marked with "*" are required (NOT NULL)
+   - Fields marked with "(KEY)" are key fields
+   - The system validates data types automatically
+5. Click **Insert** to save the record
+6. The record will be added and the table will refresh automatically
 
 **Method 2: Using SQL**
 
@@ -173,16 +202,21 @@ DROP TABLE TableName IN MusicDB;
 INSERT INTO Songs VALUES (1, 'Bohemian Rhapsody', 'Queen', 'Rock', 1975, 355) IN MusicDB;
 ```
 
-### Viewing Records
+### Editing Records
+
+**Method 1: Using GUI**
 
 1. Navigate to the **Data Operation** tab
-2. Select a table
-3. Records will be displayed in a table view
-4. Use pagination controls if available
+2. Select a table from the dropdown
+3. Select a record by clicking on a row in the data table
+4. Click the **Edit** button
+5. In the "Edit Record" dialog:
+   - Modify field values as needed
+   - The system validates data types and constraints
+6. Click **Save** to save changes
+7. The record will be updated and the table will refresh automatically
 
-### Updating Records
-
-**Using SQL:**
+**Method 2: Using SQL**
 
 ```sql
 UPDATE Songs (
@@ -193,11 +227,25 @@ UPDATE Songs (
 
 ### Deleting Records
 
-**Using SQL:**
+**Method 1: Using GUI**
+
+1. Navigate to the **Data Operation** tab
+2. Select a table from the dropdown
+3. Select a record by clicking on a row in the data table
+4. Click the **Delete** button
+5. Confirm deletion in the dialog
+6. The record will be marked as invalid (soft delete) and the table will refresh automatically
+
+**Method 2: Using SQL**
 
 ```sql
 DELETE FROM Songs WHERE SongID=1 IN MusicDB;
 ```
+
+### Refreshing Data
+
+1. Click the **Refresh** button to reload the current table's records
+2. Or switch to another tab and back to automatically refresh
 
 ---
 

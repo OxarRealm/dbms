@@ -175,9 +175,18 @@ file(GLOB_RECURSE GUI_SOURCES "src/gui/*.cpp" "src/gui/*.ui")
 
 #### 3.2 头文件显式添加（Qt MOC）
 ```cmake
-set(GUI_HEADERS "include/gui/main_window.h")
+# 显式添加需要 MOC 处理的头文件
+set(GUI_HEADERS
+    "include/gui/main_window.h"
+    "include/gui/table_management_widget.h"
+    "include/gui/data_operation_widget.h"
+)
 set(SOURCES ${CORE_SOURCES} ... ${GUI_HEADERS})
 ```
+
+**关键点**：
+- 所有包含`Q_OBJECT`宏的头文件都必须添加到`GUI_HEADERS`列表
+- 新添加的GUI组件头文件必须及时更新到此列表
 
 ---
 
@@ -502,7 +511,8 @@ ls build/bin/Release/
 - [ ] `/utf-8`编译选项已添加（Windows MSVC）
 - [ ] Qt路径配置正确
 - [ ] `CMAKE_AUTOMOC ON`已设置
-- [ ] 所有包含`Q_OBJECT`的头文件已添加到源文件列表
+- [ ] 所有包含`Q_OBJECT`的头文件已添加到`GUI_HEADERS`列表
+- [ ] `GUI_HEADERS`已添加到`SOURCES`列表
 - [ ] 所有源文件目录已包含
 
 ### 源代码检查
@@ -511,6 +521,8 @@ ls build/bin/Release/
 - [ ] 所有Qt类都有对应的`#include <Q...>`
 - [ ] 所有标准库类型都有对应的`#include`
 - [ ] 所有项目类都有对应的`#include "..."`
+- [ ] 对象成员（非指针/引用）的类型已包含完整定义
+- [ ] 指针/引用成员可以使用前向声明
 
 ### 编译验证
 - [ ] CMake配置成功（无错误）
@@ -535,8 +547,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-# 3. Qt MOC头文件显式添加
-set(GUI_HEADERS "include/gui/main_window.h")
+# 3. Qt MOC头文件显式添加（所有包含Q_OBJECT的头文件）
+set(GUI_HEADERS
+    "include/gui/main_window.h"
+    "include/gui/table_management_widget.h"
+    "include/gui/data_operation_widget.h"
+)
 set(SOURCES ... ${GUI_HEADERS})
 
 # 4. Qt路径配置
@@ -561,6 +577,10 @@ class MainWindow : public QMainWindow {
 **避免重复定义**：
 - `parseSelect()`只在`parser_select.cpp`中实现
 - `parser.cpp`中已删除该函数实现
+
+**类型定义规则**：
+- 对象成员必须包含完整定义（不能只用前向声明）
+- `data_operation_widget.h`中`TableInfo`和`Record`需要`#include "core/table_mode.h"`
 
 ---
 
