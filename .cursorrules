@@ -121,6 +121,7 @@ SELECT * FROM TableName1, TableName2 WHERE Condition;
 - 界面布局使用布局管理器，避免固定坐标
 - 保持界面简洁、美观、易用
 - 中文界面
+- **字体要求**：所有英文文本使用Segoe UI字体（通过QFont设置）
 
 ### 2. 主要界面模块
 - 表结构管理界面（创建、查看、修改表）

@@ -537,9 +537,82 @@
 
 ---
 
-## 待补充
+## 2026-01-14（下午）
 
-后续开发过程中的重要事件将在此记录。
+### 阶段5.1：GUI最小可运行程序完成
+
+**时间**：2026-01-14
+
+**完成工作**：
+
+1. ✅ **GUI目录结构创建**
+   - 创建`include/gui/`和`src/gui/`目录
+   - 配置CMakeLists.txt支持Qt GUI
+   - 更新.cursorrules添加字体规范（Segoe UI）
+
+2. ✅ **主窗口类实现**
+   - 创建`include/gui/main_window.h`和`src/gui/main_window.cpp`
+   - 实现MainWindow类（继承自QMainWindow）
+   - 实现基础UI组件（欢迎标签、测试按钮）
+   - 实现菜单栏（文件菜单：退出；帮助菜单：关于）
+   - 实现状态栏（显示"就绪"状态）
+   - 设置窗口标题和初始大小（800x600）
+
+3. ✅ **应用程序入口实现**
+   - 创建`src/gui/main.cpp`
+   - 实现QApplication初始化和配置
+   - 设置应用程序信息（名称、版本、组织）
+   - 设置全局字体（英文使用Segoe UI）
+   - 设置应用程序样式（Fusion）
+
+4. ✅ **编译问题修复**
+   - 修复`parser_select.cpp`缺少头文件包含问题（添加`#include "sql_parser/parser.h"`）
+   - 修复`parser.cpp`和`parser_select.cpp`中`parseSelect()`重复定义问题（删除`parser.cpp`中的实现）
+   - 修复Qt MOC未处理`main_window.h`的问题（在CMakeLists.txt中显式添加GUI头文件）
+   - 添加`/utf-8`编译选项解决编码问题（C4819警告）
+
+**技术决策**：
+- 使用Qt 5.15.2的QMainWindow作为主窗口基类
+- 使用QVBoxLayout进行垂直布局
+- 使用QFont设置英文字体为Segoe UI（符合项目规范）
+- 使用Qt的信号槽机制处理按钮点击事件
+- 使用CMake的AUTOMOC自动处理Q_OBJECT宏
+
+**遇到的问题**：
+1. **编译错误**：`parser_select.cpp`缺少头文件包含
+   - **原因**：文件缺少`#include "sql_parser/parser.h"`
+   - **解决**：添加必要的头文件包含
+
+2. **链接错误**：`parseSelect()`函数重复定义
+   - **原因**：`parser.cpp`和`parser_select.cpp`中都定义了`parseSelect()`
+   - **解决**：删除`parser.cpp`中的实现，保留`parser_select.cpp`中的完整实现（支持JOIN）
+
+3. **链接错误**：Qt MOC元对象代码未生成
+   - **原因**：CMake的AUTOMOC未识别`include/gui/main_window.h`
+   - **解决**：在CMakeLists.txt中显式添加GUI头文件到源文件列表
+
+4. **编码警告**：C4819警告（文件包含不能在当前代码页中表示的字符）
+   - **原因**：源文件使用UTF-8编码，但MSVC默认使用代码页936
+   - **解决**：在CMakeLists.txt中添加`/utf-8`编译选项
+
+**测试结果**：
+- GUI程序能够成功编译并运行 ✅
+- 主窗口正常显示 ✅
+- 菜单栏和状态栏正常显示 ✅
+- 测试按钮点击功能正常 ✅
+- 字体设置正确（英文使用Segoe UI）✅
+
+**文件位置**：
+- `include/gui/main_window.h` - 主窗口头文件
+- `src/gui/main_window.cpp` - 主窗口实现
+- `src/gui/main.cpp` - 应用程序入口
+- `CMakeLists.txt` - 构建配置（已更新支持GUI）
+
+**下一步计划**：
+1. 实现主界面布局结构（标签页系统）
+2. 实现表结构管理界面
+3. 实现数据操作界面
+4. 实现SQL执行界面
 
 ---
 
@@ -549,3 +622,7 @@
 - 技术决策：记录重要的技术选择
 - 下一步计划：列出下一步要完成的工作
 - 遇到的问题：记录遇到的问题和解决方案
+
+---
+
+**最后更新时间**：2026-01-14

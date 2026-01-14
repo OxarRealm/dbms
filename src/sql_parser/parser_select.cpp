@@ -1,3 +1,10 @@
+/**
+ * @file parser_select.cpp
+ * @brief SELECT语句解析实现
+ */
+
+#include "sql_parser/parser.h"
+
 std::unique_ptr<ASTNode> Parser::parseSelect() {
     // SELECT * FROM TableName WHERE Field=Value;
     // SELECT Field1, Field2 FROM TableName WHERE Field=Value;
@@ -37,18 +44,104 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
         return nullptr;
     }
     
-    // 解析FROM表列表
-    while (true) {
-        std::string tableName = parseIdentifier();
-        if (tableName.empty()) {
-            return nullptr;
-        }
-        node->fromTables.push_back(tableName);
+    // 解析FROM表列表（支持JOIN语法）
+    // 格式1：FROM Table1, Table2, ...（多表查询）
+    // 格式2：FROM Table1 JOIN Table2 ON ...（JOIN查询）
+    std::string firstTable = parseIdentifier();
+    if (firstTable.empty()) {
+        return nullptr;
+    }
+    node->fromTables.push_back(firstTable);
+    
+    // 检查是否有JOIN
+    if (m_currentToken.type == TokenType::JOIN || 
+        m_currentToken.type == TokenType::INNER ||
+        m_currentToken.type == TokenType::LEFT ||
+        m_currentToken.type == TokenType::RIGHT) {
         
-        if (m_currentToken.type == TokenType::COMMA) {
+        // 解析JOIN子句
+        while (true) {
+            JoinInfo joinInfo;
+            
+            // 解析JOIN类型（INNER, LEFT, RIGHT）
+            if (m_currentToken.type == TokenType::INNER) {
+                joinInfo.joinType = "INNER";
+                advance();
+                if (!expect(TokenType::JOIN, "JOIN")) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::LEFT) {
+                joinInfo.joinType = "LEFT";
+                advance();
+                if (!expect(TokenType::JOIN, "JOIN")) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::RIGHT) {
+                joinInfo.joinType = "RIGHT";
+                advance();
+                if (!expect(TokenType::JOIN, "JOIN")) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::JOIN) {
+                // 默认INNER JOIN
+                joinInfo.joinType = "INNER";
+                advance();
+            } else {
+                break;  // 没有更多JOIN
+            }
+            
+            // 解析右表名
+            joinInfo.rightTable = parseIdentifier();
+            if (joinInfo.rightTable.empty()) {
+                return nullptr;
+            }
+            node->fromTables.push_back(joinInfo.rightTable);
+            
+            // 解析ON子句
+            if (!expect(TokenType::ON, "ON")) {
+                return nullptr;
+            }
+            
+            // 解析左表字段
+            joinInfo.leftField = parseIdentifier();
+            if (joinInfo.leftField.empty()) {
+                return nullptr;
+            }
+            
+            // 解析运算符（当前只支持=）
+            if (m_currentToken.type == TokenType::EQUALS) {
+                joinInfo.operator_ = "=";
+                advance();
+            } else {
+                setError("期望 =，但得到: " + m_currentToken.value);
+                return nullptr;
+            }
+            
+            // 解析右表字段
+            joinInfo.rightField = parseIdentifier();
+            if (joinInfo.rightField.empty()) {
+                return nullptr;
+            }
+            
+            node->joins.push_back(joinInfo);
+            
+            // 检查是否有更多JOIN
+            if (m_currentToken.type != TokenType::JOIN &&
+                m_currentToken.type != TokenType::INNER &&
+                m_currentToken.type != TokenType::LEFT &&
+                m_currentToken.type != TokenType::RIGHT) {
+                break;
+            }
+        }
+    } else {
+        // 多表查询（逗号分隔）
+        while (m_currentToken.type == TokenType::COMMA) {
             advance();
-        } else {
-            break;
+            std::string tableName = parseIdentifier();
+            if (tableName.empty()) {
+                return nullptr;
+            }
+            node->fromTables.push_back(tableName);
         }
     }
     

@@ -5,6 +5,11 @@ project(MusicDBMS VERSION 0.1.0 LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Windows特定：强制使用UTF-8编码
+if(WIN32 AND MSVC)
+    add_compile_options(/utf-8)
+endif()
+
 # 构建类型
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -75,6 +80,11 @@ file(GLOB_RECURSE GUI_SOURCES
     "src/gui/*.ui"
 )
 
+# 显式添加需要 MOC 处理的头文件
+set(GUI_HEADERS
+    "include/gui/main_window.h"
+)
+
 # 所有源文件
 set(SOURCES
     ${CORE_SOURCES}
@@ -84,6 +94,7 @@ set(SOURCES
     ${SQL_PARSER_SOURCES}
     ${AI_SOURCES}
     ${GUI_SOURCES}
+    ${GUI_HEADERS}
 )
 
 # 创建可执行文件
