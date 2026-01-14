@@ -30,7 +30,9 @@ unit_tests/
 │   └── test_query_executor.cpp
 ├── index/             # 索引技术测试
 │   ├── test_adjacent_index.cpp
-│   └── run_test_adjacent_index.ps1
+│   ├── run_test_adjacent_index.ps1
+│   ├── test_hash_index.cpp
+│   └── run_test_hash_index.ps1
 └── run_unit_tests.ps1 # 运行所有测试的主脚本
 ```
 
@@ -48,6 +50,10 @@ cd core
 # 例如：运行相邻索引测试
 cd index
 .\run_test_adjacent_index.ps1
+
+# 例如：运行哈希索引测试
+cd index
+.\run_test_hash_index.ps1
 ```
 
 ### 运行所有测试
@@ -94,9 +100,10 @@ cd index
 
 ### 索引技术 (index)
 - test_adjacent_index: 28个测试
-- **总计**: 28个测试
+- test_hash_index: 29个测试
+- **总计**: 57个测试
 
-**所有测试总计**: 735个测试
+**所有测试总计**: 736个测试
 
 ## 测试脚本说明
 

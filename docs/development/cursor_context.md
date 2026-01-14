@@ -19,9 +19,9 @@
 ## 项目当前状态
 
 ### 整体进度
-- **阶段**：阶段4（查询实现）已完成 ✅，阶段8.1（相邻索引）已完成 ✅
-- **当前任务**：继续阶段8（哈希索引实现）
-- **完成度**：60% (阶段1-4和阶段8.1全部完成，711个测试全部通过；阶段5-7和阶段8.2-8.3待开发)
+- **阶段**：阶段4（查询实现）已完成 ✅，阶段8.1（相邻索引）已完成 ✅，阶段8.2（哈希索引）已完成 ✅
+- **当前任务**：继续阶段8（智能索引建议系统实现）
+- **完成度**：63% (阶段1-4和阶段8.1-8.2全部完成，740个测试全部通过；阶段5-7和阶段8.3待开发)
 
 ### 已完成工作
 
@@ -222,12 +222,15 @@
    - **文件**：`include/core/adjacent_index.h`, `src/core/adjacent_index.cpp`
    - **测试文件**：`scripts/unit_tests/index/test_adjacent_index.cpp`, `scripts/unit_tests/index/run_test_adjacent_index.ps1`
 
-2. ⏳ **任务8.2**：哈希索引实现（进行中）
-   - 实现哈希表索引结构
+2. ✅ **任务8.2**：哈希索引实现（已完成）
+   - 实现哈希表索引结构（链地址法解决冲突）
    - 实现主键哈希索引
-   - 实现基于哈希索引的点查询优化
-   - 预计工作量：4-6天
+   - 实现基于哈希索引的点查询优化（O(1)平均时间复杂度）
+   - 实现索引统计功能
+   - **完成时间**：2026-01-14
+   - **测试结果**：29/29测试通过
    - **文件**：`include/core/hash_index.h`, `src/core/hash_index.cpp`
+   - **测试文件**：`scripts/unit_tests/index/test_hash_index.cpp`, `scripts/unit_tests/index/run_test_hash_index.ps1`
 
 3. ⏳ **任务8.3**：智能索引建议系统（计划中）
    - 实现查询日志记录和分析
@@ -237,7 +240,8 @@
    - **文件**：`include/index/index_advisor.h`, `src/index/index_advisor.cpp`
 
 **阶段8.1实际完成时间**：2026-01-14（1天）
-**阶段8剩余预计时间**：9-13天
+**阶段8.2实际完成时间**：2026-01-14（1天）
+**阶段8剩余预计时间**：5-7天（智能索引建议系统）
 
 ### 待开始工作
 1. ⏳ 阶段5：Qt GUI界面开发
@@ -433,6 +437,9 @@ database-design/
   - 缺少头文件`#include <iostream>`（已解决）
   - 测试脚本文件重复（已解决，删除根目录下的重复文件）
 
+- 哈希索引实现过程中遇到的问题：
+  - 无（哈希索引实现顺利，所有测试通过）
+
 ---
 
 ## 下一步行动
@@ -490,8 +497,20 @@ database-design/
   - 详细分析文档：`docs/technical/database_new_technology_selection.md`
 - **2026-01-14**：阶段8.1（相邻索引实现）完成
   - 任务8.1：相邻索引实现（28测试通过）
-  - 测试脚本分类整理完成
+  - 测试脚本分类整理完成（按模块组织：core, ddl, dml, query, sql_parser, index）
+  - 修复测试脚本路径和编码问题
   - 总计：28个测试全部通过
+  - **文件**：`include/core/adjacent_index.h`, `src/core/adjacent_index.cpp`
+  - **测试文件**：`scripts/unit_tests/index/test_adjacent_index.cpp`, `scripts/unit_tests/index/run_test_adjacent_index.ps1`
+- **2026-01-14**：阶段8.2（哈希索引实现）完成
+  - 任务8.2：哈希索引实现（29测试通过）
+  - 实现哈希表结构（链地址法解决冲突）
+  - 实现多种类型的哈希函数（int, float/double, string）
+  - 实现点查询优化（O(1)平均时间复杂度）
+  - 实现索引统计功能
+  - 总计：29个测试全部通过
+  - **文件**：`include/core/hash_index.h`, `src/core/hash_index.cpp`
+  - **测试文件**：`scripts/unit_tests/index/test_hash_index.cpp`, `scripts/unit_tests/index/run_test_hash_index.ps1`
 
 ---
 
