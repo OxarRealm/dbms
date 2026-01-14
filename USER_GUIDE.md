@@ -1,6 +1,6 @@
 # User Guide
 
-> Intelligent Music Playback Management System - User Operation Guide
+> Database Management System (DBMS) - User Operation Guide
 
 ## Table of Contents
 
@@ -17,15 +17,18 @@
 
 ## Introduction
 
-The Intelligent Music Playback Management System is a custom database management system (DBMS) designed for managing music-related data. It provides a graphical user interface for table structure management, data operations, SQL query execution, and intelligent music recommendations.
+The Database Management System (DBMS) is a custom database management system designed for managing data in a general-purpose manner. It provides a graphical user interface for table structure management, data operations, SQL query execution, index management, and query optimization.
 
 ### Key Features
 
 - **Table Structure Management**: Create, edit, rename, and delete database tables
 - **Data Operations**: Insert, update, delete, and view records
 - **SQL Query Execution**: Execute DDL, DML, and SELECT queries
-- **Index Management**: Create and manage indexes for query optimization
-- **Intelligent Recommendations**: AI-powered music recommendations
+- **Index Management**: Create and manage indexes (Hash Index, Adjacent Index, B+Tree Index) for query optimization
+- **Query Optimization**: Intelligent index recommendations and query performance analysis
+- **Transaction Management**: Support for transactions with ACID properties (planned)
+- **View Management**: Create and manage database views (planned)
+- **User and Permission Management**: User authentication and access control (planned)
 
 ---
 

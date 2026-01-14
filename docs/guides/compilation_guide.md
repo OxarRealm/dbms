@@ -313,13 +313,13 @@ set(CMAKE_AUTOMOC ON)  # 确保已启用
 ```
 
 **验证**：
-- 检查`build/MusicDBMS_autogen/`目录是否生成了MOC文件
-- 检查`build/MusicDBMS_autogen/include_Release/`或`include_Debug/`目录
+- 检查`build/DBMS_autogen/`目录是否生成了MOC文件
+- 检查`build/DBMS_autogen/include_Release/`或`include_Debug/`目录
 
 **检查清单**：
 - [ ] `CMAKE_AUTOMOC ON`已设置
 - [ ] 包含`Q_OBJECT`的头文件已添加到源文件列表
-- [ ] MOC文件已生成（检查`build/MusicDBMS_autogen/`目录）
+- [ ] MOC文件已生成（检查`build/DBMS_autogen/`目录）
 
 ---
 
@@ -455,7 +455,7 @@ cmake .. -G "Visual Studio 17 2022" -A x64
 
 # 检查配置输出
 # 应该看到：
-# - Project: MusicDBMS
+# - Project: DBMS
 # - Qt version: 5.15.2
 # - C++ Standard: 17
 ```
@@ -485,7 +485,7 @@ cmake --build . --config Release
 **检查MOC文件**：
 ```powershell
 # 检查MOC是否生成了文件
-ls build/MusicDBMS_autogen/include_Release/
+ls build/DBMS_autogen/include_Release/
 # 应该看到 moc_main_window.cpp 等文件
 ```
 
@@ -493,7 +493,7 @@ ls build/MusicDBMS_autogen/include_Release/
 ```powershell
 # 检查是否生成了.exe文件
 ls build/bin/Release/
-# 应该看到 MusicDBMS.exe
+# 应该看到 DBMS.exe
 ```
 
 ---
@@ -603,7 +603,7 @@ class MainWindow : public QMainWindow {
 4. **检查Qt MOC**
    - 确保`CMAKE_AUTOMOC ON`
    - 确保包含`Q_OBJECT`的头文件已添加到源文件列表
-   - 检查`build/MusicDBMS_autogen/`目录
+   - 检查`build/DBMS_autogen/`目录
 
 5. **检查Qt配置**
    - 确保`CMAKE_PREFIX_PATH`正确

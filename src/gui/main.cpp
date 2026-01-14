@@ -13,8 +13,8 @@ int main(int argc, char *argv[])
     QApplication app(argc, argv);
 
     // Set application information
-    app.setApplicationName("Intelligent Music Playback Management System");
-    app.setApplicationVersion("0.4.0");
+    app.setApplicationName("Database Management System");
+    app.setApplicationVersion("0.6.1");
     app.setOrganizationName("Database New Technology Practice");
 
     // Set global font (Segoe UI for all text)

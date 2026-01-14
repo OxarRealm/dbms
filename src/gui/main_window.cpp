@@ -70,7 +70,7 @@ void MainWindow::setupUI()
     m_mainLayout->addWidget(m_tabWidget);
 
     // Set window properties with version
-    setWindowTitle("Intelligent Music Playback Management System v0.6.1");
+    setWindowTitle("Database Management System v0.6.1");
     resize(1200, 800);
     setMinimumSize(800, 600);
 }
@@ -182,7 +182,7 @@ QWidget* MainWindow::createGuideTab()
         // If file not found, show default content
         guideText->setPlainText(
             "User Guide\n\n"
-            "This guide provides instructions for using the Intelligent Music Playback Management System.\n\n"
+            "This guide provides instructions for using the Database Management System.\n\n"
             "Please refer to USER_GUIDE.md in the project root directory for the complete guide.\n\n"
             "The guide will be automatically loaded when USER_GUIDE.md is available."
         );
@@ -407,14 +407,14 @@ std::string MainWindow::getCurrentDatabasePath() const
 void MainWindow::showAbout()
 {
     QMessageBox::about(this, "About", 
-        "Intelligent Music Playback Management System\n\n"
+        "Database Management System\n\n"
         "Version: 0.6.1\n"
         "Database New Technology Practice Course Project\n\n"
         "Features:\n"
         "- Table Structure Management\n"
         "- Data Operations\n"
         "- SQL Query Execution\n"
-        "- Intelligent Recommendation\n"
+        "- Index Management\n"
         "- Index Optimization\n\n"
         "Keyboard Shortcuts:\n"
         "- Ctrl+Q: Exit\n"

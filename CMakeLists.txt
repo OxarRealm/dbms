@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(MusicDBMS VERSION 0.1.0 LANGUAGES CXX)
+project(DBMS VERSION 0.6.1 LANGUAGES CXX)
 
 # C++标准
 set(CMAKE_CXX_STANDARD 17)

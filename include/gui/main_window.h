@@ -17,7 +17,7 @@
  * @file main_window.h
  * @brief Main Window Class
  *
- * Main window of the Intelligent Music Playback Management System
+ * Main window of the Database Management System (DBMS)
  */
 
 /**
