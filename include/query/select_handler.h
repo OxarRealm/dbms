@@ -75,6 +75,16 @@ private:
                           const std::string& conditionField, const std::string& conditionValue);
     
     /**
+     * @brief 评估复杂WHERE条件（支持AND, OR, NOT）
+     * @param record 记录
+     * @param tableInfo 表结构信息
+     * @param condition WHERE条件节点
+     * @return 条件匹配返回true，否则返回false
+     */
+    bool evaluateWhereCondition(const Record& record, const TableInfo& tableInfo, 
+                               const WhereCondition* condition);
+    
+    /**
      * @brief 查找字段索引
      * @param tableInfo 表结构信息
      * @param fieldName 字段名
@@ -167,5 +177,31 @@ private:
                                  size_t tableIndex, 
                                  std::vector<Record> currentCombination,
                                  std::vector<std::vector<Record>>& result);
+    
+    /**
+     * @brief 应用DISTINCT去重
+     * @param rows 行数据列表（会被修改）
+     */
+    void applyDistinct(std::vector<std::vector<std::string>>& rows);
+    
+    /**
+     * @brief 应用ORDER BY排序
+     * @param rows 行数据列表（会被修改）
+     * @param columnNames 列名列表
+     * @param tableInfo 表结构信息（用于字段类型判断）
+     * @param orderBy ORDER BY信息列表
+     * @return 成功返回true，失败返回false
+     */
+    bool applyOrderBy(std::vector<std::vector<std::string>>& rows,
+                     const std::vector<std::string>& columnNames,
+                     const TableInfo& tableInfo,
+                     const std::vector<OrderByInfo>& orderBy);
+    
+    /**
+     * @brief 应用LIMIT限制
+     * @param rows 行数据列表（会被修改）
+     * @param limitCount 限制行数（-1表示无限制）
+     */
+    void applyLimit(std::vector<std::vector<std::string>>& rows, int limitCount);
 };
 

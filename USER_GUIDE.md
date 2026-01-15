@@ -331,7 +331,26 @@ SELECT * FROM Table1 LEFT JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 RIGHT JOIN Table2 ON Table1.Field1=Table2.Field2;
 ```
 
-**Note**: The system supports INNER JOIN, LEFT JOIN, and RIGHT JOIN. FULL OUTER JOIN and NATURAL JOIN are not yet implemented.
+**SELECT (ORDER BY, DISTINCT, LIMIT):**
+```sql
+SELECT * FROM TableName ORDER BY FieldName ASC;
+SELECT DISTINCT FieldName FROM TableName;
+SELECT * FROM TableName LIMIT 10;
+SELECT DISTINCT FieldName FROM TableName ORDER BY FieldName DESC LIMIT 5;
+```
+
+**SELECT (Complex WHERE):**
+```sql
+SELECT * FROM TableName WHERE Field1 > '10' AND Field2 < '20';
+SELECT * FROM TableName WHERE Field1 = 'value1' OR Field2 = 'value2';
+SELECT * FROM TableName WHERE NOT Field1 = 'value';
+SELECT * FROM TableName WHERE (Field1 > '10' AND Field2 < '20') OR Field3 = 'value';
+```
+
+**Note**: 
+- The system supports INNER JOIN, LEFT JOIN, and RIGHT JOIN. FULL OUTER JOIN and NATURAL JOIN are not yet implemented.
+- The system supports ORDER BY (single or multiple fields, ASC/DESC), DISTINCT, LIMIT, comparison operators (>, <, >=, <=, !=), and complex WHERE conditions (AND, OR, NOT with parentheses support).
+- LIKE pattern matching, IN clause, and BETWEEN range queries are not yet implemented.
 
 For detailed SQL execution test cases, please refer to [docs/testing/sql_execution_test_cases.md](../docs/testing/sql_execution_test_cases.md).
 

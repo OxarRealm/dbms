@@ -51,6 +51,27 @@ Token Lexer::nextToken() {
         case '=':
             readChar();
             return Token(TokenType::EQUALS, "=", startLine, startColumn);
+        case '!':
+            readChar();
+            if (peekChar() == '=') {
+                readChar();
+                return Token(TokenType::NOT_EQUALS, "!=", startLine, startColumn);
+            }
+            return Token(TokenType::ERROR, "!", startLine, startColumn);
+        case '>':
+            readChar();
+            if (peekChar() == '=') {
+                readChar();
+                return Token(TokenType::GREATER_EQUAL, ">=", startLine, startColumn);
+            }
+            return Token(TokenType::GREATER_THAN, ">", startLine, startColumn);
+        case '<':
+            readChar();
+            if (peekChar() == '=') {
+                readChar();
+                return Token(TokenType::LESS_EQUAL, "<=", startLine, startColumn);
+            }
+            return Token(TokenType::LESS_THAN, "<", startLine, startColumn);
         case ',':
             readChar();
             return Token(TokenType::COMMA, ",", startLine, startColumn);

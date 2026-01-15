@@ -19,6 +19,10 @@ enum class TokenType {
     SELECT, WHERE,
     VALUES, IN, INTO_KEYWORD,
     JOIN, ON, INNER, LEFT, RIGHT,
+    ORDER, BY, ASC, DESC,
+    DISTINCT,
+    LIMIT,
+    AND, OR, NOT,
     
     // 数据类型
     INT, CHAR, FLOAT, DOUBLE, STRING,
@@ -35,6 +39,11 @@ enum class TokenType {
     
     // 运算符和分隔符
     EQUALS,            // =
+    NOT_EQUALS,        // !=
+    GREATER_THAN,      // >
+    LESS_THAN,         // <
+    GREATER_EQUAL,     // >=
+    LESS_EQUAL,        // <=
     COMMA,             // ,
     SEMICOLON,         // ;
     LEFT_PAREN,        // (

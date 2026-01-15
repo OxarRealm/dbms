@@ -157,6 +157,35 @@ struct JoinInfo {
 };
 
 /**
+ * @brief ORDER BY排序信息结构
+ */
+struct OrderByInfo {
+    std::string fieldName;    // 排序字段名
+    std::string direction;    // 排序方向：ASC 或 DESC（默认为ASC）
+    
+    OrderByInfo() : direction("ASC") {}
+};
+
+/**
+ * @brief WHERE条件节点（支持复杂条件树）
+ */
+struct WhereCondition {
+    std::string logicalOp;        // 逻辑运算符：AND, OR, NOT（空字符串表示简单条件）
+    std::string fieldName;        // 字段名（简单条件）
+    std::string operator_;        // 比较运算符：=, !=, >, <, >=, <=
+    std::string value;            // 值（简单条件）
+    std::unique_ptr<WhereCondition> left;   // 左子树（复杂条件）
+    std::unique_ptr<WhereCondition> right;  // 右子树（复杂条件）
+    
+    WhereCondition() : logicalOp("") {}
+    
+    // 判断是否为简单条件
+    bool isSimple() const {
+        return logicalOp.empty() && !fieldName.empty();
+    }
+};
+
+/**
  * @brief SELECT语句AST节点
  */
 class SelectNode : public ASTNode {
@@ -164,11 +193,16 @@ public:
     std::vector<std::string> selectFields;    // 选择的字段列表（*表示所有字段）
     std::vector<std::string> fromTables;      // FROM表列表
     std::vector<JoinInfo> joins;              // JOIN连接列表（可选）
-    std::string whereField;                   // WHERE条件字段名（可选）
-    std::string whereValue;                   // WHERE条件值（可选）
-    std::string whereOperator;                // WHERE条件运算符（=, >, <等，当前只支持=）
+    std::unique_ptr<WhereCondition> whereClause;  // WHERE条件（树形结构，可选）
+    // 保留旧字段以保持向后兼容（如果whereClause为空，使用这些字段）
+    std::string whereField;                   // WHERE条件字段名（可选，向后兼容）
+    std::string whereValue;                   // WHERE条件值（可选，向后兼容）
+    std::string whereOperator;                // WHERE条件运算符（可选，向后兼容）
+    bool distinct;                            // DISTINCT标志
+    std::vector<OrderByInfo> orderBy;         // ORDER BY子句（可选）
+    int limitCount;                           // LIMIT子句（可选，-1表示无限制）
     
-    SelectNode() {}
+    SelectNode() : distinct(false), limitCount(-1) {}
     
     void accept(ASTVisitor* visitor) override;
     std::string getNodeType() const override { return "SelectNode"; }

@@ -52,6 +52,20 @@ std::string Token::getTypeName() const {
         case TokenType::INNER: return "INNER";
         case TokenType::LEFT: return "LEFT";
         case TokenType::RIGHT: return "RIGHT";
+        case TokenType::ORDER: return "ORDER";
+        case TokenType::BY: return "BY";
+        case TokenType::ASC: return "ASC";
+        case TokenType::DESC: return "DESC";
+        case TokenType::DISTINCT: return "DISTINCT";
+        case TokenType::LIMIT: return "LIMIT";
+        case TokenType::AND: return "AND";
+        case TokenType::OR: return "OR";
+        case TokenType::NOT: return "NOT";
+        case TokenType::NOT_EQUALS: return "NOT_EQUALS";
+        case TokenType::GREATER_THAN: return "GREATER_THAN";
+        case TokenType::LESS_THAN: return "LESS_THAN";
+        case TokenType::GREATER_EQUAL: return "GREATER_EQUAL";
+        case TokenType::LESS_EQUAL: return "LESS_EQUAL";
         case TokenType::EOF_TOKEN: return "EOF";
         case TokenType::ERROR: return "ERROR";
         default: return "UNKNOWN";
@@ -94,7 +108,16 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"ON", TokenType::ON},
         {"INNER", TokenType::INNER},
         {"LEFT", TokenType::LEFT},
-        {"RIGHT", TokenType::RIGHT}
+        {"RIGHT", TokenType::RIGHT},
+        {"ORDER", TokenType::ORDER},
+        {"BY", TokenType::BY},
+        {"ASC", TokenType::ASC},
+        {"DESC", TokenType::DESC},
+        {"DISTINCT", TokenType::DISTINCT},
+        {"LIMIT", TokenType::LIMIT},
+        {"AND", TokenType::AND},
+        {"OR", TokenType::OR},
+        {"NOT", TokenType::NOT}
     };
     
     // 转换为大写进行比较（关键词不区分大小写）

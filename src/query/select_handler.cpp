@@ -7,6 +7,7 @@
 #include "core/table_mode.h"
 #include <algorithm>
 #include <cstring>
+#include <cmath>
 #ifdef _WIN32
 #include <string.h>
 #else
@@ -100,7 +101,12 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
     // 处理每条记录
     for (const auto& record : records) {
         // 如果有WHERE子句，先评估条件
-        if (!node->whereField.empty()) {
+        if (node->whereClause) {
+            if (!evaluateWhereCondition(record, tableInfo, node->whereClause.get())) {
+                continue;  // 不匹配，跳过这条记录
+            }
+        } else if (!node->whereField.empty()) {
+            // 向后兼容：使用旧字段
             if (!evaluateCondition(record, tableInfo, node->whereField, node->whereValue)) {
                 continue;  // 不匹配，跳过这条记录
             }
@@ -114,6 +120,24 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
         }
         
         result.rows.push_back(row);
+    }
+    
+    // DISTINCT去重
+    if (node->distinct) {
+        applyDistinct(result.rows);
+    }
+    
+    // ORDER BY排序
+    if (!node->orderBy.empty()) {
+        if (!applyOrderBy(result.rows, result.columnNames, tableInfo, node->orderBy)) {
+            setError("ORDER BY operation failed");
+            return false;
+        }
+    }
+    
+    // LIMIT限制
+    if (node->limitCount >= 0) {
+        applyLimit(result.rows, node->limitCount);
     }
     
     result.rowCount = result.rows.size();
@@ -133,6 +157,82 @@ bool SelectHandler::evaluateCondition(const Record& record, const TableInfo& tab
     
     // 简单相等比较（字符串比较）
     return fieldValue == conditionValue;
+}
+
+bool SelectHandler::evaluateWhereCondition(const Record& record, const TableInfo& tableInfo, 
+                                           const WhereCondition* condition) {
+    if (!condition) {
+        return true;
+    }
+    
+    // 如果是简单条件
+    if (condition->isSimple()) {
+        // 查找字段索引
+        int fieldIndex = findFieldIndex(tableInfo, condition->fieldName);
+        if (fieldIndex == -1 || fieldIndex >= static_cast<int>(record.values.size())) {
+            return false;
+        }
+        
+        // 获取字段值
+        const std::string& fieldValue = record.values[fieldIndex];
+        
+        // 根据运算符进行比较
+        if (condition->operator_ == "=") {
+            return fieldValue == condition->value;
+        } else if (condition->operator_ == "!=") {
+            return fieldValue != condition->value;
+        } else if (condition->operator_ == ">") {
+            // 尝试数值比较
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum > valueNum;
+            } catch (...) {
+                // 如果转换失败，使用字符串比较
+                return fieldValue > condition->value;
+            }
+        } else if (condition->operator_ == "<") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum < valueNum;
+            } catch (...) {
+                return fieldValue < condition->value;
+            }
+        } else if (condition->operator_ == ">=") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum >= valueNum;
+            } catch (...) {
+                return fieldValue >= condition->value;
+            }
+        } else if (condition->operator_ == "<=") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum <= valueNum;
+            } catch (...) {
+                return fieldValue <= condition->value;
+            }
+        }
+        return false;
+    }
+    
+    // 复杂条件：处理逻辑运算符
+    if (condition->logicalOp == "NOT") {
+        return !evaluateWhereCondition(record, tableInfo, condition->left.get());
+    } else if (condition->logicalOp == "AND") {
+        bool leftResult = evaluateWhereCondition(record, tableInfo, condition->left.get());
+        bool rightResult = evaluateWhereCondition(record, tableInfo, condition->right.get());
+        return leftResult && rightResult;
+    } else if (condition->logicalOp == "OR") {
+        bool leftResult = evaluateWhereCondition(record, tableInfo, condition->left.get());
+        bool rightResult = evaluateWhereCondition(record, tableInfo, condition->right.get());
+        return leftResult || rightResult;
+    }
+    
+    return false;
 }
 
 int SelectHandler::findFieldIndex(const TableInfo& tableInfo, const std::string& fieldName) {
@@ -238,6 +338,24 @@ bool SelectHandler::executeMultiTableQuery(SelectNode* node, QueryResult& result
         }
         
         result.rows.push_back(row);
+    }
+    
+    // DISTINCT去重
+    if (node->distinct) {
+        applyDistinct(result.rows);
+    }
+    
+    // ORDER BY排序（使用第一个表的信息）
+    if (!node->orderBy.empty() && !tableInfos.empty()) {
+        if (!applyOrderBy(result.rows, result.columnNames, tableInfos[0], node->orderBy)) {
+            setError("ORDER BY operation failed");
+            return false;
+        }
+    }
+    
+    // LIMIT限制
+    if (node->limitCount >= 0) {
+        applyLimit(result.rows, node->limitCount);
     }
     
     result.rowCount = result.rows.size();
@@ -546,7 +664,130 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
         result.rows.push_back(row);
     }
     
+    // DISTINCT去重
+    if (node->distinct) {
+        applyDistinct(result.rows);
+    }
+    
+    // ORDER BY排序（使用第一个表的信息）
+    if (!node->orderBy.empty() && !tableInfos.empty()) {
+        if (!applyOrderBy(result.rows, result.columnNames, tableInfos[0], node->orderBy)) {
+            setError("ORDER BY operation failed");
+            return false;
+        }
+    }
+    
+    // LIMIT限制
+    if (node->limitCount >= 0) {
+        applyLimit(result.rows, node->limitCount);
+    }
+    
     result.rowCount = result.rows.size();
     return true;
+}
+
+void SelectHandler::applyDistinct(std::vector<std::vector<std::string>>& rows) {
+    std::vector<std::vector<std::string>> distinctRows;
+    
+    for (const auto& row : rows) {
+        // 检查是否已存在相同的行
+        bool isDuplicate = false;
+        for (const auto& existingRow : distinctRows) {
+            if (existingRow.size() == row.size()) {
+                bool isEqual = true;
+                for (size_t i = 0; i < row.size(); ++i) {
+                    if (existingRow[i] != row[i]) {
+                        isEqual = false;
+                        break;
+                    }
+                }
+                if (isEqual) {
+                    isDuplicate = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!isDuplicate) {
+            distinctRows.push_back(row);
+        }
+    }
+    
+    rows = distinctRows;
+}
+
+bool SelectHandler::applyOrderBy(std::vector<std::vector<std::string>>& rows,
+                                 const std::vector<std::string>& columnNames,
+                                 const TableInfo& tableInfo,
+                                 const std::vector<OrderByInfo>& orderBy) {
+    if (orderBy.empty()) {
+        return true;
+    }
+    
+    // 创建排序比较函数
+    auto compare = [&](const std::vector<std::string>& a, const std::vector<std::string>& b) -> bool {
+        for (const auto& orderInfo : orderBy) {
+            // 查找字段在列名中的索引
+            int colIndex = -1;
+            for (size_t i = 0; i < columnNames.size(); ++i) {
+                if (columnNames[i] == orderInfo.fieldName) {
+                    colIndex = static_cast<int>(i);
+                    break;
+                }
+            }
+            
+            if (colIndex == -1 || colIndex >= static_cast<int>(a.size()) || 
+                colIndex >= static_cast<int>(b.size())) {
+                continue;  // 字段不存在，跳过
+            }
+            
+            const std::string& aValue = a[colIndex];
+            const std::string& bValue = b[colIndex];
+            
+            // 尝试数值比较
+            bool isNumeric = true;
+            double aNum = 0, bNum = 0;
+            try {
+                aNum = std::stod(aValue);
+                bNum = std::stod(bValue);
+            } catch (...) {
+                isNumeric = false;
+            }
+            
+            int comparison = 0;
+            if (isNumeric) {
+                if (aNum < bNum) {
+                    comparison = -1;
+                } else if (aNum > bNum) {
+                    comparison = 1;
+                }
+            } else {
+                if (aValue < bValue) {
+                    comparison = -1;
+                } else if (aValue > bValue) {
+                    comparison = 1;
+                }
+            }
+            
+            if (comparison != 0) {
+                // 根据排序方向返回结果
+                if (orderInfo.direction == "DESC") {
+                    return comparison > 0;
+                } else {
+                    return comparison < 0;
+                }
+            }
+        }
+        return false;  // 所有排序字段都相等
+    };
+    
+    std::sort(rows.begin(), rows.end(), compare);
+    return true;
+}
+
+void SelectHandler::applyLimit(std::vector<std::vector<std::string>>& rows, int limitCount) {
+    if (limitCount >= 0 && limitCount < static_cast<int>(rows.size())) {
+        rows.resize(limitCount);
+    }
 }
 

@@ -9,10 +9,17 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
     // SELECT * FROM TableName WHERE Field=Value;
     // SELECT Field1, Field2 FROM TableName WHERE Field=Value;
     // SELECT * FROM TableName1, TableName2 WHERE Condition;
+    // SELECT DISTINCT * FROM TableName ORDER BY Field ASC LIMIT 10;
     auto node = std::make_unique<SelectNode>();
     
     // 已经匹配了SELECT，跳过
     advance();
+    
+    // DISTINCT（可选）
+    if (m_currentToken.type == TokenType::DISTINCT) {
+        node->distinct = true;
+        advance();
+    }
     
     // 解析SELECT字段列表
     if (m_currentToken.type == TokenType::ASTERISK) {
@@ -149,30 +156,64 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
     if (m_currentToken.type == TokenType::WHERE) {
         advance();
         
-        // Field
-        node->whereField = parseIdentifier();
-        if (node->whereField.empty()) {
+        // 解析WHERE条件（支持复杂条件）
+        node->whereClause = parseWhereCondition();
+        if (!node->whereClause) {
             return nullptr;
         }
         
-        // 运算符（当前只支持=）
-        if (m_currentToken.type == TokenType::EQUALS) {
-            node->whereOperator = "=";
-            advance();
-        } else {
-            setError("Expected '=', but got: " + m_currentToken.value);
+        // 向后兼容：如果whereClause是简单条件，也填充旧字段
+        if (node->whereClause->isSimple()) {
+            node->whereField = node->whereClause->fieldName;
+            node->whereValue = node->whereClause->value;
+            node->whereOperator = node->whereClause->operator_;
+        }
+    }
+    
+    // ORDER BY子句（可选）
+    if (m_currentToken.type == TokenType::ORDER) {
+        advance();
+        if (!expect(TokenType::BY, "BY")) {
             return nullptr;
         }
         
-        // Value
-        if (m_currentToken.type == TokenType::STRING_LITERAL) {
-            node->whereValue = m_currentToken.value;
-            advance();
-        } else if (m_currentToken.type == TokenType::NUMBER) {
-            node->whereValue = m_currentToken.value;
+        // 解析排序字段列表
+        while (true) {
+            OrderByInfo orderByInfo;
+            orderByInfo.fieldName = parseIdentifier();
+            if (orderByInfo.fieldName.empty()) {
+                return nullptr;
+            }
+            
+            // 解析排序方向（ASC或DESC，默认为ASC）
+            if (m_currentToken.type == TokenType::ASC) {
+                orderByInfo.direction = "ASC";
+                advance();
+            } else if (m_currentToken.type == TokenType::DESC) {
+                orderByInfo.direction = "DESC";
+                advance();
+            }
+            // 如果没有指定，默认为ASC（已在OrderByInfo构造函数中设置）
+            
+            node->orderBy.push_back(orderByInfo);
+            
+            // 检查是否有更多排序字段
+            if (m_currentToken.type == TokenType::COMMA) {
+                advance();
+            } else {
+                break;
+            }
+        }
+    }
+    
+    // LIMIT子句（可选）
+    if (m_currentToken.type == TokenType::LIMIT) {
+        advance();
+        if (m_currentToken.type == TokenType::NUMBER) {
+            node->limitCount = std::stoi(m_currentToken.value);
             advance();
         } else {
-            setError("Expected value (string or number), but got: " + m_currentToken.value);
+            setError("Expected number after LIMIT, but got: " + m_currentToken.value);
             return nullptr;
         }
     }

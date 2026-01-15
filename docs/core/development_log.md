@@ -912,4 +912,82 @@
 
 ---
 
+## 2026-01-15（早上）
+
+### SQL查询功能扩展：ORDER BY、DISTINCT、LIMIT、比较运算符和复杂WHERE条件
+
+**时间**：2026-01-15
+
+**完成工作**：
+
+1. ✅ **ORDER BY排序功能实现**
+   - 扩展Token类型，添加ORDER、BY、ASC、DESC关键字
+   - 扩展AST节点，添加OrderByInfo结构体和SelectNode.orderBy字段
+   - 实现ORDER BY子句解析（支持单字段和多字段排序）
+   - 实现排序执行逻辑（支持数值和字符串比较，ASC/DESC方向）
+   - 在单表查询、多表查询、JOIN查询中集成ORDER BY处理
+
+2. ✅ **DISTINCT去重功能实现**
+   - 扩展Token类型，添加DISTINCT关键字
+   - 扩展AST节点，添加SelectNode.distinct字段
+   - 实现DISTINCT子句解析
+   - 实现去重执行逻辑（逐行比较，去除重复行）
+   - 在单表查询、多表查询、JOIN查询中集成DISTINCT处理
+
+3. ✅ **LIMIT分页功能实现**
+   - 扩展Token类型，添加LIMIT关键字
+   - 扩展AST节点，添加SelectNode.limitCount字段
+   - 实现LIMIT子句解析
+   - 实现分页执行逻辑（限制返回行数）
+   - 在单表查询、多表查询、JOIN查询中集成LIMIT处理
+
+4. ✅ **比较运算符实现**
+   - 扩展Token类型，添加NOT_EQUALS、GREATER_THAN、LESS_THAN、GREATER_EQUAL、LESS_EQUAL
+   - 扩展Lexer，识别比较运算符（>, <, >=, <=, !=）
+   - 扩展AST节点，在WhereCondition中添加operator_字段支持多种运算符
+   - 实现比较运算符评估逻辑（支持数值和字符串比较）
+
+5. ✅ **复杂WHERE条件实现**
+   - 扩展Token类型，添加AND、OR、NOT关键字
+   - 扩展AST节点，设计WhereCondition树形结构（支持AND、OR、NOT逻辑运算符）
+   - 实现递归下降解析器（parseWhereCondition、parseOrExpression、parseAndExpression、parseNotExpression、parseSimpleExpression、parseSimpleCondition）
+   - 实现复杂条件评估逻辑（递归评估条件树，支持括号优先级）
+   - 在单表查询中集成复杂WHERE条件处理
+
+**技术决策**：
+- 使用树形结构（WhereCondition）表示复杂WHERE条件，支持递归评估
+- 使用递归下降解析器解析WHERE条件，优先级：NOT > AND > OR
+- ORDER BY支持数值和字符串混合比较，自动识别数值类型
+- DISTINCT使用逐行比较实现，避免使用std::set（需要自定义比较器）
+- LIMIT在ORDER BY之后应用，确保返回排序后的前N条记录
+- 比较运算符自动识别数值类型，进行数值比较；否则使用字符串比较
+
+**遇到的问题和解决方案**：
+1. **问题**：CMake缓存未更新，parser_where.cpp未被包含到构建
+   - **原因**：新文件创建后CMake缓存未刷新
+   - **解决**：重新运行`cmake ..`配置，CMake自动识别新文件
+
+2. **问题**：std::set<std::vector<std::string>>需要自定义比较器
+   - **原因**：std::vector没有默认的operator<用于set排序
+   - **解决**：改用逐行比较的方式实现DISTINCT，避免使用std::set
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（ORDER, BY, ASC, DESC, DISTINCT, LIMIT, AND, OR, NOT, 比较运算符）
+- `include/sql_parser/ast_node.h` - AST节点扩展（OrderByInfo, WhereCondition树形结构）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/lexer.cpp` - 比较运算符识别
+- `src/sql_parser/parser.h` - WHERE条件解析方法声明
+- `src/sql_parser/parser_where.cpp` - WHERE条件解析实现（新建）
+- `src/sql_parser/parser_select.cpp` - SELECT解析扩展（DISTINCT, ORDER BY, LIMIT, WHERE条件）
+- `include/query/select_handler.h` - SelectHandler扩展（applyDistinct, applyOrderBy, applyLimit, evaluateWhereCondition）
+- `src/query/select_handler.cpp` - 查询执行逻辑扩展
+
+**下一步计划**：
+1. 实现LIKE模式匹配功能
+2. 实现IN子句功能
+3. 实现BETWEEN范围查询功能
+4. 继续实现其他SQL功能（GROUP BY、聚合函数等）
+
+---
+
 **最后更新时间**：2026-01-15

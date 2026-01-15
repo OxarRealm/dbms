@@ -102,6 +102,38 @@ private:
     std::unique_ptr<ASTNode> parseSelect();
     
     /**
+     * @brief 解析WHERE条件（支持复杂条件）
+     * @return WHERE条件节点（如果解析失败返回nullptr）
+     */
+    std::unique_ptr<WhereCondition> parseWhereCondition();
+    
+    /**
+     * @brief 解析OR表达式
+     */
+    std::unique_ptr<WhereCondition> parseOrExpression();
+    
+    /**
+     * @brief 解析AND表达式
+     */
+    std::unique_ptr<WhereCondition> parseAndExpression();
+    
+    /**
+     * @brief 解析NOT表达式
+     */
+    std::unique_ptr<WhereCondition> parseNotExpression();
+    
+    /**
+     * @brief 解析简单表达式（括号或简单条件）
+     */
+    std::unique_ptr<WhereCondition> parseSimpleExpression();
+    
+    /**
+     * @brief 解析简单WHERE条件（Field Operator Value）
+     * @return WHERE条件节点（如果解析失败返回nullptr）
+     */
+    std::unique_ptr<WhereCondition> parseSimpleCondition();
+    
+    /**
      * @brief 解析字段定义（用于CREATE TABLE）
      */
     bool parseFieldDefinition(TableMode& field);
