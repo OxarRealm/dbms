@@ -151,8 +151,8 @@
   - `MainWindow` - 主窗口 ✅（已完成，2026-01-14）
   - `TableManagementWidget` - 表管理界面 ✅（已完成，2026-01-14）
   - `TableEditDialog` - 表编辑对话框 ✅（已完成，2026-01-14）
-  - `DataOperationWidget` - 数据操作界面（待开发）
-  - `SQLQueryWidget` - SQL查询界面（待开发）
+  - `DataOperationWidget` - 数据操作界面 ✅（已完成，2026-01-14）
+  - `SQLQueryWidget` - SQL执行界面 ✅（已完成，2026-01-15）
   - `IndexManagementWidget` - 索引管理界面（待开发）
 - **实现状态**：
   - ✅ 主窗口框架：已完成（2026-01-14）
@@ -164,7 +164,7 @@
     - 标签页系统（5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide）
     - 状态栏显示数据库名称和当前时间
     - 全局键盘快捷键（Ctrl+Q, F1, Ctrl+Tab等）
-    - 窗口标题包含版本号（v0.6.1）
+    - 窗口标题包含版本号（v0.6.3）
     - Guide标签页显示USER_GUIDE.md内容
   - ✅ 数据库管理功能：已完成（2026-01-14）
     - Create Database（创建数据库，Ctrl+N）
@@ -184,9 +184,21 @@
     - 编辑记录功能
     - 删除记录功能（带确认对话框）
     - 表列表自动刷新（切换标签页时、创建新表后）
-  - ⏳ SQL执行界面：待开发
+  - ✅ SQL执行界面：已完成（2026-01-15）
+    - SQL语句输入和执行（QTextEdit，支持多行输入）
+    - 批量SQL语句执行（自动分割多条语句，支持分号分隔）
+    - 结果展示（成功/失败消息框，查询结果表格QTableWidget）
+    - 主键唯一性约束检查（INSERT和UPDATE操作）
+    - 大小写不敏感支持（表名、关键字，与主流DBMS对齐）
+    - JOIN查询支持（INNER JOIN, LEFT JOIN, RIGHT JOIN）
+    - CREATE TABLE char[length]和char(length)语法支持
+    - JOIN查询TableName.FieldName语法支持
+    - UPDATE 0行受影响的消息提示（符合标准SQL行为）
+    - DROP TABLE硬删除修复（完全删除表结构和数据）
+    - RENAME TABLE文件同步修复（.dbf和.dat文件保持同步）
+    - 所有GUI消息框使用英文和Segoe UI字体
   - ⏳ 索引管理界面：待开发
-  - ⏳ 索引管理界面：待开发
+  - ⏳ 推荐系统界面：待开发
 
 ## 3. 数据结构设计
 
@@ -468,7 +480,7 @@ class RecommendationEngine {
 
 ---
 
-**最后更新**：2026-01-14
+**最后更新**：2026-01-15
 
 **重要更新**：
 - 2026-01-12 - 确定数据库新技术方案（方案A：索引技术+智能推荐）
@@ -478,3 +490,4 @@ class RecommendationEngine {
 - 2026-01-14 - GUI主界面布局完成
 - 2026-01-14 - GUI表结构管理界面完成
 - 2026-01-14 - GUI数据操作界面完成
+- 2026-01-15 - GUI SQL执行界面完成（包括批量执行、主键约束、大小写不敏感、JOIN查询支持、DROP/RENAME TABLE修复）

@@ -412,6 +412,57 @@
 
 ---
 
+### v0.6.0 - GUI开发阶段
+
+**发布日期**：2026-01-15
+
+**更新内容**：
+- 完成Qt界面框架搭建（主窗口类、应用程序入口、基础UI组件）
+- 完成主界面布局（标签页系统、状态栏、全局快捷键）
+- 完成数据库管理功能（Create Database, Open Database）
+- 完成表结构管理界面（创建、编辑、删除表）
+- 完成数据操作界面（插入、编辑、删除记录，查看记录）
+- 完成SQL执行界面（SQL输入和执行，批量执行，主键约束，JOIN查询支持）
+- 修复DROP TABLE后数据未完全删除的问题
+- 修复RENAME TABLE后.dbf和.dat文件不同步的问题
+- 完善SQL执行测试用例文档（添加JOIN查询测试用例）
+
+**主要文件**：
+- `include/gui/main_window.h`, `src/gui/main_window.cpp` - 主窗口实现
+- `src/gui/main.cpp` - 应用程序入口
+- `include/gui/table_management_widget.h`, `src/gui/table_management_widget.cpp` - 表管理界面
+- `include/gui/data_operation_widget.h`, `src/gui/data_operation_widget.cpp` - 数据操作界面
+- `include/gui/sql_query_widget.h`, `src/gui/sql_query_widget.cpp` - SQL执行界面
+- `src/core/data_manager.cpp` - 数据管理器（修复clearTable和readAllRecords）
+- `src/ddl/drop_table_handler.cpp` - DROP TABLE处理器（修复返回值检查）
+- `src/ddl/rename_table_handler.cpp` - RENAME TABLE处理器（修复执行顺序）
+- `docs/testing/sql_execution_test_cases.md` - SQL执行测试用例文档（完善）
+
+**功能特性**：
+- 完整的GUI界面（表管理、数据操作、SQL执行）
+- 数据库管理功能（创建、打开数据库）
+- 表结构管理（创建、编辑、删除表）
+- 数据操作（插入、编辑、删除记录）
+- SQL执行（支持DDL、DML、查询语句，批量执行）
+- 主键唯一性约束（INSERT和UPDATE操作）
+- 大小写不敏感支持（表名、关键字，与主流DBMS对齐）
+- JOIN查询支持（INNER JOIN, LEFT JOIN, RIGHT JOIN）
+- 所有GUI消息框使用英文和Segoe UI字体
+- DROP TABLE硬删除修复（完全删除表结构和数据）
+- RENAME TABLE文件同步修复（.dbf和.dat文件保持同步）
+
+**测试结果**：
+- GUI程序能够成功编译并运行 ✅
+- 主窗口正常显示 ✅
+- 表管理界面功能正常 ✅
+- 数据操作界面功能正常 ✅
+- SQL执行界面功能正常 ✅
+- DROP TABLE和RENAME TABLE问题已修复 ✅
+
+**开发者**：项目组
+
+---
+
 ## 版本号规则
 
 采用语义化版本号：主版本号.次版本号.修订号 (MAJOR.MINOR.PATCH)
@@ -422,8 +473,8 @@
 
 ---
 
-**最后更新**：2026-01-14
+**最后更新**：2026-01-15
 
-**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1（GUI最小可运行程序）已完成，GUI能够正常显示。阶段5.2（GUI主界面布局）已完成。阶段5.3（数据库管理和表结构管理界面）已完成。总计754个测试全部通过。
+**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1-5.5（GUI开发）已完成，包括主窗口、表管理界面、数据操作界面、SQL执行界面。总计754个测试全部通过。
 
 ---
