@@ -29,8 +29,8 @@
   - 阶段5.2（主界面布局）已完成 ✅
   - 阶段5.3（表结构管理界面）已完成 ✅
   - 阶段5.4（数据操作界面）已完成 ✅
-- **当前任务**：阶段5（GUI界面开发）- 继续开发SQL执行界面和其他功能模块
-- **完成度**：72% (阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.4已完成；阶段5.5-5.7待开发)
+- **当前任务**：阶段5（GUI界面开发）- 继续开发索引管理界面和其他功能模块
+- **完成度**：75% (阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段5.6-5.7待开发)
 
 ### 已完成工作
 
@@ -306,9 +306,23 @@
    - **完成时间**：2026-01-14
    - **文件**：`include/gui/data_operation_widget.h`, `src/gui/data_operation_widget.cpp`
    - **状态**：数据操作界面已完成 ✅
-5. ⏳ **任务5.5**：SQL执行界面（待开发）
+5. ✅ **任务5.5**：SQL执行界面（已完成）
+   - 实现SQL语句输入和执行
+   - 实现批量SQL语句执行（自动分割多条语句）
+   - 实现结果展示（成功/失败消息框，查询结果表格）
+   - 实现主键唯一性约束（INSERT和UPDATE）
+   - 修复大小写不敏感问题（表名、关键字）
+   - 修复CREATE TABLE char[length]语法支持
+   - 修复JOIN查询TableName.FieldName语法支持
+   - 修复UPDATE 0行受影响的消息提示
+   - 修复DROP TABLE后数据未完全删除的问题
+   - 修复RENAME TABLE后.dbf和.dat文件不同步的问题
+   - 所有GUI消息框使用英文和Segoe UI字体
+   - **完成时间**：2026-01-14
+   - **文件**：`include/gui/sql_query_widget.h`, `src/gui/sql_query_widget.cpp`
+   - **状态**：SQL执行界面已完成 ✅
 6. ⏳ **任务5.6**：索引管理界面（待开发）
-7. ⏳ **任务5.7**：索引管理界面（待开发）
+7. ⏳ **任务5.7**：推荐系统界面（待开发）
 
 ### 待开始工作
 1. ⏳ 阶段5：Qt GUI界面开发（5.1-5.3已完成，5.4-5.7待开发）
@@ -676,6 +690,29 @@ database-design/
     - 修复`data_operation_widget.h`中`TableInfo`未定义问题（改为包含`core/table_mode.h`）
     - 修复表列表刷新问题（在`onTabChanged`和`setCurrentDatabase`中添加刷新逻辑）
     - 将`loadTableList()`设为public方法，供外部调用
+- **2026-01-14**：阶段5.5（SQL执行界面）完成
+  - 实现SQL语句输入和执行功能
+  - 实现批量SQL语句执行（自动分割多条语句，支持分号分隔）
+  - 实现结果展示（成功/失败消息框，查询结果表格）
+  - 实现主键唯一性约束检查（INSERT和UPDATE操作，包括GUI和SQL执行）
+  - 修复大小写不敏感问题（表名、关键字，与主流DBMS对齐）
+  - 修复CREATE TABLE char[length]和char(length)语法支持
+  - 修复JOIN查询TableName.FieldName语法支持（添加DOT token）
+  - 修复UPDATE 0行受影响的消息提示（更符合标准SQL行为）
+  - 修复DROP TABLE后数据未完全删除的问题（clearTable硬删除逻辑）
+  - 修复RENAME TABLE后.dbf和.dat文件不同步的问题（调整执行顺序）
+  - 所有GUI消息框使用英文和Segoe UI字体
+  - 完善SQL执行测试用例（添加JOIN查询测试用例和未实现功能测试用例）
+  - **完成时间**：2026-01-14
+  - **文件**：`include/gui/sql_query_widget.h`, `src/gui/sql_query_widget.cpp`
+  - **测试文档**：`docs/testing/sql_execution_test_cases.md`
+  - **状态**：SQL执行界面已完成 ✅
+  - **修复内容**：
+    - 修复`clearTable`函数，确保硬删除所有大小写变体的数据
+    - 修复`readAllRecords`函数，移除对.dbf文件的检查，直接从.dat文件读取（支持RENAME TABLE场景）
+    - 修复`dropTable`函数，检查`clearTable`的返回值
+    - 修复`renameTable`函数，调整执行顺序：先迁移数据，再更新.dbf文件
+    - 移动`test_sql_parser.cpp`到`scripts/unit_tests/sql_parser/`目录
 
 ---
 

@@ -35,7 +35,7 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             }
         }
     } else {
-        setError("期望字段名或*，但得到: " + m_currentToken.value);
+        setError("Expected field name or '*', but got: " + m_currentToken.value);
         return nullptr;
     }
     
@@ -113,7 +113,7 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
                 joinInfo.operator_ = "=";
                 advance();
             } else {
-                setError("期望 =，但得到: " + m_currentToken.value);
+                setError("Expected '=', but got: " + m_currentToken.value);
                 return nullptr;
             }
             
@@ -160,7 +160,7 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             node->whereOperator = "=";
             advance();
         } else {
-            setError("期望 =，但得到: " + m_currentToken.value);
+            setError("Expected '=', but got: " + m_currentToken.value);
             return nullptr;
         }
         
@@ -172,7 +172,7 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             node->whereValue = m_currentToken.value;
             advance();
         } else {
-            setError("期望值（字符串或数字），但得到: " + m_currentToken.value);
+            setError("Expected value (string or number), but got: " + m_currentToken.value);
             return nullptr;
         }
     }

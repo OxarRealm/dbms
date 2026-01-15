@@ -23,14 +23,14 @@ bool InsertHandler::execute(const std::string& sql) {
     std::unique_ptr<ASTNode> ast = parser.parse();
     
     if (!ast) {
-        setError("SQL解析失败: " + parser.getLastError());
+        setError("SQL parsing failed: " + parser.getLastError());
         return false;
     }
     
     // 检查是否为INSERT节点
     InsertNode* insertNode = dynamic_cast<InsertNode*>(ast.get());
     if (!insertNode) {
-        setError("不是INSERT语句");
+        setError("Not an INSERT statement");
         return false;
     }
     
@@ -41,7 +41,7 @@ bool InsertHandler::execute(const std::string& sql) {
     // 读取表结构
     TableInfo tableInfo;
     if (!m_tableManager.readTable(insertNode->tableName, tableInfo)) {
-        setError("表不存在: " + insertNode->tableName);
+        setError("Table does not exist: " + insertNode->tableName);
         return false;
     }
     
@@ -53,9 +53,14 @@ bool InsertHandler::execute(const std::string& sql) {
     // 创建记录
     Record record = createRecord(insertNode, tableInfo);
     
+    // 检查主键唯一性约束
+    if (!checkPrimaryKeyUnique(insertNode->tableName, tableInfo, record)) {
+        return false;
+    }
+    
     // 插入记录
     if (!m_dataManager.insertRecord(insertNode->tableName, record)) {
-        setError("插入记录失败");
+        setError("Failed to insert record");
         return false;
     }
     
@@ -73,8 +78,8 @@ void InsertHandler::setError(const std::string& error) {
 bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableInfo) {
     // 检查值数量是否匹配字段数量
     if (node->values.size() != tableInfo.fields.size()) {
-        setError("值数量(" + std::to_string(node->values.size()) + 
-                 ")与字段数量(" + std::to_string(tableInfo.fields.size()) + ")不匹配");
+        setError("Value count (" + std::to_string(node->values.size()) + 
+                 ") does not match field count (" + std::to_string(tableInfo.fields.size()) + ")");
         return false;
     }
     
@@ -85,7 +90,7 @@ bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableI
         
         // 检查NULL约束
         if (value.empty() && field.bNullFlag == FLAG_NO_NULL) {
-            setError("字段 " + std::string(field.sFieldName) + " 不允许为空");
+            setError("Field " + std::string(field.sFieldName) + " cannot be empty (NOT NULL constraint)");
             return false;
         }
         
@@ -101,7 +106,7 @@ bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableI
             try {
                 std::stoi(value);
             } catch (...) {
-                setError("字段 " + std::string(field.sFieldName) + " 期望整数，但得到: " + value);
+                setError("Field " + std::string(field.sFieldName) + " expects integer, but got: " + value);
                 return false;
             }
         } else if (fieldType == "float" || fieldType == "double") {
@@ -113,7 +118,7 @@ bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableI
                     std::stod(value);
                 }
             } catch (...) {
-                setError("字段 " + std::string(field.sFieldName) + " 期望浮点数，但得到: " + value);
+                setError("Field " + std::string(field.sFieldName) + " expects float, but got: " + value);
                 return false;
             }
         }
@@ -194,5 +199,57 @@ Record InsertHandler::createRecord(InsertNode* node, const TableInfo& tableInfo)
     }
     
     return record;
+}
+
+bool InsertHandler::checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, const Record& record) {
+    // 查找所有主键字段
+    std::vector<int> keyFieldIndices;
+    for (size_t i = 0; i < tableInfo.fields.size(); ++i) {
+        if (tableInfo.fields[i].bKey == FLAG_KEY) {
+            keyFieldIndices.push_back(static_cast<int>(i));
+        }
+    }
+    
+    // 如果没有主键字段，不需要检查
+    if (keyFieldIndices.empty()) {
+        return true;
+    }
+    
+    // 读取所有有效记录
+    std::vector<Record> existingRecords;
+    if (!m_dataManager.readValidRecords(tableName, existingRecords)) {
+        // 如果读取失败，假设没有冲突（可能是新表）
+        return true;
+    }
+    
+    // 检查新记录的主键值是否与现有记录冲突
+    for (const Record& existingRecord : existingRecords) {
+        bool allKeysMatch = true;
+        for (int keyIndex : keyFieldIndices) {
+            if (keyIndex >= 0 && keyIndex < static_cast<int>(record.values.size()) &&
+                keyIndex >= 0 && keyIndex < static_cast<int>(existingRecord.values.size())) {
+                if (record.values[keyIndex] != existingRecord.values[keyIndex]) {
+                    allKeysMatch = false;
+                    break;
+                }
+            } else {
+                allKeysMatch = false;
+                break;
+            }
+        }
+        
+        if (allKeysMatch) {
+            // 构建主键字段名列表用于错误信息
+            std::string keyFields;
+            for (size_t i = 0; i < keyFieldIndices.size(); ++i) {
+                if (i > 0) keyFields += ", ";
+                keyFields += std::string(tableInfo.fields[keyFieldIndices[i]].sFieldName);
+            }
+            setError("Primary key constraint violation: Field (" + keyFields + ") value already exists");
+            return false;
+        }
+    }
+    
+    return true;
 }
 

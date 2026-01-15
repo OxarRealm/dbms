@@ -801,9 +801,95 @@
 - `CMakeLists.txt` - 构建配置（更新）
 
 **下一步计划**：
-1. 实现SQL执行界面（SQL输入和执行）
+1. ✅ 实现SQL执行界面（已完成，2026-01-14）
 2. 实现索引管理界面
-3. 实现索引管理界面
+3. 实现推荐系统界面
+
+---
+
+### SQL执行界面开发和问题修复
+
+**时间**：2026-01-14
+
+**完成工作**：
+
+1. ✅ 创建SQLQueryWidget类
+   - 实现SQL语句输入编辑器（QTextEdit）
+   - 实现执行按钮和结果展示
+   - 实现批量SQL语句执行（自动分割多条语句）
+   - 实现成功/失败消息框（使用Segoe UI字体，英文文本）
+   - 实现查询结果表格显示
+
+2. ✅ 主键唯一性约束实现
+   - 在INSERT操作中实现主键唯一性检查（backend和GUI）
+   - 在UPDATE操作中实现主键唯一性检查（backend和GUI）
+   - 错误消息使用英文
+
+3. ✅ 大小写不敏感问题修复
+   - 修复表名大小写不敏感（与主流DBMS对齐）
+   - 修复关键字大小写不敏感
+   - 在所有表名/字段名比较中使用`strcasecmp_custom`
+   - 在DataManager中使用`CaseInsensitiveStringCompare`作为map的key比较器
+
+4. ✅ SQL语法支持扩展
+   - 支持`char[length]`和`char(length)`两种语法
+   - 支持JOIN查询中的`TableName.FieldName`格式（添加DOT token）
+   - 修复UPDATE 0行受影响的消息提示（更符合标准SQL行为）
+
+5. ✅ DROP TABLE数据删除问题修复
+   - 修复`clearTable`函数，确保硬删除所有大小写变体的数据
+   - 修复`readAllRecords`函数，移除对.dbf文件的检查，直接从.dat文件读取
+   - 修复`dropTable`函数，检查`clearTable`的返回值
+   - 确保删除表时同时删除.dbf中的表结构和.dat中的记录数据
+
+6. ✅ RENAME TABLE文件同步问题修复
+   - 修复`renameTable`函数，调整执行顺序：先迁移数据，再更新.dbf文件
+   - 修复`readAllRecords`函数，支持RENAME TABLE场景（.dbf已更新但.dat还是旧表名）
+   - 确保重命名表时.dbf和.dat文件保持同步
+
+7. ✅ 测试用例完善
+   - 完善SQL执行测试用例文档（`docs/testing/sql_execution_test_cases.md`）
+   - 添加LEFT JOIN、RIGHT JOIN测试用例
+   - 添加多表JOIN、JOIN带WHERE子句等测试用例
+   - 添加未实现功能的测试用例（ORDER BY、GROUP BY等，标注为"未实现"）
+
+8. ✅ 测试文件整理
+   - 移动`test_sql_parser.cpp`到`scripts/unit_tests/sql_parser/`目录
+
+**技术决策**：
+- 使用QTextEdit实现SQL输入编辑器，支持多行输入
+- 使用QTableWidget显示查询结果，支持表格格式
+- 批量执行时自动按分号分割SQL语句，保留分号用于语法解析
+- 所有GUI消息框使用英文和Segoe UI字体，保持一致性
+- DROP TABLE采用硬删除策略，完全删除表结构和数据
+- RENAME TABLE先迁移数据再更新结构，确保文件同步
+
+**遇到的问题和解决方案**：
+1. **问题**：DROP TABLE后重新创建同名表，旧数据仍然存在
+   - **原因**：`clearTable`函数未正确删除所有大小写变体的数据，或数据文件读取逻辑有问题
+   - **解决**：修复`clearTable`函数，确保跳过所有大小写变体的目标表数据；修复`readAllRecords`函数，移除对.dbf文件的检查
+
+2. **问题**：RENAME TABLE后.dbf和.dat文件不同步
+   - **原因**：`renameTable`先更新.dbf文件，再迁移数据，导致读取时.dbf已更新但.dat还是旧表名
+   - **解决**：调整执行顺序，先迁移数据，再更新.dbf文件；修复`readAllRecords`函数，直接从.dat文件读取
+
+3. **问题**：表名大小写不敏感问题
+   - **原因**：表名比较使用区分大小写的字符串比较
+   - **解决**：在所有表名/字段名比较中使用`strcasecmp_custom`，在DataManager中使用`CaseInsensitiveStringCompare`
+
+**文件位置**：
+- `include/gui/sql_query_widget.h` - SQL执行界面头文件（新建）
+- `src/gui/sql_query_widget.cpp` - SQL执行界面实现（新建）
+- `src/core/data_manager.cpp` - 数据管理器（修复clearTable和readAllRecords）
+- `src/ddl/drop_table_handler.cpp` - DROP TABLE处理器（修复返回值检查）
+- `src/ddl/rename_table_handler.cpp` - RENAME TABLE处理器（修复执行顺序）
+- `docs/testing/sql_execution_test_cases.md` - SQL执行测试用例文档（完善）
+- `scripts/unit_tests/sql_parser/test_sql_parser.cpp` - SQL解析器测试程序（移动）
+
+**下一步计划**：
+1. 实现索引管理界面
+2. 实现推荐系统界面
+3. 完善SQL功能（ORDER BY、GROUP BY等）
 
 ---
 

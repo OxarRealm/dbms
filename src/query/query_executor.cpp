@@ -32,7 +32,7 @@ ExecutionResult QueryExecutor::execute(const std::string& sql) {
             result.errorMessage = m_lastError;
         } else {
             result.type = ExecutionResultType::SUCCESS;
-            result.formattedOutput = "DDL语句执行成功";
+            result.formattedOutput = "DDL statement executed successfully";
         }
     } else if (statementType == "DML") {
         if (!executeDML(sql, result)) {
@@ -41,7 +41,10 @@ ExecutionResult QueryExecutor::execute(const std::string& sql) {
         } else {
             result.type = ExecutionResultType::SUCCESS;
             std::ostringstream oss;
-            oss << "DML语句执行成功，影响 " << result.affectedRows << " 条记录";
+            oss << "DML statement executed successfully, " << result.affectedRows << " row(s) affected";
+            if (result.affectedRows == 0) {
+                oss << " (no matching records found)";
+            }
             result.formattedOutput = oss.str();
         }
     } else if (statementType == "QUERY") {
@@ -54,7 +57,7 @@ ExecutionResult QueryExecutor::execute(const std::string& sql) {
         }
     } else {
         result.type = ExecutionResultType::ERROR;
-        result.errorMessage = "未知的SQL语句类型";
+        result.errorMessage = "Unknown SQL statement type";
         setError(result.errorMessage);
     }
     
@@ -79,7 +82,7 @@ std::string QueryExecutor::getLastError() const {
 
 std::string QueryExecutor::formatQueryResult(const QueryResult& result) {
     if (result.columnNames.empty()) {
-        return "查询结果为空";
+        return "Query result is empty";
     }
     
     std::ostringstream oss;
@@ -141,7 +144,7 @@ std::string QueryExecutor::formatQueryResult(const QueryResult& result) {
     }
     oss << "\n";
     
-    oss << "共 " << result.rowCount << " 行";
+    oss << "Total " << result.rowCount << " row(s)";
     
     return oss.str();
 }

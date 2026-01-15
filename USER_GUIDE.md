@@ -326,8 +326,14 @@ SELECT * FROM Table1, Table2 WHERE Table1.Field1=Table2.Field2;
 
 **SELECT (JOIN):**
 ```sql
-SELECT * FROM Table1 JOIN Table2 ON Table1.Field1=Table2.Field2 WHERE Condition;
+SELECT * FROM Table1 INNER JOIN Table2 ON Table1.Field1=Table2.Field2;
+SELECT * FROM Table1 LEFT JOIN Table2 ON Table1.Field1=Table2.Field2;
+SELECT * FROM Table1 RIGHT JOIN Table2 ON Table1.Field1=Table2.Field2;
 ```
+
+**Note**: The system supports INNER JOIN, LEFT JOIN, and RIGHT JOIN. FULL OUTER JOIN and NATURAL JOIN are not yet implemented.
+
+For detailed SQL execution test cases, please refer to [docs/testing/sql_execution_test_cases.md](../docs/testing/sql_execution_test_cases.md).
 
 ---
 
@@ -457,8 +463,19 @@ The system automatically analyzes query logs and provides index recommendations:
 
 ## Version Information
 
-- **Current Version**: v0.6.1
+- **Current Version**: v0.6.3
 - **Last Updated**: 2026-01-14
+
+### Recent Updates (v0.6.3)
+
+- ✅ SQL Execution interface completed
+- ✅ Batch SQL execution support
+- ✅ Primary key uniqueness constraint enforcement
+- ✅ Case-insensitive table names and keywords
+- ✅ JOIN query support (INNER, LEFT, RIGHT)
+- ✅ Fixed DROP TABLE data deletion issue
+- ✅ Fixed RENAME TABLE file synchronization issue
+- ✅ Comprehensive SQL test cases added
 
 ---
 

@@ -85,6 +85,7 @@ set(GUI_HEADERS
     "include/gui/main_window.h"
     "include/gui/table_management_widget.h"
     "include/gui/data_operation_widget.h"
+    "include/gui/sql_query_widget.h"
 )
 
 # 所有源文件

@@ -25,14 +25,14 @@ std::string TableManager::getDbfFilePath() const {
 bool TableManager::createTable(const TableInfo& tableInfo) {
     // 检查表是否已存在
     if (tableExists(tableInfo.tableName)) {
-        std::cerr << "错误: 表 " << tableInfo.tableName << " 已存在" << std::endl;
+        std::cerr << "Error: Table " << tableInfo.tableName << " already exists" << std::endl;
         return false;
     }
 
     // 以追加模式打开文件
     std::ofstream file(getDbfFilePath(), std::ios::binary | std::ios::app);
     if (!file.is_open()) {
-        std::cerr << "错误: 无法打开文件 " << getDbfFilePath() << std::endl;
+        std::cerr << "Error: Cannot open file " << getDbfFilePath() << std::endl;
         return false;
     }
 
@@ -46,7 +46,7 @@ bool TableManager::createTable(const TableInfo& tableInfo) {
 bool TableManager::readTable(const std::string& tableName, TableInfo& tableInfo) {
     std::ifstream file(getDbfFilePath(), std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "错误: 无法打开文件 " << getDbfFilePath() << std::endl;
+        std::cerr << "Error: Cannot open file " << getDbfFilePath() << std::endl;
         return false;
     }
 
@@ -54,7 +54,7 @@ bool TableManager::readTable(const std::string& tableName, TableInfo& tableInfo)
     char separator;
     while (file.read(&separator, 1)) {
         if (separator != TABLE_SEPARATOR) {
-            std::cerr << "错误: 文件格式错误，期望分隔符" << std::endl;
+            std::cerr << "Error: File format error, expected separator" << std::endl;
             file.close();
             return false;
         }
@@ -65,7 +65,7 @@ bool TableManager::readTable(const std::string& tableName, TableInfo& tableInfo)
             return false;
         }
 
-        if (strcmp(currentTable.tableName, tableName.c_str()) == 0) {
+        if (strcasecmp_custom(currentTable.tableName, tableName.c_str()) == 0) {
             tableInfo = currentTable;
             file.close();
             return true;
@@ -89,7 +89,7 @@ bool TableManager::readAllTables(std::vector<TableInfo>& tableList) {
     char separator;
     while (file.read(&separator, 1)) {
         if (separator != TABLE_SEPARATOR) {
-            std::cerr << "错误: 文件格式错误，期望分隔符" << std::endl;
+            std::cerr << "Error: File format error, expected separator" << std::endl;
             file.close();
             return false;
         }
@@ -117,7 +117,7 @@ bool TableManager::updateTable(const std::string& tableName, const TableInfo& ta
     // 查找并更新目标表
     bool found = false;
     for (auto& table : tableList) {
-        if (strcmp(table.tableName, tableName.c_str()) == 0) {
+        if (strcasecmp_custom(table.tableName, tableName.c_str()) == 0) {
             table = tableInfo;
             found = true;
             break;
@@ -125,7 +125,7 @@ bool TableManager::updateTable(const std::string& tableName, const TableInfo& ta
     }
 
     if (!found) {
-        std::cerr << "错误: 表 " << tableName << " 不存在" << std::endl;
+        std::cerr << "Error: Table " << tableName << " does not exist" << std::endl;
         return false;
     }
 
@@ -143,11 +143,11 @@ bool TableManager::deleteTable(const std::string& tableName) {
     // 删除目标表
     auto it = std::remove_if(tableList.begin(), tableList.end(),
         [&tableName](const TableInfo& table) {
-            return strcmp(table.tableName, tableName.c_str()) == 0;
+            return strcasecmp_custom(table.tableName, tableName.c_str()) == 0;
         });
 
     if (it == tableList.end()) {
-        std::cerr << "错误: 表 " << tableName << " 不存在" << std::endl;
+        std::cerr << "Error: Table " << tableName << " does not exist" << std::endl;
         return false;
     }
 
@@ -160,7 +160,7 @@ bool TableManager::deleteTable(const std::string& tableName) {
 bool TableManager::renameTable(const std::string& oldTableName, const std::string& newTableName) {
     // 检查新表名是否已存在
     if (tableExists(newTableName)) {
-        std::cerr << "错误: 表 " << newTableName << " 已存在" << std::endl;
+        std::cerr << "Error: Table " << newTableName << " already exists" << std::endl;
         return false;
     }
 
@@ -173,7 +173,7 @@ bool TableManager::renameTable(const std::string& oldTableName, const std::strin
     // 查找并重命名目标表
     bool found = false;
     for (auto& table : tableList) {
-        if (strcmp(table.tableName, oldTableName.c_str()) == 0) {
+        if (strcasecmp_custom(table.tableName, oldTableName.c_str()) == 0) {
             strncpy(table.tableName, newTableName.c_str(), TABLE_NAME_LENGTH - 1);
             table.tableName[TABLE_NAME_LENGTH - 1] = '\0';
             found = true;
@@ -214,7 +214,7 @@ bool TableManager::readTableFromStream(std::ifstream& file, TableInfo& tableInfo
     // 读取表名
     file.read(tableInfo.tableName, TABLE_NAME_LENGTH);
     if (file.gcount() != TABLE_NAME_LENGTH) {
-        std::cerr << "错误: 读取表名失败" << std::endl;
+        std::cerr << "Error: Failed to read table name" << std::endl;
         return false;
     }
     tableInfo.tableName[TABLE_NAME_LENGTH - 1] = '\0';  // 确保字符串结束
@@ -223,7 +223,7 @@ bool TableManager::readTableFromStream(std::ifstream& file, TableInfo& tableInfo
     int fieldCount;
     file.read(reinterpret_cast<char*>(&fieldCount), sizeof(int));
     if (file.gcount() != sizeof(int)) {
-        std::cerr << "错误: 读取字段数量失败" << std::endl;
+        std::cerr << "Error: Failed to read field count" << std::endl;
         return false;
     }
 
@@ -234,7 +234,7 @@ bool TableManager::readTableFromStream(std::ifstream& file, TableInfo& tableInfo
         TableMode field;
         file.read(reinterpret_cast<char*>(&field), sizeof(TableMode));
         if (file.gcount() != sizeof(TableMode)) {
-            std::cerr << "错误: 读取字段 " << i << " 失败" << std::endl;
+            std::cerr << "Error: Failed to read field " << i << std::endl;
             return false;
         }
         tableInfo.fields.push_back(field);
@@ -248,7 +248,7 @@ bool TableManager::writeTableToStream(std::ofstream& file, const TableInfo& tabl
     char separator = TABLE_SEPARATOR;
     file.write(&separator, 1);
     if (!file.good()) {
-        std::cerr << "错误: 写入分隔符失败" << std::endl;
+        std::cerr << "Error: Failed to write separator" << std::endl;
         return false;
     }
 
@@ -262,7 +262,7 @@ bool TableManager::writeTableToStream(std::ofstream& file, const TableInfo& tabl
     }
     file.write(tableNameBuffer, TABLE_NAME_LENGTH);
     if (!file.good()) {
-        std::cerr << "错误: 写入表名失败" << std::endl;
+        std::cerr << "Error: Failed to write table name" << std::endl;
         return false;
     }
 
@@ -270,7 +270,7 @@ bool TableManager::writeTableToStream(std::ofstream& file, const TableInfo& tabl
     int fieldCount = static_cast<int>(tableInfo.fields.size());
     file.write(reinterpret_cast<const char*>(&fieldCount), sizeof(int));
     if (!file.good()) {
-        std::cerr << "错误: 写入字段数量失败" << std::endl;
+        std::cerr << "Error: Failed to write field count" << std::endl;
         return false;
     }
 
@@ -278,7 +278,7 @@ bool TableManager::writeTableToStream(std::ofstream& file, const TableInfo& tabl
     for (const auto& field : tableInfo.fields) {
         file.write(reinterpret_cast<const char*>(&field), sizeof(TableMode));
         if (!file.good()) {
-            std::cerr << "错误: 写入字段失败" << std::endl;
+            std::cerr << "Error: Failed to write field" << std::endl;
             return false;
         }
     }
@@ -293,7 +293,7 @@ bool TableManager::rewriteAllTables(const std::vector<TableInfo>& tableList) {
     // 创建新文件并写入所有表
     std::ofstream file(getDbfFilePath(), std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "错误: 无法创建文件 " << getDbfFilePath() << std::endl;
+        std::cerr << "Error: Cannot create file " << getDbfFilePath() << std::endl;
         return false;
     }
 

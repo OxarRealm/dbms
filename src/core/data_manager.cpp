@@ -4,10 +4,37 @@
  */
 
 #include "core/data_manager.h"
+#include "core/table_mode.h"
 #include <iostream>
 #include <cstring>
 #include <algorithm>
 #include <map>
+#ifdef _WIN32
+#include <string.h>
+#else
+#include <strings.h>
+#endif
+
+// Helper function to find key in map with case-insensitive comparison
+static std::map<std::string, std::vector<Record>>::iterator 
+findCaseInsensitiveKey(std::map<std::string, std::vector<Record>>& map, const std::string& key) {
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        if (strcasecmp_custom(it->first.c_str(), key.c_str()) == 0) {
+            return it;
+        }
+    }
+    return map.end();
+}
+
+// Helper function to get case-insensitive key from map (returns the actual key in map)
+static std::string getCaseInsensitiveKey(const std::map<std::string, std::vector<Record>>& map, const std::string& key) {
+    for (const auto& pair : map) {
+        if (strcasecmp_custom(pair.first.c_str(), key.c_str()) == 0) {
+            return pair.first;
+        }
+    }
+    return key;  // If not found, return original key
+}
 
 DataManager::DataManager() {
 }
@@ -43,12 +70,20 @@ bool DataManager::insertRecord(const std::string& tableName, const Record& recor
                 return false;
             }
             
-            allTableData[currentTableName] = records;
+            // 如果遇到同名表（大小写不敏感），使用新表名（统一大小写）
+            // 这样可以确保同一表的所有数据使用相同的表名
+            if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
+                // 同名表，使用新表名（统一大小写）
+                allTableData[tableName] = records;
+            } else {
+                // 不同表，保持原表名
+                allTableData[currentTableName] = records;
+            }
         }
         readFile.close();
     }
     
-    // 添加新记录
+    // 添加新记录（使用统一的表名）
     allTableData[tableName].push_back(record);
     
     // 重新写入所有数据
@@ -75,14 +110,22 @@ bool DataManager::insertRecords(const std::string& tableName, const std::vector<
                 return false;
             }
             
-            allTableData[currentTableName] = currentRecords;
+            // 如果遇到同名表（大小写不敏感），使用新表名（统一大小写）
+            // 这样可以确保同一表的所有数据使用相同的表名
+            if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
+                // 同名表，使用新表名（统一大小写）
+                allTableData[tableName] = currentRecords;
+            } else {
+                // 不同表，保持原表名
+                allTableData[currentTableName] = currentRecords;
+            }
         }
         readFile.close();
     }
     
-    // 添加新记录
+    // 添加新记录（使用统一的表名）
     allTableData[tableName].insert(allTableData[tableName].end(), 
-                                    records.begin(), records.end());
+                                records.begin(), records.end());
     
     // 重新写入所有数据
     return rewriteAllTableData(allTableData);
@@ -91,13 +134,19 @@ bool DataManager::insertRecords(const std::string& tableName, const std::vector<
 bool DataManager::readAllRecords(const std::string& tableName, std::vector<Record>& records) {
     records.clear();
     
+    // 注意：在RENAME TABLE操作中，可能需要读取旧表名的数据
+    // 此时.dbf文件可能已经更新为新表名，但.dat文件还是旧表名
+    // 所以这里不检查.dbf文件，直接从.dat文件读取
+    // 这样可以支持RENAME TABLE操作中的数据迁移
+    
+    // 读取数据文件
     std::ifstream file(getDatFilePath(), std::ios::binary);
     if (!file.is_open()) {
-        // 文件不存在，返回空列表（不算错误）
+        // 数据文件不存在，返回空列表（不算错误）
         return true;
     }
     
-    // 读取所有表的数据，查找目标表
+    // 读取所有表的数据，查找目标表（大小写不敏感）
     char separator;
     while (file.read(&separator, 1)) {
         if (separator != TABLE_SEPARATOR) {
@@ -112,7 +161,11 @@ bool DataManager::readAllRecords(const std::string& tableName, std::vector<Recor
             return false;
         }
         
-        if (currentTableName == tableName) {
+        // 使用大小写不敏感比较查找目标表
+        // 注意：这里只返回第一个匹配的表数据
+        // 如果数据文件中有多个大小写变体的同名表数据，只返回第一个
+        // 但正常情况下，clearTable应该已经删除了所有旧数据，不应该有多个变体
+        if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
             records = currentRecords;
             file.close();
             return true;
@@ -120,7 +173,9 @@ bool DataManager::readAllRecords(const std::string& tableName, std::vector<Recor
     }
     
     file.close();
-    return true;  // 表不存在，返回空列表（不算错误）
+    // 数据文件中没有该表的数据，返回空列表（不算错误）
+    // 这可能是新创建的表，还没有插入数据
+    return true;
 }
 
 bool DataManager::readValidRecords(const std::string& tableName, std::vector<Record>& records) {
@@ -159,15 +214,20 @@ bool DataManager::updateRecord(const std::string& tableName, size_t recordIndex,
                 return false;
             }
             
-            allTableData[currentTableName] = currentRecords;
+            // 如果遇到同名表（大小写不敏感），使用新表名（统一大小写）
+            if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
+                allTableData[tableName] = currentRecords;
+            } else {
+                allTableData[currentTableName] = currentRecords;
+            }
         }
         readFile.close();
     }
     
-    // 查找并更新记录
+    // 查找并更新记录（使用统一的表名）
     auto it = allTableData.find(tableName);
     if (it == allTableData.end() || recordIndex >= it->second.size()) {
-        std::cerr << "错误: 记录索引超出范围" << std::endl;
+        std::cerr << "Error: Record index out of range" << std::endl;
         return false;
     }
     
@@ -197,15 +257,20 @@ bool DataManager::deleteRecord(const std::string& tableName, size_t recordIndex)
                 return false;
             }
             
-            allTableData[currentTableName] = currentRecords;
+            // 如果遇到同名表（大小写不敏感），使用新表名（统一大小写）
+            if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
+                allTableData[tableName] = currentRecords;
+            } else {
+                allTableData[currentTableName] = currentRecords;
+            }
         }
         readFile.close();
     }
     
-    // 查找并标记记录为无效
+    // 查找并标记记录为无效（使用统一的表名）
     auto it = allTableData.find(tableName);
     if (it == allTableData.end() || recordIndex >= it->second.size()) {
-        std::cerr << "错误: 记录索引超出范围" << std::endl;
+        std::cerr << "Error: Record index out of range" << std::endl;
         return false;
     }
     
@@ -236,34 +301,52 @@ bool DataManager::getValidRecordCount(const std::string& tableName, size_t& coun
 }
 
 bool DataManager::clearTable(const std::string& tableName) {
-    // 读取所有表的数据
+    // 读取所有表的数据，明确排除目标表（大小写不敏感）
+    // 这是硬删除：完全删除目标表的所有数据，包括所有大小写变体
     std::map<std::string, std::vector<Record>> allTableData;
     
+    // 如果数据文件不存在，直接返回成功（没有数据需要删除）
     std::ifstream readFile(getDatFilePath(), std::ios::binary);
-    if (readFile.is_open()) {
-        char separator;
-        while (readFile.read(&separator, 1)) {
-            if (separator != TABLE_SEPARATOR) {
-                readFile.close();
-                return false;
-            }
-            
-            std::string currentTableName;
-            std::vector<Record> currentRecords;
-            if (!readTableDataFromStream(readFile, currentTableName, currentRecords)) {
-                readFile.close();
-                return false;
-            }
-            
-            allTableData[currentTableName] = currentRecords;
-        }
-        readFile.close();
+    if (!readFile.is_open()) {
+        // 文件不存在，没有数据需要删除，返回成功
+        return true;
     }
     
-    // 清空目标表的数据
-    allTableData[tableName].clear();
+    // 读取所有表的数据
+    char separator;
+    bool foundTargetTable = false;
+    while (readFile.read(&separator, 1)) {
+        if (separator != TABLE_SEPARATOR) {
+            readFile.close();
+            std::cerr << "Error: File format error, expected separator" << std::endl;
+            return false;
+        }
+        
+        std::string currentTableName;
+        std::vector<Record> currentRecords;
+        if (!readTableDataFromStream(readFile, currentTableName, currentRecords)) {
+            readFile.close();
+            std::cerr << "Error: Failed to read table data from stream" << std::endl;
+            return false;
+        }
+        
+        // 明确检查：如果是目标表（大小写不敏感），则跳过（不添加到map中）
+        // 这样可以确保删除所有大小写变体的同名表数据（如 Products, products, PRODUCTS）
+        if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
+            // 这是目标表，跳过，不添加到map中，相当于硬删除
+            // 无论有多少条记录，都会被完全删除
+            foundTargetTable = true;
+            continue;
+        }
+        
+        // 不是目标表，添加到map中保留
+        allTableData[currentTableName] = currentRecords;
+    }
+    readFile.close();
     
-    // 重新写入所有数据
+    // 如果找到了目标表，需要重新写入文件（排除目标表）
+    // 如果没有找到目标表，也需要重新写入文件（确保文件格式正确）
+    // 这是硬删除：原文件被删除，新文件只包含非目标表的数据
     return rewriteAllTableData(allTableData);
 }
 
@@ -390,14 +473,23 @@ bool DataManager::rewriteAllTableData(const std::map<std::string, std::vector<Re
     // 删除原文件
     std::remove(getDatFilePath().c_str());
     
+    // 如果所有表数据都为空，直接返回成功（不创建空文件）
+    if (allTableData.empty()) {
+        return true;
+    }
+    
     // 创建新文件并写入所有数据
     std::ofstream file(getDatFilePath(), std::ios::binary);
     if (!file.is_open()) {
-        std::cerr << "错误: 无法创建文件 " << getDatFilePath() << std::endl;
+        std::cerr << "Error: Cannot create file " << getDatFilePath() << std::endl;
         return false;
     }
     
     for (const auto& pair : allTableData) {
+        // 跳过空表（虽然clearTable已经删除了条目，但为了安全起见还是检查一下）
+        if (pair.second.empty()) {
+            continue;
+        }
         if (!writeTableDataToStream(file, pair.first, pair.second)) {
             file.close();
             return false;

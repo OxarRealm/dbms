@@ -13,7 +13,8 @@ unit_tests/
 │   └── test_file_manager.cpp
 ├── sql_parser/        # SQL解析器测试
 │   ├── test_lexer.cpp
-│   └── test_parser.cpp
+│   ├── test_parser.cpp
+│   └── test_sql_parser.cpp  # SQL解析器手动测试程序
 ├── ddl/               # DDL功能测试
 │   ├── test_create_table_handler.cpp
 │   ├── test_edit_table_handler.cpp
@@ -82,7 +83,8 @@ cd index
 ### SQL解析器 (sql_parser)
 - test_lexer: 78个测试
 - test_parser: 已集成到其他测试中
-- **总计**: 78个测试
+- test_sql_parser: 手动测试程序（用于验证SQL解析逻辑）
+- **总计**: 78个测试（不包括test_sql_parser手动测试）
 
 ### DDL功能 (ddl)
 - test_create_table_handler: 24个测试

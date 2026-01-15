@@ -19,7 +19,7 @@ bool DDLExecutor::execute(const std::string& sql) {
     m_lastError = "";
     
     if (sql.empty()) {
-        setError("SQL语句为空");
+        setError("SQL statement is empty");
         return false;
     }
     
@@ -32,34 +32,34 @@ bool DDLExecutor::execute(const std::string& sql) {
         case StatementType::CREATE_TABLE:
             result = m_createHandler.execute(sql);
             if (!result) {
-                setError("CREATE TABLE执行失败: " + m_createHandler.getLastError());
+                setError("CREATE TABLE execution failed: " + m_createHandler.getLastError());
             }
             break;
             
         case StatementType::EDIT_TABLE:
             result = m_editHandler.execute(sql);
             if (!result) {
-                setError("EDIT TABLE执行失败: " + m_editHandler.getLastError());
+                setError("EDIT TABLE execution failed: " + m_editHandler.getLastError());
             }
             break;
             
         case StatementType::RENAME_TABLE:
             result = m_renameHandler.execute(sql);
             if (!result) {
-                setError("RENAME TABLE执行失败: " + m_renameHandler.getLastError());
+                setError("RENAME TABLE execution failed: " + m_renameHandler.getLastError());
             }
             break;
             
         case StatementType::DROP_TABLE:
             result = m_dropHandler.execute(sql);
             if (!result) {
-                setError("DROP TABLE执行失败: " + m_dropHandler.getLastError());
+                setError("DROP TABLE execution failed: " + m_dropHandler.getLastError());
             }
             break;
             
         case StatementType::UNKNOWN:
         default:
-            setError("未知的DDL语句类型");
+            setError("Unknown DDL statement type");
             return false;
     }
     

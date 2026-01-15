@@ -22,14 +22,14 @@ bool EditTableHandler::execute(const std::string& sql) {
     std::unique_ptr<ASTNode> node = parser.parse();
     
     if (node == nullptr) {
-        setError("SQL解析失败: " + parser.getLastError());
+        setError("SQL parsing failed: " + parser.getLastError());
         return false;
     }
     
     // 转换为EditTableNode
     EditTableNode* editNode = dynamic_cast<EditTableNode*>(node.get());
     if (editNode == nullptr) {
-        setError("不是EDIT TABLE语句");
+        setError("Not an EDIT TABLE statement");
         return false;
     }
     
@@ -43,7 +43,7 @@ bool EditTableHandler::execute(const std::string& sql) {
     
     // 检查表是否存在
     if (!m_tableManager.tableExists(editNode->tableName)) {
-        setError("表不存在: " + editNode->tableName);
+        setError("Table does not exist: " + editNode->tableName);
         return false;
     }
     
@@ -54,31 +54,31 @@ bool EditTableHandler::execute(const std::string& sql) {
 bool EditTableHandler::validateFieldDefinition(EditTableNode* node) {
     // 验证表名
     if (node->tableName.empty()) {
-        setError("表名不能为空");
+        setError("Table name cannot be empty");
         return false;
     }
     
     // 验证字段名
     if (strlen(node->field.sFieldName) == 0) {
-        setError("字段名不能为空");
+        setError("Field name cannot be empty");
         return false;
     }
     
     // 验证数据类型
     if (strlen(node->field.sType) == 0) {
-        setError("数据类型不能为空");
+        setError("Data type cannot be empty");
         return false;
     }
     
     // 验证字段大小（对于char类型）
     if (strcmp(node->field.sType, "char") == 0 && node->field.iSize <= 0) {
-        setError("char类型字段的大小必须大于0");
+        setError("Char type field size must be greater than 0");
         return false;
     }
     
     // 验证数据库文件名
     if (node->databaseFileName.empty()) {
-        setError("数据库文件名不能为空");
+        setError("Database file name cannot be empty");
         return false;
     }
     
@@ -89,7 +89,7 @@ bool EditTableHandler::updateTableStructure(EditTableNode* node) {
     // 读取当前表结构
     TableInfo currentTableInfo;
     if (!m_tableManager.readTable(node->tableName, currentTableInfo)) {
-        setError("读取表结构失败: " + node->tableName);
+        setError("Failed to read table structure: " + node->tableName);
         return false;
     }
     
@@ -114,7 +114,7 @@ bool EditTableHandler::updateTableStructure(EditTableNode* node) {
     
     // 更新表结构
     if (!m_tableManager.updateTable(node->tableName, currentTableInfo)) {
-        setError("更新表结构失败: " + node->tableName);
+        setError("Failed to update table structure: " + node->tableName);
         return false;
     }
     

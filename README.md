@@ -270,8 +270,24 @@ SELECT * FROM Songs WHERE Genre='Rock';
   - **完成时间**：2026-01-14
   - **状态**：数据操作界面已完成 ✅
 
-**项目总进度**：75%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.4已完成；阶段5.5-7待开发）
+**项目总进度**：78%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段5.6-5.7待开发）
 
 ---
 
 **最后更新时间**：2026-01-14
+
+**最新更新**：
+- ✅ 阶段5.5：SQL执行界面已完成（2026-01-14）
+  - SQL语句输入和执行功能
+  - 批量SQL语句执行（自动分割多条语句）
+  - 主键唯一性约束（INSERT和UPDATE操作）
+  - 大小写不敏感支持（表名、关键字，与主流DBMS对齐）
+  - JOIN查询支持（INNER JOIN, LEFT JOIN, RIGHT JOIN）
+  - CREATE TABLE char[length]和char(length)语法支持
+  - JOIN查询TableName.FieldName语法支持
+  - UPDATE 0行受影响的消息提示（符合标准SQL行为）
+  - DROP TABLE硬删除修复（完全删除表结构和数据）
+  - RENAME TABLE文件同步修复（.dbf和.dat文件保持同步）
+  - 所有GUI消息框使用英文和Segoe UI字体
+  - SQL执行测试用例文档完善（添加JOIN查询测试用例和未实现功能测试用例）
+  - 移动test_sql_parser.cpp到scripts/unit_tests/sql_parser/目录

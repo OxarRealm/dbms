@@ -21,14 +21,14 @@ bool DropTableHandler::execute(const std::string& sql) {
     std::unique_ptr<ASTNode> node = parser.parse();
     
     if (node == nullptr) {
-        setError("SQL解析失败: " + parser.getLastError());
+        setError("SQL parsing failed: " + parser.getLastError());
         return false;
     }
     
     // 转换为DropTableNode
     DropTableNode* dropNode = dynamic_cast<DropTableNode*>(node.get());
     if (dropNode == nullptr) {
-        setError("不是DROP TABLE语句");
+        setError("Not a DROP TABLE statement");
         return false;
     }
     
@@ -48,18 +48,18 @@ bool DropTableHandler::execute(const std::string& sql) {
 bool DropTableHandler::validateDropParameters(DropTableNode* node) {
     // 验证表名
     if (node->tableName.empty()) {
-        setError("表名不能为空");
+        setError("Table name cannot be empty");
         return false;
     }
     
     if (node->tableName.length() > TABLE_NAME_LENGTH - 1) {
-        setError("表名过长（最大" + std::to_string(TABLE_NAME_LENGTH - 1) + "字符）");
+        setError("Table name is too long (maximum " + std::to_string(TABLE_NAME_LENGTH - 1) + " characters)");
         return false;
     }
     
     // 验证数据库文件名
     if (node->databaseFileName.empty()) {
-        setError("数据库文件名不能为空");
+        setError("Database file name cannot be empty");
         return false;
     }
     
@@ -69,17 +69,20 @@ bool DropTableHandler::validateDropParameters(DropTableNode* node) {
 bool DropTableHandler::dropTable(DropTableNode* node) {
     // 检查表是否存在
     if (!m_tableManager.tableExists(node->tableName)) {
-        setError("表不存在: " + node->tableName);
+        setError("Table does not exist: " + node->tableName);
         return false;
     }
     
-    // 先删除表的数据（.dat文件中的记录）
-    // 注意：即使表没有数据，clearTable也不会报错
-    m_dataManager.clearTable(node->tableName);
+    // 先删除表的数据（.dat文件中的记录）- 硬删除，完全删除所有大小写变体的数据
+    // 这是关键步骤：确保.dat文件中不再有任何该表的数据
+    if (!m_dataManager.clearTable(node->tableName)) {
+        setError("Failed to delete table data: " + node->tableName);
+        return false;
+    }
     
     // 删除表结构（.dbf文件中的表定义）
     if (!m_tableManager.deleteTable(node->tableName)) {
-        setError("删除表结构失败: " + node->tableName);
+        setError("Failed to delete table structure: " + node->tableName);
         return false;
     }
     
@@ -92,6 +95,6 @@ std::string DropTableHandler::getLastError() const {
 
 void DropTableHandler::setError(const std::string& error) {
     m_lastError = error;
-    std::cerr << "DropTableHandler错误: " << error << std::endl;
+    // std::cerr << "DropTableHandler Error: " << error << std::endl; // Removed for GUI consistency
 }
 

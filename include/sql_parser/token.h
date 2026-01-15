@@ -39,7 +39,10 @@ enum class TokenType {
     SEMICOLON,         // ;
     LEFT_PAREN,        // (
     RIGHT_PAREN,       // )
+    LEFT_BRACKET,      // [
+    RIGHT_BRACKET,     // ]
     ASTERISK,          // *
+    DOT,               // .
     
     // 特殊
     EOF_TOKEN,         // 文件结束

@@ -43,7 +43,10 @@ std::string Token::getTypeName() const {
         case TokenType::SEMICOLON: return "SEMICOLON";
         case TokenType::LEFT_PAREN: return "LEFT_PAREN";
         case TokenType::RIGHT_PAREN: return "RIGHT_PAREN";
+        case TokenType::LEFT_BRACKET: return "LEFT_BRACKET";
+        case TokenType::RIGHT_BRACKET: return "RIGHT_BRACKET";
         case TokenType::ASTERISK: return "ASTERISK";
+        case TokenType::DOT: return "DOT";
         case TokenType::JOIN: return "JOIN";
         case TokenType::ON: return "ON";
         case TokenType::INNER: return "INNER";

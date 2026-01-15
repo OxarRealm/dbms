@@ -93,6 +93,14 @@ bool UpdateHandler::execute(const std::string& sql) {
         std::string convertedValue = convertValue(updateNode->setValue, std::string(tableInfo.fields[setFieldIndex].sType));
         updatedRecord.values[setFieldIndex] = convertedValue;
         
+        // 检查主键唯一性约束（如果更新的是主键字段）
+        bool isKeyField = (tableInfo.fields[setFieldIndex].bKey == FLAG_KEY);
+        if (isKeyField) {
+            if (!checkPrimaryKeyUnique(updateNode->tableName, tableInfo, updatedRecord, recordIndex)) {
+                return false;
+            }
+        }
+        
         // 更新记录
         if (m_dataManager.updateRecord(updateNode->tableName, recordIndex, updatedRecord)) {
             m_updatedCount++;
@@ -239,6 +247,71 @@ bool UpdateHandler::validateUpdateValue(const std::string& value, const TableMod
         }
     }
     // char和string类型不需要额外验证
+    
+    return true;
+}
+
+bool UpdateHandler::checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, 
+                                          const Record& updatedRecord, size_t currentRecordIndex)
+{
+    // Find all primary key fields
+    std::vector<int> keyFieldIndices;
+    for (size_t i = 0; i < tableInfo.fields.size(); ++i) {
+        if (tableInfo.fields[i].bKey == FLAG_KEY) {
+            keyFieldIndices.push_back(static_cast<int>(i));
+        }
+    }
+    
+    // If no primary key fields, no need to check
+    if (keyFieldIndices.empty()) {
+        return true;
+    }
+    
+    // Read all valid records
+    std::vector<Record> existingRecords;
+    if (!m_dataManager.readAllRecords(tableName, existingRecords)) {
+        // If read fails, assume no conflict
+        return true;
+    }
+    
+    // Check if updated record's primary key values conflict with existing records
+    for (size_t i = 0; i < existingRecords.size(); ++i) {
+        // Skip the current record being updated
+        if (i == currentRecordIndex) {
+            continue;
+        }
+        
+        // Only check valid records
+        if (!existingRecords[i].isValid()) {
+            continue;
+        }
+        
+        const Record& existingRecord = existingRecords[i];
+        bool allKeysMatch = true;
+        for (int keyIndex : keyFieldIndices) {
+            if (keyIndex >= 0 && keyIndex < static_cast<int>(updatedRecord.values.size()) &&
+                keyIndex >= 0 && keyIndex < static_cast<int>(existingRecord.values.size())) {
+                if (updatedRecord.values[keyIndex] != existingRecord.values[keyIndex]) {
+                    allKeysMatch = false;
+                    break;
+                }
+            } else {
+                allKeysMatch = false;
+                break;
+            }
+        }
+        
+        if (allKeysMatch) {
+            // Build primary key field names list for error message
+            std::string keyFields;
+            for (size_t j = 0; j < keyFieldIndices.size(); ++j) {
+                if (j > 0) keyFields += ", ";
+                keyFields += std::string(tableInfo.fields[keyFieldIndices[j]].sFieldName);
+            }
+            setError("Primary key constraint violation: Field (" + keyFields + ") value already exists");
+            return false;
+        }
+    }
     
     return true;
 }

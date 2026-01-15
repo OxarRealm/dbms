@@ -4,6 +4,11 @@
 #include <cstddef>
 #include <vector>
 #include <string>
+#ifdef _WIN32
+#include <string.h>
+#else
+#include <strings.h>
+#endif
 
 /**
  * @file table_mode.h
@@ -161,4 +166,13 @@ inline bool compareTableMode(const TableMode& mode1, const TableMode& mode2) {
            mode1.bKey == mode2.bKey &&
            mode1.bNullFlag == mode2.bNullFlag &&
            mode1.bValidFlag == mode2.bValidFlag;
+}
+
+// 辅助函数：大小写不敏感的字符串比较（用于表名、字段名等）
+inline int strcasecmp_custom(const char* s1, const char* s2) {
+#ifdef _WIN32
+    return _stricmp(s1, s2);
+#else
+    return strcasecmp(s1, s2);
+#endif
 }

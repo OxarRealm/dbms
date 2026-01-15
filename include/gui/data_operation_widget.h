@@ -106,6 +106,17 @@ private:
     void loadRecords(const std::string& tableName);
     void clearDataTable();
     int getSelectedRow() const;
+    
+    /**
+     * @brief Check primary key uniqueness constraint
+     * @param tableName Table name
+     * @param tableInfo Table structure information
+     * @param record Record to check
+     * @param excludeIndex Record index to exclude from check (-1 for insert, >=0 for update)
+     * @return true if unique, false otherwise
+     */
+    bool checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, 
+                               const Record& record, int excludeIndex);
 
     // UI Components
     QVBoxLayout *m_mainLayout;
@@ -125,5 +136,6 @@ private:
     std::string m_currentTableName;
     TableInfo m_currentTableInfo;
     std::vector<Record> m_currentRecords;
+    std::string m_lastError;  // Last error message
 };
 

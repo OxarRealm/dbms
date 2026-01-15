@@ -60,6 +60,12 @@ docs/
 - **[preparation_checklist.md](guides/preparation_checklist.md)** - 准备工作清单
 - **[summary_response.md](guides/summary_response.md)** - 需求响应总结
 
+### 🔹 testing/ - 测试文档
+
+测试用例和测试指南：
+
+- **[sql_execution_test_cases.md](testing/sql_execution_test_cases.md)** ⭐ - **SQL执行测试用例**（全面的SQL执行测试用例，包括DDL、DML、查询、JOIN、批量执行等）
+
 ---
 
 ## 📖 重要文档说明
@@ -151,6 +157,9 @@ docs/
 - 2026-01-14 - **项目方向调整**：从"智能音乐播放管理系统"调整为"通用数据库管理系统"
 - 2026-01-14 - 功能优先级重新规划：按照通用DBMS功能需求调整开发优先级
 - 2026-01-14 - 数据库新技术定位：作为通用DBMS的核心功能，已实现的索引技术全部保留
+- 2026-01-14 - **SQL执行界面完成**：包括批量执行、主键约束、大小写不敏感、JOIN查询支持
+- 2026-01-14 - **DROP TABLE和RENAME TABLE问题修复**：确保数据完全删除和文件同步
+- 2026-01-14 - **SQL执行测试用例文档完善**：添加JOIN查询测试用例和未实现功能测试用例
 
 ---
 
@@ -162,4 +171,16 @@ docs/
   - 实现数据库管理功能（Create Database, Open Database）
   - 实现表结构管理界面（创建、编辑、删除表）
   - 界面优化和问题修复
-  - 详细内容见：`docs/core/development_log.md`（阶段4：查询实现已完成；阶段8：数据库新技术实现全部完成，包括相邻索引、哈希索引和智能索引建议系统；阶段5.1：GUI最小可运行程序已完成；新增编译指南文档）
+  - 详细内容见：`docs/core/development_log.md`
+
+- ✅ **SQL执行界面完成**
+  - 实现SQL语句输入和执行功能
+  - 实现批量SQL语句执行（自动分割多条语句）
+  - 实现主键唯一性约束（INSERT和UPDATE）
+  - 修复大小写不敏感问题（表名、关键字）
+  - 修复CREATE TABLE char[length]语法支持
+  - 修复JOIN查询TableName.FieldName语法支持
+  - 修复DROP TABLE后数据未完全删除的问题
+  - 修复RENAME TABLE后.dbf和.dat文件不同步的问题
+  - 完善SQL执行测试用例文档（添加JOIN查询测试用例）
+  - 详细内容见：`docs/core/development_log.md`和`docs/testing/sql_execution_test_cases.md`

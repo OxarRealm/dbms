@@ -382,6 +382,13 @@ void DataOperationWidget::onInsertRecord()
     if (dialog.exec() == QDialog::Accepted) {
         Record record;
         if (dialog.getRecord(record)) {
+            // Check primary key uniqueness constraint
+            if (!checkPrimaryKeyUnique(m_currentTableName, m_currentTableInfo, record, -1)) {
+                QMessageBox::warning(this, "Primary Key Constraint Violation", 
+                    QString::fromStdString(m_lastError));
+                return;
+            }
+            
             if (m_dataManager->insertRecord(m_currentTableName, record)) {
                 QMessageBox::information(this, "Success", "Record inserted successfully.");
                 refreshDataTable();
@@ -429,6 +436,13 @@ void DataOperationWidget::onEditRecord()
                     }
                     validIndex++;
                 }
+            }
+            
+            // Check primary key uniqueness constraint (excluding current record)
+            if (!checkPrimaryKeyUnique(m_currentTableName, m_currentTableInfo, record, targetIndex)) {
+                QMessageBox::warning(this, "Primary Key Constraint Violation", 
+                    QString::fromStdString(m_lastError));
+                return;
             }
             
             if (m_dataManager->updateRecord(m_currentTableName, targetIndex, record)) {
@@ -504,5 +518,72 @@ void DataOperationWidget::refreshDataTable()
     if (!m_currentTableName.empty()) {
         loadRecords(m_currentTableName);
     }
+}
+
+bool DataOperationWidget::checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, 
+                                                 const Record& record, int excludeIndex)
+{
+    m_lastError = "";
+    
+    // Find all primary key fields
+    std::vector<int> keyFieldIndices;
+    for (size_t i = 0; i < tableInfo.fields.size(); ++i) {
+        if (tableInfo.fields[i].bKey == FLAG_KEY) {
+            keyFieldIndices.push_back(static_cast<int>(i));
+        }
+    }
+    
+    // If no primary key fields, no need to check
+    if (keyFieldIndices.empty()) {
+        return true;
+    }
+    
+    // Read all records (including invalid ones to get correct indices)
+    std::vector<Record> allRecords;
+    if (!m_dataManager->readAllRecords(tableName, allRecords)) {
+        // If read fails, assume no conflict (might be a new table)
+        return true;
+    }
+    
+    // Check if new record's primary key values conflict with existing valid records
+    for (size_t i = 0; i < allRecords.size(); ++i) {
+        // Skip the record being updated (if excludeIndex is valid)
+        if (excludeIndex >= 0 && static_cast<size_t>(excludeIndex) == i) {
+            continue;
+        }
+        
+        // Only check valid records
+        if (!allRecords[i].isValid()) {
+            continue;
+        }
+        
+        const Record& existingRecord = allRecords[i];
+        bool allKeysMatch = true;
+        for (int keyIndex : keyFieldIndices) {
+            if (keyIndex >= 0 && keyIndex < static_cast<int>(record.values.size()) &&
+                keyIndex >= 0 && keyIndex < static_cast<int>(existingRecord.values.size())) {
+                if (record.values[keyIndex] != existingRecord.values[keyIndex]) {
+                    allKeysMatch = false;
+                    break;
+                }
+            } else {
+                allKeysMatch = false;
+                break;
+            }
+        }
+        
+        if (allKeysMatch) {
+            // Build primary key field names list for error message
+            std::string keyFields;
+            for (size_t j = 0; j < keyFieldIndices.size(); ++j) {
+                if (j > 0) keyFields += ", ";
+                keyFields += std::string(tableInfo.fields[keyFieldIndices[j]].sFieldName);
+            }
+            m_lastError = "Primary key constraint violation: Field (" + keyFields + ") value already exists";
+            return false;
+        }
+    }
+    
+    return true;
 }
 

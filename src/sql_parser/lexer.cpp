@@ -63,9 +63,18 @@ Token Lexer::nextToken() {
         case ')':
             readChar();
             return Token(TokenType::RIGHT_PAREN, ")", startLine, startColumn);
+        case '[':
+            readChar();
+            return Token(TokenType::LEFT_BRACKET, "[", startLine, startColumn);
+        case ']':
+            readChar();
+            return Token(TokenType::RIGHT_BRACKET, "]", startLine, startColumn);
         case '*':
             readChar();
             return Token(TokenType::ASTERISK, "*", startLine, startColumn);
+        case '.':
+            readChar();
+            return Token(TokenType::DOT, ".", startLine, startColumn);
         default:
             readChar();
             return Token(TokenType::ERROR, std::string(1, ch), startLine, startColumn);

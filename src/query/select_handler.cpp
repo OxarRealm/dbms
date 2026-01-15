@@ -7,6 +7,11 @@
 #include "core/table_mode.h"
 #include <algorithm>
 #include <cstring>
+#ifdef _WIN32
+#include <string.h>
+#else
+#include <strings.h>
+#endif
 
 SelectHandler::SelectHandler() {
 }
@@ -23,14 +28,14 @@ bool SelectHandler::execute(const std::string& sql, QueryResult& result) {
     std::unique_ptr<ASTNode> ast = parser.parse();
     
     if (!ast) {
-        setError("SQL解析失败: " + parser.getLastError());
+        setError("SQL parsing failed: " + parser.getLastError());
         return false;
     }
     
     // 检查是否为SELECT节点
     SelectNode* selectNode = dynamic_cast<SelectNode*>(ast.get());
     if (!selectNode) {
-        setError("不是SELECT语句");
+        setError("Not a SELECT statement");
         return false;
     }
     
@@ -66,7 +71,7 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
     // 读取表结构
     TableInfo tableInfo;
     if (!m_tableManager.readTable(tableName, tableInfo)) {
-        setError("表不存在: " + tableName);
+        setError("Table does not exist: " + tableName);
         return false;
     }
     
@@ -75,7 +80,7 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
     // 读取所有有效记录
     std::vector<Record> records;
     if (!m_dataManager.readValidRecords(tableName, records)) {
-        setError("读取记录失败");
+        setError("Failed to read records");
         return false;
     }
     
@@ -104,7 +109,7 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
         // 执行投影操作
         std::vector<std::string> row;
         if (!projectFields(record, tableInfo, selectFields, row)) {
-            setError("投影操作失败");
+            setError("Projection operation failed");
             return false;
         }
         
@@ -171,7 +176,7 @@ bool SelectHandler::executeMultiTableQuery(SelectNode* node, QueryResult& result
         // 读取表结构
         TableInfo tableInfo;
         if (!m_tableManager.readTable(tableName, tableInfo)) {
-            setError("表不存在: " + tableName);
+            setError("Table does not exist: " + tableName);
             return false;
         }
         tableInfos.push_back(tableInfo);
@@ -179,7 +184,7 @@ bool SelectHandler::executeMultiTableQuery(SelectNode* node, QueryResult& result
         // 读取表数据
         std::vector<Record> records;
         if (!m_dataManager.readValidRecords(tableName, records)) {
-            setError("读取表数据失败: " + tableName);
+            setError("Failed to read table data: " + tableName);
             return false;
         }
         allTableRecords.push_back(records);
@@ -228,7 +233,7 @@ bool SelectHandler::executeMultiTableQuery(SelectNode* node, QueryResult& result
         // 执行投影操作
         std::vector<std::string> row;
         if (!projectMultiTableFields(combinedRecord, tableInfos, selectFields, row)) {
-            setError("投影操作失败");
+            setError("Projection operation failed");
             return false;
         }
         
@@ -330,7 +335,7 @@ bool SelectHandler::findMultiTableFieldIndex(const std::vector<TableInfo>& table
         
         // 查找表
         for (size_t i = 0; i < tableInfos.size(); ++i) {
-            if (strcmp(tableInfos[i].tableName, tableName.c_str()) == 0) {
+            if (strcasecmp_custom(tableInfos[i].tableName, tableName.c_str()) == 0) {
                 // 查找字段
                 for (size_t j = 0; j < tableInfos[i].fields.size(); ++j) {
                     if (strcmp(tableInfos[i].fields[j].sFieldName, fieldNameOnly.c_str()) == 0) {
@@ -366,7 +371,7 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
         // 读取表结构
         TableInfo tableInfo;
         if (!m_tableManager.readTable(tableName, tableInfo)) {
-            setError("表不存在: " + tableName);
+            setError("Table does not exist: " + tableName);
             return false;
         }
         tableInfos.push_back(tableInfo);
@@ -374,7 +379,7 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
         // 读取表数据
         std::vector<Record> records;
         if (!m_dataManager.readValidRecords(tableName, records)) {
-            setError("读取表数据失败: " + tableName);
+            setError("Failed to read table data: " + tableName);
             return false;
         }
         allTableRecords.push_back(records);
@@ -534,7 +539,7 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
         // 执行投影操作
         std::vector<std::string> row;
         if (!projectMultiTableFields(combinedRecord, tableInfos, selectFields, row)) {
-            setError("投影操作失败");
+            setError("Projection operation failed");
             return false;
         }
         

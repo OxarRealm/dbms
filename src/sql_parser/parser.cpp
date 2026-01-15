@@ -26,7 +26,7 @@ std::unique_ptr<ASTNode> Parser::parse() {
     m_lastError = "";
     
     if (m_currentToken.type == TokenType::EOF_TOKEN) {
-        setError("输入为空");
+        setError("Input is empty");
         return nullptr;
     }
     
@@ -46,7 +46,7 @@ std::unique_ptr<ASTNode> Parser::parse() {
         case TokenType::SELECT:
             return parseSelect();
         default:
-            setError("未知的SQL语句类型: " + m_currentToken.value);
+            setError("Unknown SQL statement type: " + m_currentToken.value);
             return nullptr;
     }
 }
@@ -62,7 +62,7 @@ std::unique_ptr<ASTNode> Parser::parseDDL() {
         case TokenType::DROP:
             return parseDropTable();
         default:
-            setError("未知的DDL语句类型");
+            setError("Unknown DDL statement type");
             return nullptr;
     }
 }
@@ -92,7 +92,7 @@ std::unique_ptr<ASTNode> Parser::parseCreateTable() {
         if (m_currentToken.type == TokenType::COMMA) {
             advance();
         } else if (m_currentToken.type != TokenType::RIGHT_PAREN) {
-            setError("期望 ',' 或 ')'，但得到: " + m_currentToken.value);
+            setError("Expected ',' or ')', but got: " + m_currentToken.value);
             return nullptr;
         }
     }
@@ -210,17 +210,23 @@ bool Parser::parseDataType(TableMode& field) {
         field.sType[TYPE_NAME_LENGTH - 1] = '\0';
         advance();
         
-        // 如果是char[50]格式，需要解析大小
-        if (m_currentToken.type == TokenType::LEFT_PAREN) {
+        // 如果是char[50]或char(50)格式，需要解析大小
+        // 支持两种格式：char[50] 和 char(50)
+        if (m_currentToken.type == TokenType::LEFT_BRACKET || m_currentToken.type == TokenType::LEFT_PAREN) {
+            TokenType openBracket = m_currentToken.type;
+            TokenType closeBracket = (openBracket == TokenType::LEFT_BRACKET) ? 
+                                     TokenType::RIGHT_BRACKET : TokenType::RIGHT_PAREN;
+            std::string closeBracketStr = (openBracket == TokenType::LEFT_BRACKET) ? "]" : ")";
+            
             advance();
             if (m_currentToken.type == TokenType::NUMBER) {
                 field.iSize = std::stoi(m_currentToken.value);
                 advance();
             } else {
-                setError("期望数字，但得到: " + m_currentToken.value);
+                setError("Expected number, but got: " + m_currentToken.value);
                 return false;
             }
-            if (!expect(TokenType::RIGHT_PAREN, ")")) return false;
+            if (!expect(closeBracket, closeBracketStr)) return false;
         } else {
             field.iSize = 1;  // 默认char大小为1
         }
@@ -240,7 +246,7 @@ bool Parser::parseDataType(TableMode& field) {
         field.iSize = 0;  // 变长字符串
         advance();
     } else {
-        setError("未知的数据类型: " + m_currentToken.value);
+        setError("Unknown data type: " + m_currentToken.value);
         return false;
     }
     
@@ -256,7 +262,7 @@ bool Parser::parseFlags(TableMode& field) {
         field.bKey = FLAG_NOT_KEY;
         advance();
     } else {
-        setError("期望 KEY 或 NOT_KEY，但得到: " + m_currentToken.value);
+        setError("Expected KEY or NOT_KEY, but got: " + m_currentToken.value);
         return false;
     }
     
@@ -268,7 +274,7 @@ bool Parser::parseFlags(TableMode& field) {
         field.bNullFlag = FLAG_NO_NULL;
         advance();
     } else {
-        setError("期望 NULL 或 NO_NULL，但得到: " + m_currentToken.value);
+        setError("Expected NULL or NO_NULL, but got: " + m_currentToken.value);
         return false;
     }
     
@@ -280,7 +286,7 @@ bool Parser::parseFlags(TableMode& field) {
         field.bValidFlag = FLAG_INVALID;
         advance();
     } else {
-        setError("期望 VALID 或 INVALID，但得到: " + m_currentToken.value);
+        setError("Expected VALID or INVALID, but got: " + m_currentToken.value);
         return false;
     }
     
@@ -289,12 +295,24 @@ bool Parser::parseFlags(TableMode& field) {
 
 std::string Parser::parseIdentifier() {
     if (m_currentToken.type != TokenType::IDENTIFIER) {
-        setError("期望标识符，但得到: " + m_currentToken.value);
+        setError("Expected identifier, but got: " + m_currentToken.value);
         return "";
     }
     
     std::string identifier = m_currentToken.value;
     advance();
+    
+    // 支持 TableName.FieldName 格式（用于JOIN查询）
+    if (m_currentToken.type == TokenType::DOT) {
+        advance();
+        if (m_currentToken.type != TokenType::IDENTIFIER) {
+            setError("Expected identifier after '.', but got: " + m_currentToken.value);
+            return "";
+        }
+        identifier += "." + m_currentToken.value;
+        advance();
+    }
+    
     return identifier;
 }
 
@@ -305,7 +323,7 @@ std::string Parser::parseDatabaseFileName() {
         std::string fileName = parseIdentifier();
         return fileName;
     } else {
-        setError("期望 INTO 或 IN，但得到: " + m_currentToken.value);
+        setError("Expected INTO or IN, but got: " + m_currentToken.value);
         return "";
     }
 }
@@ -323,7 +341,7 @@ bool Parser::expect(TokenType type, const std::string& expected) {
         advance();
         return true;
     } else {
-        setError("期望 " + expected + "，但得到: " + m_currentToken.value);
+        setError("Expected " + expected + ", but got: " + m_currentToken.value);
         return false;
     }
 }
@@ -374,7 +392,7 @@ std::unique_ptr<ASTNode> Parser::parseInsert() {
             node->values.push_back(m_currentToken.value);
             advance();
         } else {
-            setError("期望值（字符串或数字），但得到: " + m_currentToken.value);
+            setError("Expected value (string or number), but got: " + m_currentToken.value);
             return nullptr;
         }
         
@@ -385,7 +403,7 @@ std::unique_ptr<ASTNode> Parser::parseInsert() {
             advance();
             break;
         } else {
-            setError("期望 , 或 )，但得到: " + m_currentToken.value);
+            setError("Expected ',' or ')', but got: " + m_currentToken.value);
             return nullptr;
         }
     }
@@ -446,7 +464,7 @@ std::unique_ptr<ASTNode> Parser::parseDelete() {
         node->conditionValue = m_currentToken.value;
         advance();
     } else {
-        setError("期望值（字符串或数字），但得到: " + m_currentToken.value);
+        setError("Expected value (string or number), but got: " + m_currentToken.value);
         return nullptr;
     }
     
@@ -506,7 +524,7 @@ std::unique_ptr<ASTNode> Parser::parseUpdate() {
         node->setValue = m_currentToken.value;
         advance();
     } else {
-        setError("期望值（字符串或数字），但得到: " + m_currentToken.value);
+        setError("Expected value (string or number), but got: " + m_currentToken.value);
         return nullptr;
     }
     
@@ -534,7 +552,7 @@ std::unique_ptr<ASTNode> Parser::parseUpdate() {
         node->whereValue = m_currentToken.value;
         advance();
     } else {
-        setError("期望值（字符串或数字），但得到: " + m_currentToken.value);
+        setError("Expected value (string or number), but got: " + m_currentToken.value);
         return nullptr;
     }
     

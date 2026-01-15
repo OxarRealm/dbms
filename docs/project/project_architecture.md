@@ -287,7 +287,7 @@ UPDATE TableName (
 SELECT * FROM TableName1, TableName2 WHERE Condition;
 ```
 
-## 5. 数据库新技术设计（索引技术）
+## 5. 索引技术设计
 
 ### 5.1 索引技术流程
 

@@ -67,5 +67,14 @@ private:
      * @return Record结构
      */
     Record createRecord(InsertNode* node, const TableInfo& tableInfo);
+    
+    /**
+     * @brief 检查主键唯一性约束
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param record 要插入的记录
+     * @return 主键唯一返回true，否则返回false
+     */
+    bool checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, const Record& record);
 };
 

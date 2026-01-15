@@ -518,11 +518,18 @@ IndexAdvisor类：
   - 设置数据库路径时自动刷新（setCurrentDatabase）
   - 创建新表后自动刷新（通过标签页切换触发）
 
-**3.9.6 SQL执行界面**（待开发）
-- SQL输入区域（QTextEdit）
-- SQL执行按钮
-- 结果显示区域（QTableWidget）
-- 错误提示
+**3.9.6 SQL执行界面** ✅（已完成）
+- SQL输入区域（QTextEdit，支持多行输入）
+- SQL执行按钮（支持Ctrl+Enter快捷键）
+- 批量SQL语句执行（自动分割多条语句，支持分号分隔）
+- 结果显示区域（QTableWidget，查询结果表格）
+- 成功/失败消息框（使用Segoe UI字体，英文文本）
+- 主键唯一性约束检查（INSERT和UPDATE操作）
+- 大小写不敏感支持（表名、关键字，与主流DBMS对齐）
+- JOIN查询支持（INNER JOIN, LEFT JOIN, RIGHT JOIN）
+- **完成时间**：2026-01-14
+- **文件**：`include/gui/sql_query_widget.h`, `src/gui/sql_query_widget.cpp`
+- **测试文档**：`docs/testing/sql_execution_test_cases.md`
 
 **3.9.7 索引管理界面**（待开发）
 - 索引列表显示
@@ -708,6 +715,10 @@ IndexAdvisor类：
 - 阶段5.2（GUI主界面布局）已完成
 - 阶段5.3（GUI数据库管理和表结构管理界面）已完成
 - 阶段5.4（GUI数据操作界面）已完成
+- 阶段5.5（GUI SQL执行界面）已完成
 - GUI程序能够成功编译并运行
 - 主窗口正常显示，所有基础功能正常工作
-- 数据库管理、表管理、数据操作功能已实现并测试通过
+- 数据库管理、表管理、数据操作、SQL执行功能已实现并测试通过
+- 修复了DROP TABLE后数据未完全删除的问题
+- 修复了RENAME TABLE后.dbf和.dat文件不同步的问题
+- 完善了SQL执行测试用例文档（添加JOIN查询测试用例）

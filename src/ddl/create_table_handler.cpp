@@ -21,14 +21,14 @@ bool CreateTableHandler::execute(const std::string& sql) {
     std::unique_ptr<ASTNode> node = parser.parse();
     
     if (node == nullptr) {
-        setError("SQL解析失败: " + parser.getLastError());
+        setError("SQL parsing failed: " + parser.getLastError());
         return false;
     }
     
     // 转换为CreateTableNode
     CreateTableNode* createNode = dynamic_cast<CreateTableNode*>(node.get());
     if (createNode == nullptr) {
-        setError("不是CREATE TABLE语句");
+        setError("Not a CREATE TABLE statement");
         return false;
     }
     
@@ -45,7 +45,7 @@ bool CreateTableHandler::execute(const std::string& sql) {
     
     // 调用TableManager创建表
     if (!m_tableManager.createTable(tableInfo)) {
-        setError("创建表失败: " + createNode->tableName);
+        setError("Failed to create table: " + createNode->tableName);
         return false;
     }
     
@@ -55,18 +55,18 @@ bool CreateTableHandler::execute(const std::string& sql) {
 bool CreateTableHandler::validateTableStructure(CreateTableNode* node) {
     // 验证表名
     if (node->tableName.empty()) {
-        setError("表名不能为空");
+        setError("Table name cannot be empty");
         return false;
     }
     
     if (node->tableName.length() > TABLE_NAME_LENGTH - 1) {
-        setError("表名过长（最大" + std::to_string(TABLE_NAME_LENGTH - 1) + "字符）");
+        setError("Table name is too long (maximum " + std::to_string(TABLE_NAME_LENGTH - 1) + " characters)");
         return false;
     }
     
     // 验证字段列表
     if (node->fields.empty()) {
-        setError("表必须至少包含一个字段");
+        setError("Table must contain at least one field");
         return false;
     }
     
@@ -76,26 +76,26 @@ bool CreateTableHandler::validateTableStructure(CreateTableNode* node) {
         
         // 验证字段名
         if (strlen(field.sFieldName) == 0) {
-            setError("字段 " + std::to_string(i + 1) + " 的字段名不能为空");
+            setError("Field " + std::to_string(i + 1) + " name cannot be empty");
             return false;
         }
         
         // 验证数据类型
         if (strlen(field.sType) == 0) {
-            setError("字段 " + std::string(field.sFieldName) + " 的数据类型不能为空");
+            setError("Field " + std::string(field.sFieldName) + " data type cannot be empty");
             return false;
         }
         
         // 验证字段大小（对于char类型）
         if (strcmp(field.sType, "char") == 0 && field.iSize <= 0) {
-            setError("字段 " + std::string(field.sFieldName) + " (char类型) 的大小必须大于0");
+            setError("Field " + std::string(field.sFieldName) + " (char type) size must be greater than 0");
             return false;
         }
     }
     
     // 验证数据库文件名
     if (node->databaseFileName.empty()) {
-        setError("数据库文件名不能为空");
+        setError("Database file name cannot be empty");
         return false;
     }
     

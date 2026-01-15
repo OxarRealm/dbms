@@ -6,6 +6,7 @@
 #include "gui/main_window.h"
 #include "gui/table_management_widget.h"
 #include "gui/data_operation_widget.h"
+#include "gui/sql_query_widget.h"
 #include <QMessageBox>
 #include <QApplication>
 #include <QMenu>
@@ -36,6 +37,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_databasePath("")
     , m_tableManagementWidget(nullptr)
     , m_dataOperationWidget(nullptr)
+    , m_sqlQueryWidget(nullptr)
 {
     setupFonts();
     setupUI();
@@ -128,26 +130,12 @@ QWidget* MainWindow::createDataOperationTab()
 
 QWidget* MainWindow::createSQLExecutionTab()
 {
-    QWidget *tab = new QWidget();
-    QVBoxLayout *layout = new QVBoxLayout(tab);
-    layout->setSpacing(10);
-    layout->setContentsMargins(15, 15, 15, 15);
-
-    // Title label
-    QLabel *titleLabel = new QLabel("SQL Execution", tab);
-    titleLabel->setFont(QFont("Segoe UI", 12, QFont::Bold));
-    layout->addWidget(titleLabel);
-
-    // Info label
-    QLabel *infoLabel = new QLabel("This section allows you to execute SQL statements and view query results.", tab);
-    infoLabel->setFont(QFont("Segoe UI", 9));
-    infoLabel->setWordWrap(true);
-    layout->addWidget(infoLabel);
-
-    // Add stretch
-    layout->addStretch();
-
-    return tab;
+    m_sqlQueryWidget = new SQLQueryWidget(this);
+    // If database is already loaded, set it
+    if (!m_databasePath.empty()) {
+        m_sqlQueryWidget->setDatabasePath(m_databasePath);
+    }
+    return m_sqlQueryWidget;
 }
 
 QWidget* MainWindow::createGuideTab()
@@ -393,6 +381,11 @@ void MainWindow::setCurrentDatabase(const std::string& dbPath)
     if (m_dataOperationWidget) {
         m_dataOperationWidget->setDatabasePath(m_databasePath);
         m_dataOperationWidget->loadTableList();  // Refresh table list
+    }
+    
+    // Update SQL query widget if it exists
+    if (m_sqlQueryWidget) {
+        m_sqlQueryWidget->setDatabasePath(m_databasePath);
     }
     
     // Update status bar message

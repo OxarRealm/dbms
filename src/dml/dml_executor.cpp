@@ -20,7 +20,7 @@ bool DMLExecutor::execute(const std::string& sql) {
     m_affectedRows = 0;
     
     if (sql.empty()) {
-        setError("SQL语句为空");
+        setError("SQL statement is empty");
         return false;
     }
     
@@ -35,7 +35,7 @@ bool DMLExecutor::execute(const std::string& sql) {
             if (result) {
                 m_affectedRows = 1;  // INSERT通常影响1条记录
             } else {
-                setError("INSERT执行失败: " + m_insertHandler.getLastError());
+                setError("INSERT execution failed: " + m_insertHandler.getLastError());
             }
             break;
             
@@ -44,7 +44,7 @@ bool DMLExecutor::execute(const std::string& sql) {
             if (result) {
                 m_affectedRows = m_deleteHandler.getDeletedCount();
             } else {
-                setError("DELETE执行失败: " + m_deleteHandler.getLastError());
+                setError("DELETE execution failed: " + m_deleteHandler.getLastError());
             }
             break;
             
@@ -53,13 +53,13 @@ bool DMLExecutor::execute(const std::string& sql) {
             if (result) {
                 m_affectedRows = m_updateHandler.getUpdatedCount();
             } else {
-                setError("UPDATE执行失败: " + m_updateHandler.getLastError());
+                setError("UPDATE execution failed: " + m_updateHandler.getLastError());
             }
             break;
             
         case StatementType::UNKNOWN:
         default:
-            setError("未知的DML语句类型");
+            setError("Unknown DML statement type");
             return false;
     }
     

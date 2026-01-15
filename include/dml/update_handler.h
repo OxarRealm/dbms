@@ -84,5 +84,16 @@ private:
      * @return 验证通过返回true，否则返回false
      */
     bool validateUpdateValue(const std::string& value, const TableMode& field);
+    
+    /**
+     * @brief 检查主键唯一性约束（更新时）
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param updatedRecord 更新后的记录
+     * @param currentRecordIndex 当前记录的索引（排除此记录）
+     * @return 主键唯一返回true，否则返回false
+     */
+    bool checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, 
+                               const Record& updatedRecord, size_t currentRecordIndex);
 };
 
