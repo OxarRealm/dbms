@@ -90,18 +90,24 @@
 - **职责**：查询实现
 - **主要类**：
   - `QueryExecutor` - 查询执行器（统一调度所有SQL语句类型）
-  - `SelectHandler` - SELECT处理（单表、多表、JOIN查询）
+  - `SelectHandler` - SELECT处理（单表、多表、JOIN查询、聚合查询）
   - `QueryResult` - 查询结果结构
   - `ExecutionResult` - 执行结果结构
-- **实现状态**：基础查询功能已实现并通过测试（161个测试全部通过），扩展功能持续实现中
+- **实现状态**：基础查询功能已实现并通过测试（161个测试全部通过），扩展功能大部分完成
   - ✅ SELECT单表查询（投影操作、WHERE子句）
   - ✅ SELECT多表查询（笛卡尔积、多表投影）
-  - ✅ SELECT连接查询（INNER JOIN、LEFT JOIN、RIGHT JOIN）
+  - ✅ SELECT连接查询（INNER JOIN、LEFT JOIN、RIGHT JOIN、FULL OUTER JOIN）
   - ✅ ORDER BY排序（单字段、多字段，ASC/DESC）
   - ✅ DISTINCT去重
   - ✅ LIMIT分页
   - ✅ 比较运算符（>, <, >=, <=, !=）
   - ✅ 复杂WHERE条件（AND, OR, NOT，支持括号优先级）
+  - ✅ LIKE模式匹配（支持%通配符，大小写敏感）
+  - ✅ IN子句（支持值列表查询）
+  - ✅ BETWEEN范围查询（支持数值和字符串，包含边界）
+  - ✅ GROUP BY分组（支持单字段和多字段分组）
+  - ✅ 聚合函数（COUNT, SUM, AVG, MAX, MIN）
+  - ✅ HAVING子句（支持对聚合函数结果和分组字段的过滤）
   - ✅ 查询执行器整合（结果格式化）
   - ⏳ LIKE模式匹配（待实现）
   - ⏳ IN子句（待实现）
@@ -113,19 +119,24 @@
 #### 2.2.5 SQL Parser模块 ✅（已完成DDL、DML和Query部分，持续扩展中）
 - **职责**：SQL语句解析
 - **主要类**：
-  - `Lexer` - 词法分析器（已完成，支持所有SQL关键词，包括ORDER BY、DISTINCT、LIMIT、比较运算符、逻辑运算符）
-  - `Parser` - 语法分析器（已完成DDL、DML和Query部分，包括复杂WHERE条件解析）
-  - `ASTNode` - 抽象语法树节点（已完成DDL、DML和Query节点，包括SelectNode、JoinInfo、OrderByInfo、WhereCondition）
-  - `Token` - Token定义（已完成，包括JOIN、ORDER BY、DISTINCT、LIMIT、比较运算符、逻辑运算符相关关键词）
-- **实现状态**：DDL、DML和Query语句解析已实现并通过测试，扩展功能持续实现中
+  - `Lexer` - 词法分析器（已完成，支持所有SQL关键词，包括ORDER BY、DISTINCT、LIMIT、比较运算符、逻辑运算符、聚合函数、GROUP BY、HAVING、FULL OUTER JOIN）
+  - `Parser` - 语法分析器（已完成DDL、DML和Query部分，包括复杂WHERE条件解析、聚合函数解析、GROUP BY、HAVING、FULL OUTER JOIN）
+  - `ASTNode` - 抽象语法树节点（已完成DDL、DML和Query节点，包括SelectNode、JoinInfo、OrderByInfo、WhereCondition、AggregateFunction、SelectField）
+  - `Token` - Token定义（已完成，包括JOIN、ORDER BY、DISTINCT、LIMIT、比较运算符、逻辑运算符、聚合函数、GROUP BY、HAVING、FULL OUTER JOIN相关关键词）
+- **实现状态**：DDL、DML和Query语句解析已实现并通过测试，扩展功能大部分完成
   - ✅ DDL解析：78个测试通过
   - ✅ DML解析：已集成到各Handler测试中
   - ✅ Query解析：已集成到SelectHandler测试中（161个测试通过）
   - ✅ ORDER BY、DISTINCT、LIMIT解析：已实现
   - ✅ 比较运算符解析：已实现
   - ✅ 复杂WHERE条件解析（递归下降解析器）：已实现
-  - ⏳ LIKE、IN、BETWEEN解析：待实现
-  - ⏳ GROUP BY、HAVING解析：待实现
+  - ✅ LIKE、IN、BETWEEN解析：已实现
+  - ✅ GROUP BY、HAVING解析：已实现
+  - ✅ 聚合函数解析（COUNT, SUM, AVG, MAX, MIN）：已实现
+  - ✅ FULL OUTER JOIN解析：已实现
+  - ⏳ NATURAL JOIN解析：待实现
+  - ⏳ UNION解析：待实现
+  - ⏳ 子查询解析：待实现
   - ⏳ 聚合函数解析：待实现
 
 #### 2.2.6 Index模块（数据库新技术）✅（已完成）
@@ -508,3 +519,4 @@ class RecommendationEngine {
 - 2026-01-14 - GUI表结构管理界面完成
 - 2026-01-14 - GUI数据操作界面完成
 - 2026-01-15 - GUI SQL执行界面完成（包括批量执行、主键约束、大小写不敏感、JOIN查询支持、DROP/RENAME TABLE修复）
+- 2026-01-15 - SQL查询功能扩展（ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件, LIKE, IN, BETWEEN, GROUP BY, 聚合函数, HAVING, FULL OUTER JOIN）

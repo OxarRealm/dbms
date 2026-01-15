@@ -349,7 +349,7 @@ SelectHandler类：
 
 **实现文件**：`include/sql_parser/token.h`, `src/sql_parser/token.cpp`, `include/sql_parser/ast_node.h`, `src/sql_parser/parser.cpp`, `src/query/select_handler.cpp`（扩展）
 
-**3.6.4 查询执行器整合**
+**3.6.5 查询执行器整合**
 
 QueryExecutor类：
 - 统一调度所有SQL语句类型（DDL、DML、QUERY）
@@ -589,9 +589,13 @@ IndexAdvisor类：
 **4.2.4 阶段4：查询实现** ✅
 - 完成SELECT单表查询（投影操作、WHERE子句）
 - 完成SELECT多表查询（笛卡尔积、多表投影）
-- 完成SELECT连接查询（INNER JOIN、LEFT JOIN）
+- 完成SELECT连接查询（INNER JOIN、LEFT JOIN、RIGHT JOIN、FULL OUTER JOIN）
+- 完成ORDER BY、DISTINCT、LIMIT功能
+- 完成比较运算符和复杂WHERE条件
+- 完成LIKE、IN、BETWEEN功能
+- 完成GROUP BY、聚合函数、HAVING功能
 - 完成查询执行器统一调度（QueryExecutor）
-- **测试结果**：161个测试全部通过
+- **测试结果**：161个基础测试全部通过，新增SQL功能测试全部通过
 
 **4.2.5 阶段8：数据库新技术实现** 🔄（进行中）
 - ✅ **任务8.1：相邻索引实现**（完成时间：2026-01-14）
@@ -716,8 +720,17 @@ IndexAdvisor类：
 - 阶段5.3（GUI数据库管理和表结构管理界面）已完成（2026-01-14）
 - 阶段5.4（GUI数据操作界面）已完成（2026-01-14）
 - 阶段5.5（GUI SQL执行界面）已完成（2026-01-15）
+- 阶段7.0（SQL查询功能扩展）大部分完成（2026-01-15）
+  - ORDER BY、DISTINCT、LIMIT功能实现
+  - 比较运算符（>, <, >=, <=, !=）实现
+  - 复杂WHERE条件（AND, OR, NOT，支持括号优先级）实现
+  - LIKE模式匹配、IN子句、BETWEEN范围查询实现
+  - GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）实现
+  - HAVING子句实现
+  - FULL OUTER JOIN实现
 - GUI程序能够成功编译并运行
 - 主窗口正常显示，所有基础功能正常工作
+- 所有新增SQL功能测试全部通过
 - 数据库管理、表管理、数据操作、SQL执行功能已实现并测试通过
 - 修复了DROP TABLE后数据未完全删除的问题
 - 修复了RENAME TABLE后.dbf和.dat文件不同步的问题

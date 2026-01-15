@@ -990,4 +990,133 @@
 
 ---
 
+### 2026-01-15：LIKE、IN、BETWEEN功能实现
+
+**完成内容**：
+1. ✅ **LIKE模式匹配实现**
+   - 扩展Token类型，添加LIKE关键字
+   - 在WHERE条件解析中支持LIKE运算符
+   - 实现LIKE模式匹配逻辑（支持%通配符，前缀匹配、后缀匹配、包含匹配）
+   - 大小写敏感匹配（与PostgreSQL和Oracle对齐）
+
+2. ✅ **IN子句实现**
+   - 扩展Token类型，添加IN关键字（已存在，用于JOIN）
+   - 在WHERE条件解析中支持IN运算符
+   - 实现IN值列表解析（parseSimpleCondition中处理IN子句）
+   - 实现IN条件评估逻辑（在evaluateWhereCondition中）
+
+3. ✅ **BETWEEN范围查询实现**
+   - 扩展Token类型，添加BETWEEN关键字
+   - 在WHERE条件解析中支持BETWEEN运算符
+   - 实现BETWEEN值解析（betweenStart和betweenEnd）
+   - 实现BETWEEN条件评估逻辑（支持数值和字符串范围查询，包含边界）
+
+**技术决策**：
+- LIKE模式匹配使用大小写敏感匹配，与PostgreSQL和Oracle对齐（设计合理）
+- IN子句支持值列表查询，值可以是字符串或数字
+- BETWEEN范围查询包含边界值（符合SQL标准），支持数值和字符串比较
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（LIKE, BETWEEN）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_where.cpp` - WHERE条件解析扩展（LIKE, IN, BETWEEN）
+- `src/query/select_handler.cpp` - WHERE条件评估扩展
+
+---
+
+### 2026-01-15：GROUP BY和聚合函数实现
+
+**完成内容**：
+1. ✅ **GROUP BY分组实现**
+   - 扩展Token类型，添加GROUP、BY关键字
+   - 扩展AST节点，添加groupBy字段列表
+   - 实现GROUP BY解析逻辑
+   - 实现分组执行逻辑（使用std::map存储分组）
+
+2. ✅ **聚合函数实现**
+   - 扩展Token类型，添加COUNT、SUM、AVG、MAX、MIN关键字
+   - 扩展AST节点，添加AggregateFunction和SelectField结构
+   - 实现聚合函数解析（支持COUNT(*), COUNT(Field), SUM(Field)等）
+   - 实现聚合函数计算逻辑（calculateAggregateFromRecords）
+   - 支持所有聚合函数：COUNT、SUM、AVG、MAX、MIN
+
+**技术决策**：
+- 聚合函数直接从原始记录计算，而不是从投影后的行计算
+- 使用calculateAggregateFromRecords方法，直接从Record列表计算聚合值
+- GROUP BY使用std::map<std::vector<std::string>, std::vector<Record>>存储分组
+- 支持无GROUP BY的聚合查询（返回一行聚合结果）
+
+**遇到的问题和解决方案**：
+1. **问题**：聚合函数计算结果为0或空
+   - **原因**：calculateAggregate从投影后的行中查找字段，但columnNames是聚合函数名（如"COUNT(*)"），无法匹配原始字段名
+   - **解决**：创建新方法calculateAggregateFromRecords，直接从原始记录计算聚合函数
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（GROUP, BY, COUNT, SUM, AVG, MAX, MIN）
+- `include/sql_parser/ast_node.h` - AST节点扩展（AggregateFunction, SelectField, groupBy字段）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_select.cpp` - SELECT解析扩展（聚合函数、GROUP BY）
+- `src/query/select_handler.cpp` - 查询执行扩展（executeGroupByQuery, calculateAggregateFromRecords）
+
+---
+
+### 2026-01-15：HAVING子句实现
+
+**完成内容**：
+1. ✅ **HAVING子句实现**
+   - 扩展Token类型，添加HAVING关键字（已存在）
+   - 扩展AST节点，添加havingClause字段
+   - 实现HAVING解析逻辑（复用WHERE条件解析）
+   - 实现HAVING条件评估逻辑（evaluateHavingCondition）
+   - 支持对聚合函数结果的过滤（如COUNT(*) > 1）
+   - 支持对分组字段的过滤（如Age > 25）
+   - 支持复杂HAVING条件（AND、OR、NOT）
+
+**技术决策**：
+- HAVING条件评估作用于分组后的结果行，而不是原始记录
+- 支持在HAVING条件中引用聚合函数（如COUNT(*), SUM(Age)等）
+- 字段匹配逻辑：先直接匹配字段名，再尝试匹配聚合函数格式
+- HAVING在GROUP BY之后、ORDER BY之前执行
+
+**遇到的问题和解决方案**：
+1. **问题**：HAVING条件中使用聚合函数（如COUNT(*)）时解析失败
+   - **原因**：parseSimpleCondition使用parseIdentifier解析字段名，但COUNT是关键字，不是标识符
+   - **解决**：修改parseSimpleCondition，检测聚合函数关键字，解析整个聚合函数表达式（如COUNT(*)）
+
+**文件位置**：
+- `src/sql_parser/parser_select.cpp` - SELECT解析扩展（HAVING子句）
+- `src/sql_parser/parser_where.cpp` - WHERE条件解析扩展（支持聚合函数）
+- `src/query/select_handler.cpp` - 查询执行扩展（applyHaving, evaluateHavingCondition）
+
+---
+
+### 2026-01-15：FULL OUTER JOIN实现
+
+**完成内容**：
+1. ✅ **FULL OUTER JOIN实现**
+   - 扩展Token类型，添加FULL、OUTER关键字
+   - 扩展JOIN解析逻辑，支持FULL OUTER JOIN和FULL JOIN（OUTER可选）
+   - 实现FULL OUTER JOIN执行逻辑（LEFT JOIN ∪ RIGHT JOIN）
+   - 保留所有匹配的记录
+   - 保留左表中未匹配的记录（右表字段为空）
+   - 保留右表中未匹配的记录（左表字段为空）
+
+**技术决策**：
+- FULL OUTER JOIN = LEFT JOIN ∪ RIGHT JOIN
+- 使用std::set<size_t>跟踪已匹配的右表记录索引
+- 在连接循环中收集匹配的右表记录，循环后处理未匹配的右表记录
+
+**遇到的问题和解决方案**：
+1. **问题**：FULL OUTER JOIN解析失败，报错"Expected ;, but got: FULL"
+   - **原因**：JOIN检测条件中未包含TokenType::FULL，导致遇到FULL时未进入JOIN解析逻辑
+   - **解决**：在JOIN检测条件中添加TokenType::FULL检查
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（FULL, OUTER）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_select.cpp` - JOIN解析扩展（FULL OUTER JOIN）
+- `src/query/select_handler.cpp` - JOIN执行扩展（FULL OUTER JOIN逻辑）
+
+---
+
 **最后更新时间**：2026-01-15

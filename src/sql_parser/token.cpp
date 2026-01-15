@@ -52,15 +52,26 @@ std::string Token::getTypeName() const {
         case TokenType::INNER: return "INNER";
         case TokenType::LEFT: return "LEFT";
         case TokenType::RIGHT: return "RIGHT";
+        case TokenType::FULL: return "FULL";
+        case TokenType::OUTER: return "OUTER";
         case TokenType::ORDER: return "ORDER";
         case TokenType::BY: return "BY";
         case TokenType::ASC: return "ASC";
         case TokenType::DESC: return "DESC";
         case TokenType::DISTINCT: return "DISTINCT";
         case TokenType::LIMIT: return "LIMIT";
+        case TokenType::GROUP: return "GROUP";
+        case TokenType::HAVING: return "HAVING";
+        case TokenType::COUNT: return "COUNT";
+        case TokenType::SUM: return "SUM";
+        case TokenType::AVG: return "AVG";
+        case TokenType::MAX: return "MAX";
+        case TokenType::MIN: return "MIN";
         case TokenType::AND: return "AND";
         case TokenType::OR: return "OR";
         case TokenType::NOT: return "NOT";
+        case TokenType::LIKE: return "LIKE";
+        case TokenType::BETWEEN: return "BETWEEN";
         case TokenType::NOT_EQUALS: return "NOT_EQUALS";
         case TokenType::GREATER_THAN: return "GREATER_THAN";
         case TokenType::LESS_THAN: return "LESS_THAN";
@@ -109,15 +120,26 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"INNER", TokenType::INNER},
         {"LEFT", TokenType::LEFT},
         {"RIGHT", TokenType::RIGHT},
+        {"FULL", TokenType::FULL},
+        {"OUTER", TokenType::OUTER},
         {"ORDER", TokenType::ORDER},
         {"BY", TokenType::BY},
         {"ASC", TokenType::ASC},
         {"DESC", TokenType::DESC},
         {"DISTINCT", TokenType::DISTINCT},
         {"LIMIT", TokenType::LIMIT},
+        {"GROUP", TokenType::GROUP},
+        {"HAVING", TokenType::HAVING},
+        {"COUNT", TokenType::COUNT},
+        {"SUM", TokenType::SUM},
+        {"AVG", TokenType::AVG},
+        {"MAX", TokenType::MAX},
+        {"MIN", TokenType::MIN},
         {"AND", TokenType::AND},
         {"OR", TokenType::OR},
-        {"NOT", TokenType::NOT}
+        {"NOT", TokenType::NOT},
+        {"LIKE", TokenType::LIKE},
+        {"BETWEEN", TokenType::BETWEEN}
     };
     
     // 转换为大写进行比较（关键词不区分大小写）

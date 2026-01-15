@@ -35,7 +35,12 @@
 ### 4. 数据库查询
 - SELECT 单表查询
 - SELECT 多表查询
-- SELECT 连接查询（JOIN）
+- SELECT 连接查询（INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN）
+- ORDER BY排序、DISTINCT去重、LIMIT分页
+- 复杂WHERE条件（AND, OR, NOT，支持括号优先级）
+- LIKE模式匹配、IN子句、BETWEEN范围查询
+- GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）
+- HAVING子句（分组过滤）
 
 ### 5. AI智能推荐系统
 - 基于协同过滤的音乐推荐

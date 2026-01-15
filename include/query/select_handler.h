@@ -117,6 +117,17 @@ private:
     bool executeJoinQuery(SelectNode* node, QueryResult& result);
     
     /**
+     * @brief 执行GROUP BY分组查询（包含聚合函数）
+     * @param node SELECT AST节点
+     * @param tableInfo 表结构信息
+     * @param records 记录列表
+     * @param result 输出参数，查询结果
+     * @return 成功返回true，失败返回false
+     */
+    bool executeGroupByQuery(SelectNode* node, const TableInfo& tableInfo,
+                            const std::vector<Record>& records, QueryResult& result);
+    
+    /**
      * @brief 执行投影操作（选择字段）
      * @param record 记录
      * @param tableInfo 表结构信息
@@ -203,5 +214,68 @@ private:
      * @param limitCount 限制行数（-1表示无限制）
      */
     void applyLimit(std::vector<std::vector<std::string>>& rows, int limitCount);
+    
+    /**
+     * @brief 应用GROUP BY分组
+     * @param rows 行数据列表（会被修改）
+     * @param columnNames 列名列表
+     * @param tableInfo 表结构信息
+     * @param groupByFields GROUP BY字段列表
+     * @return 成功返回true，失败返回false
+     */
+    bool applyGroupBy(std::vector<std::vector<std::string>>& rows,
+                     const std::vector<std::string>& columnNames,
+                     const TableInfo& tableInfo,
+                     const std::vector<std::string>& groupByFields);
+    
+    /**
+     * @brief 从原始记录计算聚合函数值（新方法，推荐使用）
+     * @param records 原始记录列表
+     * @param tableInfo 表结构信息
+     * @param aggregateFunc 聚合函数信息
+     * @return 聚合函数计算结果（字符串形式）
+     */
+    std::string calculateAggregateFromRecords(const std::vector<Record>& records,
+                                             const TableInfo& tableInfo,
+                                             const AggregateFunction& aggregateFunc);
+    
+    /**
+     * @brief 计算聚合函数值（旧方法，保留以保持兼容性）
+     * @param rows 分组后的行数据列表
+     * @param columnNames 列名列表
+     * @param tableInfo 表结构信息
+     * @param aggregateFunc 聚合函数信息
+     * @return 聚合函数计算结果（字符串形式）
+     */
+    std::string calculateAggregate(const std::vector<std::vector<std::string>>& rows,
+                                  const std::vector<std::string>& columnNames,
+                                  const TableInfo& tableInfo,
+                                  const AggregateFunction& aggregateFunc);
+    
+    /**
+     * @brief 应用HAVING过滤
+     * @param groupedRows 分组后的行数据列表（会被修改）
+     * @param columnNames 列名列表
+     * @param tableInfo 表结构信息
+     * @param havingClause HAVING条件节点
+     * @return 成功返回true，失败返回false
+     */
+    bool applyHaving(std::vector<std::vector<std::string>>& groupedRows,
+                    const std::vector<std::string>& columnNames,
+                    const TableInfo& tableInfo,
+                    const WhereCondition* havingClause);
+    
+    /**
+     * @brief 评估HAVING条件（辅助函数）
+     * @param row 分组后的结果行
+     * @param columnNames 列名列表
+     * @param tableInfo 表结构信息
+     * @param condition HAVING条件节点
+     * @return 条件匹配返回true，否则返回false
+     */
+    bool evaluateHavingCondition(const std::vector<std::string>& row,
+                                 const std::vector<std::string>& columnNames,
+                                 const TableInfo& tableInfo,
+                                 const WhereCondition* condition);
 };
 

@@ -167,13 +167,39 @@ struct OrderByInfo {
 };
 
 /**
+ * @brief 聚合函数信息结构
+ */
+struct AggregateFunction {
+    std::string funcName;     // 聚合函数名：COUNT, SUM, AVG, MAX, MIN
+    std::string fieldName;    // 聚合字段名（COUNT(*)时为空字符串）
+    bool isStar;              // 是否为COUNT(*)
+    
+    AggregateFunction() : isStar(false) {}
+};
+
+/**
+ * @brief SELECT字段信息（可以是普通字段或聚合函数）
+ */
+struct SelectField {
+    bool isAggregate;                    // 是否为聚合函数
+    std::string fieldName;               // 普通字段名（isAggregate=false时使用）
+    AggregateFunction aggregateFunc;     // 聚合函数信息（isAggregate=true时使用）
+    std::string alias;                  // 字段别名（可选）
+    
+    SelectField() : isAggregate(false) {}
+};
+
+/**
  * @brief WHERE条件节点（支持复杂条件树）
  */
 struct WhereCondition {
     std::string logicalOp;        // 逻辑运算符：AND, OR, NOT（空字符串表示简单条件）
     std::string fieldName;        // 字段名（简单条件）
-    std::string operator_;        // 比较运算符：=, !=, >, <, >=, <=
-    std::string value;            // 值（简单条件）
+    std::string operator_;        // 比较运算符：=, !=, >, <, >=, <=, LIKE, IN, BETWEEN
+    std::string value;            // 值（简单条件，用于=, !=, >, <, >=, <=, LIKE）
+    std::vector<std::string> inValues;  // IN子句的值列表
+    std::string betweenStart;     // BETWEEN起始值
+    std::string betweenEnd;       // BETWEEN结束值
     std::unique_ptr<WhereCondition> left;   // 左子树（复杂条件）
     std::unique_ptr<WhereCondition> right;  // 右子树（复杂条件）
     
@@ -190,17 +216,23 @@ struct WhereCondition {
  */
 class SelectNode : public ASTNode {
 public:
-    std::vector<std::string> selectFields;    // 选择的字段列表（*表示所有字段）
-    std::vector<std::string> fromTables;      // FROM表列表
-    std::vector<JoinInfo> joins;              // JOIN连接列表（可选）
+    // 新字段：支持聚合函数的字段列表
+    std::vector<SelectField> selectFieldsNew;  // 新字段列表（支持聚合函数和别名）
+    // 保留旧字段以保持向后兼容
+    std::vector<std::string> selectFields;     // 选择的字段列表（*表示所有字段，向后兼容）
+    
+    std::vector<std::string> fromTables;       // FROM表列表
+    std::vector<JoinInfo> joins;               // JOIN连接列表（可选）
     std::unique_ptr<WhereCondition> whereClause;  // WHERE条件（树形结构，可选）
     // 保留旧字段以保持向后兼容（如果whereClause为空，使用这些字段）
-    std::string whereField;                   // WHERE条件字段名（可选，向后兼容）
-    std::string whereValue;                   // WHERE条件值（可选，向后兼容）
-    std::string whereOperator;                // WHERE条件运算符（可选，向后兼容）
-    bool distinct;                            // DISTINCT标志
-    std::vector<OrderByInfo> orderBy;         // ORDER BY子句（可选）
-    int limitCount;                           // LIMIT子句（可选，-1表示无限制）
+    std::string whereField;                    // WHERE条件字段名（可选，向后兼容）
+    std::string whereValue;                     // WHERE条件值（可选，向后兼容）
+    std::string whereOperator;                 // WHERE条件运算符（可选，向后兼容）
+    bool distinct;                             // DISTINCT标志
+    std::vector<OrderByInfo> orderBy;          // ORDER BY子句（可选）
+    std::vector<std::string> groupBy;          // GROUP BY字段列表（可选）
+    std::unique_ptr<WhereCondition> havingClause;  // HAVING条件（可选，与WHERE条件结构相同）
+    int limitCount;                            // LIMIT子句（可选，-1表示无限制）
     
     SelectNode() : distinct(false), limitCount(-1) {}
     

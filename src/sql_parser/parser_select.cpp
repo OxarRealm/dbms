@@ -21,19 +21,91 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
         advance();
     }
     
-    // 解析SELECT字段列表
+    // 解析SELECT字段列表（支持聚合函数）
     if (m_currentToken.type == TokenType::ASTERISK) {
         // SELECT * 表示选择所有字段
         node->selectFields.push_back("*");
+        SelectField field;
+        field.isAggregate = false;
+        field.fieldName = "*";
+        node->selectFieldsNew.push_back(field);
         advance();
-    } else if (m_currentToken.type == TokenType::IDENTIFIER) {
-        // 字段列表：Field1, Field2, ...
+    } else {
+        // 字段列表：Field1, Field2, COUNT(Field), SUM(Field), ...
         while (true) {
-            std::string fieldName = parseIdentifier();
-            if (fieldName.empty()) {
+            SelectField field;
+            
+            // 检查是否为聚合函数
+            if (m_currentToken.type == TokenType::COUNT ||
+                m_currentToken.type == TokenType::SUM ||
+                m_currentToken.type == TokenType::AVG ||
+                m_currentToken.type == TokenType::MAX ||
+                m_currentToken.type == TokenType::MIN) {
+                // 解析聚合函数
+                field.isAggregate = true;
+                if (m_currentToken.type == TokenType::COUNT) {
+                    field.aggregateFunc.funcName = "COUNT";
+                } else if (m_currentToken.type == TokenType::SUM) {
+                    field.aggregateFunc.funcName = "SUM";
+                } else if (m_currentToken.type == TokenType::AVG) {
+                    field.aggregateFunc.funcName = "AVG";
+                } else if (m_currentToken.type == TokenType::MAX) {
+                    field.aggregateFunc.funcName = "MAX";
+                } else if (m_currentToken.type == TokenType::MIN) {
+                    field.aggregateFunc.funcName = "MIN";
+                }
+                advance();
+                
+                // 解析聚合函数的参数
+                if (!expect(TokenType::LEFT_PAREN, "(")) {
+                    return nullptr;
+                }
+                
+                // 检查是否为COUNT(*)
+                if (m_currentToken.type == TokenType::ASTERISK) {
+                    field.aggregateFunc.isStar = true;
+                    advance();
+                } else {
+                    // 解析字段名
+                    field.aggregateFunc.fieldName = parseIdentifier();
+                    if (field.aggregateFunc.fieldName.empty()) {
+                        return nullptr;
+                    }
+                }
+                
+                if (!expect(TokenType::RIGHT_PAREN, ")")) {
+                    return nullptr;
+                }
+                
+                // 向后兼容：生成字符串表示
+                std::string aggStr = field.aggregateFunc.funcName + "(";
+                if (field.aggregateFunc.isStar) {
+                    aggStr += "*";
+                } else {
+                    aggStr += field.aggregateFunc.fieldName;
+                }
+                aggStr += ")";
+                node->selectFields.push_back(aggStr);
+            } else if (m_currentToken.type == TokenType::IDENTIFIER) {
+                // 普通字段
+                field.isAggregate = false;
+                field.fieldName = parseIdentifier();
+                if (field.fieldName.empty()) {
+                    return nullptr;
+                }
+                node->selectFields.push_back(field.fieldName);
+            } else {
+                setError("Expected field name, aggregate function, or '*', but got: " + m_currentToken.value);
                 return nullptr;
             }
-            node->selectFields.push_back(fieldName);
+            
+            // 检查是否有别名（AS关键字可选）
+            if (m_currentToken.type == TokenType::IDENTIFIER) {
+                // 可能是别名（简化处理，如果下一个是逗号或FROM，则认为是别名）
+                // 这里先不处理别名，保持简单
+            }
+            
+            node->selectFieldsNew.push_back(field);
             
             if (m_currentToken.type == TokenType::COMMA) {
                 advance();
@@ -41,9 +113,6 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
                 break;
             }
         }
-    } else {
-        setError("Expected field name or '*', but got: " + m_currentToken.value);
-        return nullptr;
     }
     
     // FROM
@@ -64,13 +133,14 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
     if (m_currentToken.type == TokenType::JOIN || 
         m_currentToken.type == TokenType::INNER ||
         m_currentToken.type == TokenType::LEFT ||
-        m_currentToken.type == TokenType::RIGHT) {
+        m_currentToken.type == TokenType::RIGHT ||
+        m_currentToken.type == TokenType::FULL) {
         
         // 解析JOIN子句
         while (true) {
             JoinInfo joinInfo;
             
-            // 解析JOIN类型（INNER, LEFT, RIGHT）
+            // 解析JOIN类型（INNER, LEFT, RIGHT, FULL OUTER）
             if (m_currentToken.type == TokenType::INNER) {
                 joinInfo.joinType = "INNER";
                 advance();
@@ -86,6 +156,16 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             } else if (m_currentToken.type == TokenType::RIGHT) {
                 joinInfo.joinType = "RIGHT";
                 advance();
+                if (!expect(TokenType::JOIN, "JOIN")) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::FULL) {
+                joinInfo.joinType = "FULL";
+                advance();
+                // OUTER是可选的（FULL OUTER JOIN 或 FULL JOIN）
+                if (m_currentToken.type == TokenType::OUTER) {
+                    advance();
+                }
                 if (!expect(TokenType::JOIN, "JOIN")) {
                     return nullptr;
                 }
@@ -136,7 +216,8 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             if (m_currentToken.type != TokenType::JOIN &&
                 m_currentToken.type != TokenType::INNER &&
                 m_currentToken.type != TokenType::LEFT &&
-                m_currentToken.type != TokenType::RIGHT) {
+                m_currentToken.type != TokenType::RIGHT &&
+                m_currentToken.type != TokenType::FULL) {
                 break;
             }
         }
@@ -167,6 +248,41 @@ std::unique_ptr<ASTNode> Parser::parseSelect() {
             node->whereField = node->whereClause->fieldName;
             node->whereValue = node->whereClause->value;
             node->whereOperator = node->whereClause->operator_;
+        }
+    }
+    
+    // GROUP BY子句（可选）
+    if (m_currentToken.type == TokenType::GROUP) {
+        advance();
+        if (!expect(TokenType::BY, "BY")) {
+            return nullptr;
+        }
+        
+        // 解析分组字段列表
+        while (true) {
+            std::string groupField = parseIdentifier();
+            if (groupField.empty()) {
+                return nullptr;
+            }
+            node->groupBy.push_back(groupField);
+            
+            // 检查是否有更多分组字段
+            if (m_currentToken.type == TokenType::COMMA) {
+                advance();
+            } else {
+                break;
+            }
+        }
+    }
+    
+    // HAVING子句（可选，必须在GROUP BY之后）
+    if (m_currentToken.type == TokenType::HAVING) {
+        advance();
+        
+        // 解析HAVING条件（与WHERE条件结构相同）
+        node->havingClause = parseWhereCondition();
+        if (!node->havingClause) {
+            return nullptr;
         }
     }
     

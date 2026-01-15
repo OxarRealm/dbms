@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <cstring>
 #include <cmath>
+#include <map>
+#include <set>
 #ifdef _WIN32
 #include <string.h>
 #else
@@ -83,6 +85,23 @@ bool SelectHandler::executeSingleTableQuery(SelectNode* node, QueryResult& resul
     if (!m_dataManager.readValidRecords(tableName, records)) {
         setError("Failed to read records");
         return false;
+    }
+    
+    // 检查是否有GROUP BY或聚合函数
+    bool hasGroupBy = !node->groupBy.empty();
+    bool hasAggregate = false;
+    if (!node->selectFieldsNew.empty()) {
+        for (const auto& field : node->selectFieldsNew) {
+            if (field.isAggregate) {
+                hasAggregate = true;
+                break;
+            }
+        }
+    }
+    
+    // 如果有GROUP BY或聚合函数，使用分组查询
+    if (hasGroupBy || hasAggregate) {
+        return executeGroupByQuery(node, tableInfo, records, result);
     }
     
     // 确定要选择的字段
@@ -214,6 +233,56 @@ bool SelectHandler::evaluateWhereCondition(const Record& record, const TableInfo
                 return fieldNum <= valueNum;
             } catch (...) {
                 return fieldValue <= condition->value;
+            }
+        } else if (condition->operator_ == "LIKE") {
+            // LIKE模式匹配：支持%通配符
+            std::string pattern = condition->value;
+            
+            // 如果模式中没有%，直接进行字符串比较
+            if (pattern.find('%') == std::string::npos) {
+                return fieldValue == pattern;
+            }
+            
+            // 处理%通配符
+            // 前缀匹配：%xxx
+            if (pattern.front() == '%' && pattern.back() != '%') {
+                std::string suffix = pattern.substr(1);
+                return fieldValue.length() >= suffix.length() && 
+                       fieldValue.substr(fieldValue.length() - suffix.length()) == suffix;
+            }
+            // 后缀匹配：xxx%
+            else if (pattern.front() != '%' && pattern.back() == '%') {
+                std::string prefix = pattern.substr(0, pattern.length() - 1);
+                return fieldValue.length() >= prefix.length() && 
+                       fieldValue.substr(0, prefix.length()) == prefix;
+            }
+            // 包含匹配：%xxx%
+            else if (pattern.front() == '%' && pattern.back() == '%') {
+                std::string substr = pattern.substr(1, pattern.length() - 2);
+                return fieldValue.find(substr) != std::string::npos;
+            }
+            // 精确匹配（无%）
+            else {
+                return fieldValue == pattern;
+            }
+        } else if (condition->operator_ == "IN") {
+            // IN子句：检查字段值是否在值列表中
+            for (const std::string& inValue : condition->inValues) {
+                if (fieldValue == inValue) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (condition->operator_ == "BETWEEN") {
+            // BETWEEN范围查询：检查字段值是否在范围内（包含边界）
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double startNum = std::stod(condition->betweenStart);
+                double endNum = std::stod(condition->betweenEnd);
+                return fieldNum >= startNum && fieldNum <= endNum;
+            } catch (...) {
+                // 如果转换失败，使用字符串比较
+                return fieldValue >= condition->betweenStart && fieldValue <= condition->betweenEnd;
             }
         }
         return false;
@@ -577,6 +646,7 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
         
         // 执行连接
         std::vector<std::vector<Record>> newJoinedResults;
+        std::set<size_t> allMatchedRightIndices;  // 记录所有已匹配的右表记录索引（用于FULL OUTER JOIN和RIGHT JOIN）
         
         for (const auto& leftCombination : joinedResults) {
             // 获取左表字段值
@@ -588,7 +658,9 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
             
             // 在右表中查找匹配的记录
             bool foundMatch = false;
-            for (const Record& rightRecord : allTableRecords[rightTableIndex]) {
+            
+            for (size_t rightIdx = 0; rightIdx < allTableRecords[rightTableIndex].size(); ++rightIdx) {
+                const Record& rightRecord = allTableRecords[rightTableIndex][rightIdx];
                 if (rightRecord.values.size() <= static_cast<size_t>(rightFieldIndex)) {
                     continue;
                 }
@@ -609,20 +681,41 @@ bool SelectHandler::executeJoinQuery(SelectNode* node, QueryResult& result) {
                     newCombination.push_back(rightRecord);
                     newJoinedResults.push_back(newCombination);
                     foundMatch = true;
+                    allMatchedRightIndices.insert(rightIdx);
                 }
             }
             
-            // LEFT JOIN：即使没有匹配，也保留左表记录（右表字段为NULL）
-            if (joinInfo.joinType == "LEFT" && !foundMatch) {
-                // 创建空记录作为右表记录（使用空值）
+            // 根据JOIN类型处理未匹配的情况
+            if ((joinInfo.joinType == "LEFT" || joinInfo.joinType == "FULL") && !foundMatch) {
+                // LEFT JOIN 或 FULL OUTER JOIN：即使没有匹配，也保留左表记录，右表字段为空
                 Record emptyRecord;
-                // 填充空值
                 for (size_t j = 0; j < tableInfos[rightTableIndex].fields.size(); ++j) {
                     emptyRecord.values.push_back("");
                 }
                 std::vector<Record> newCombination = leftCombination;
                 newCombination.push_back(emptyRecord);
                 newJoinedResults.push_back(newCombination);
+            }
+            
+        }
+        
+        // 处理RIGHT JOIN和FULL OUTER JOIN的右表未匹配记录
+        if (joinInfo.joinType == "RIGHT" || joinInfo.joinType == "FULL") {
+            // 对于RIGHT JOIN和FULL OUTER JOIN，需要处理未匹配的右表记录
+            for (size_t rightIdx = 0; rightIdx < allTableRecords[rightTableIndex].size(); ++rightIdx) {
+                if (allMatchedRightIndices.find(rightIdx) == allMatchedRightIndices.end()) {
+                    // 右表记录未匹配
+                    std::vector<Record> newCombination;
+                    // 为左表创建空记录
+                    for (size_t i = 0; i < rightTableIndex; ++i) {
+                        Record emptyRecord;
+                        emptyRecord.values.resize(tableInfos[i].fields.size(), "");
+                        newCombination.push_back(emptyRecord);
+                    }
+                    // 添加右表记录
+                    newCombination.push_back(allTableRecords[rightTableIndex][rightIdx]);
+                    newJoinedResults.push_back(newCombination);
+                }
             }
         }
         
@@ -788,6 +881,670 @@ bool SelectHandler::applyOrderBy(std::vector<std::vector<std::string>>& rows,
 void SelectHandler::applyLimit(std::vector<std::vector<std::string>>& rows, int limitCount) {
     if (limitCount >= 0 && limitCount < static_cast<int>(rows.size())) {
         rows.resize(limitCount);
+    }
+}
+
+bool SelectHandler::executeGroupByQuery(SelectNode* node, const TableInfo& tableInfo,
+                                       const std::vector<Record>& records, QueryResult& result) {
+    // 1. 先应用WHERE条件过滤记录
+    std::vector<Record> filteredRecords;
+    for (const auto& record : records) {
+        if (node->whereClause) {
+            if (!evaluateWhereCondition(record, tableInfo, node->whereClause.get())) {
+                continue;
+            }
+        } else if (!node->whereField.empty()) {
+            if (!evaluateCondition(record, tableInfo, node->whereField, node->whereValue)) {
+                continue;
+            }
+        }
+        filteredRecords.push_back(record);
+    }
+    
+    // 确定要使用的字段列表（优先使用selectFieldsNew，否则使用selectFields）
+    std::vector<SelectField> fieldsToUse = node->selectFieldsNew;
+    if (fieldsToUse.empty()) {
+        // 向后兼容：从selectFields构建SelectField列表
+        for (const std::string& fieldStr : node->selectFields) {
+            SelectField field;
+            // 检查是否为聚合函数（简单检查，如COUNT(...)）
+            if (fieldStr.find("COUNT(") == 0 || fieldStr.find("SUM(") == 0 ||
+                fieldStr.find("AVG(") == 0 || fieldStr.find("MAX(") == 0 ||
+                fieldStr.find("MIN(") == 0) {
+                field.isAggregate = true;
+                // 解析聚合函数（简化处理）
+                size_t parenPos = fieldStr.find('(');
+                size_t closeParenPos = fieldStr.find(')');
+                if (parenPos != std::string::npos && closeParenPos != std::string::npos) {
+                    field.aggregateFunc.funcName = fieldStr.substr(0, parenPos);
+                    std::string arg = fieldStr.substr(parenPos + 1, closeParenPos - parenPos - 1);
+                    if (arg == "*") {
+                        field.aggregateFunc.isStar = true;
+                    } else {
+                        field.aggregateFunc.fieldName = arg;
+                    }
+                }
+            } else {
+                field.isAggregate = false;
+                field.fieldName = fieldStr;
+            }
+            fieldsToUse.push_back(field);
+        }
+    }
+    
+    // 确定要选择的字段（用于投影）
+    std::vector<std::string> selectFields = node->selectFields;
+    if (selectFields.empty() || (selectFields.size() == 1 && selectFields[0] == "*")) {
+        selectFields.clear();
+        for (const auto& field : tableInfo.fields) {
+            selectFields.push_back(std::string(field.sFieldName));
+        }
+    }
+    
+    // 2. 如果没有GROUP BY，但有聚合函数，将全部记录作为一组
+    if (node->groupBy.empty()) {
+        // 只有聚合函数，没有GROUP BY，返回一行聚合结果
+        // 注意：聚合函数应该直接从原始记录中计算，而不是从投影后的行中计算
+        
+        // 计算聚合函数
+        std::vector<std::string> resultRow;
+        std::vector<std::string> columnNames;
+        for (const auto& field : fieldsToUse) {
+            if (field.isAggregate) {
+                // 直接从原始记录计算聚合函数
+                std::string aggResult = calculateAggregateFromRecords(filteredRecords, tableInfo, field.aggregateFunc);
+                resultRow.push_back(aggResult);
+                columnNames.push_back(field.aggregateFunc.funcName + "(" + 
+                    (field.aggregateFunc.isStar ? "*" : field.aggregateFunc.fieldName) + ")");
+            } else {
+                // 非聚合字段（在没有GROUP BY时，应该报错，但这里简化处理）
+                if (!filteredRecords.empty()) {
+                    int fieldIndex = findFieldIndex(tableInfo, field.fieldName);
+                    if (fieldIndex >= 0 && fieldIndex < static_cast<int>(filteredRecords[0].values.size())) {
+                        resultRow.push_back(filteredRecords[0].values[fieldIndex]);
+                        columnNames.push_back(field.fieldName);
+                    }
+                }
+            }
+        }
+        
+        if (!resultRow.empty()) {
+            result.rows.push_back(resultRow);
+        }
+        result.columnNames = columnNames;
+        result.rowCount = result.rows.size();
+        return true;
+    }
+    
+    // 3. 有GROUP BY，按分组字段分组
+    // 使用map来存储分组：分组键 -> 记录列表
+    std::map<std::vector<std::string>, std::vector<Record>> groups;
+    
+    // 获取GROUP BY字段的索引
+    std::vector<int> groupByIndices;
+    for (const std::string& groupField : node->groupBy) {
+        int index = findFieldIndex(tableInfo, groupField);
+        if (index == -1) {
+            setError("GROUP BY field not found: " + groupField);
+            return false;
+        }
+        groupByIndices.push_back(index);
+    }
+    
+    // 对每条记录进行分组
+    for (const auto& record : filteredRecords) {
+        // 构建分组键（GROUP BY字段的值组合）
+        std::vector<std::string> groupKey;
+        for (int index : groupByIndices) {
+            if (index >= 0 && index < static_cast<int>(record.values.size())) {
+                groupKey.push_back(record.values[index]);
+            } else {
+                groupKey.push_back("");
+            }
+        }
+        groups[groupKey].push_back(record);
+    }
+    
+    // 4. 对每个分组计算聚合函数
+    std::vector<std::string> columnNames;
+    for (const auto& field : fieldsToUse) {
+        if (field.isAggregate) {
+            columnNames.push_back(field.aggregateFunc.funcName + "(" + 
+                (field.aggregateFunc.isStar ? "*" : field.aggregateFunc.fieldName) + ")");
+        } else {
+            columnNames.push_back(field.fieldName);
+        }
+    }
+    result.columnNames = columnNames;
+    
+    for (const auto& group : groups) {
+        // 计算聚合函数，构建结果行
+        // 注意：聚合函数应该直接从原始记录中计算，而不是从投影后的行中计算
+        std::vector<std::string> resultRow;
+        for (const auto& field : fieldsToUse) {
+            if (field.isAggregate) {
+                // 直接从原始记录计算聚合函数
+                std::string aggResult = calculateAggregateFromRecords(group.second, tableInfo, field.aggregateFunc);
+                resultRow.push_back(aggResult);
+            } else {
+                // 非聚合字段：使用分组键的值
+                int fieldIndex = findFieldIndex(tableInfo, field.fieldName);
+                if (fieldIndex >= 0) {
+                    // 检查该字段是否在GROUP BY中
+                    bool inGroupBy = false;
+                    for (size_t i = 0; i < node->groupBy.size(); ++i) {
+                        if (node->groupBy[i] == field.fieldName) {
+                            resultRow.push_back(group.first[i]);
+                            inGroupBy = true;
+                            break;
+                        }
+                    }
+                    if (!inGroupBy) {
+                        // 字段不在GROUP BY中，使用第一条记录的值（简化处理）
+                        if (!group.second.empty() && fieldIndex < static_cast<int>(group.second[0].values.size())) {
+                            resultRow.push_back(group.second[0].values[fieldIndex]);
+                        } else {
+                            resultRow.push_back("");
+                        }
+                    }
+                } else {
+                    resultRow.push_back("");
+                }
+            }
+        }
+        
+        result.rows.push_back(resultRow);
+    }
+    
+    // 5. 应用HAVING过滤
+    if (node->havingClause) {
+        if (!applyHaving(result.rows, result.columnNames, tableInfo, node->havingClause.get())) {
+            setError("HAVING operation failed");
+            return false;
+        }
+    }
+    
+    // 6. 应用ORDER BY
+    if (!node->orderBy.empty()) {
+        if (!applyOrderBy(result.rows, result.columnNames, tableInfo, node->orderBy)) {
+            setError("ORDER BY operation failed");
+            return false;
+        }
+    }
+    
+    // 7. 应用LIMIT
+    if (node->limitCount >= 0) {
+        applyLimit(result.rows, node->limitCount);
+    }
+    
+    result.rowCount = result.rows.size();
+    return true;
+}
+
+// 从原始记录计算聚合函数（新方法）
+std::string SelectHandler::calculateAggregateFromRecords(const std::vector<Record>& records,
+                                                          const TableInfo& tableInfo,
+                                                          const AggregateFunction& aggregateFunc) {
+    if (records.empty()) {
+        if (aggregateFunc.funcName == "COUNT") {
+            return "0";
+        }
+        return "";
+    }
+    
+    // 查找聚合字段的索引（从表结构中查找）
+    int fieldIndex = -1;
+    if (!aggregateFunc.isStar) {
+        fieldIndex = findFieldIndex(tableInfo, aggregateFunc.fieldName);
+        if (fieldIndex == -1) {
+            // 字段不存在
+            if (aggregateFunc.funcName == "COUNT") {
+                return "0";
+            }
+            return "";
+        }
+    }
+    
+    if (aggregateFunc.funcName == "COUNT") {
+        if (aggregateFunc.isStar) {
+            return std::to_string(records.size());
+        } else {
+            // COUNT(Field)：统计非空值
+            int count = 0;
+            for (const auto& record : records) {
+                if (fieldIndex >= 0 && fieldIndex < static_cast<int>(record.values.size())) {
+                    if (!record.values[fieldIndex].empty()) {
+                        count++;
+                    }
+                }
+            }
+            return std::to_string(count);
+        }
+    } else if (aggregateFunc.funcName == "SUM") {
+        if (fieldIndex == -1) {
+            return "0";
+        }
+        double sum = 0.0;
+        for (const auto& record : records) {
+            if (fieldIndex < static_cast<int>(record.values.size())) {
+                try {
+                    sum += std::stod(record.values[fieldIndex]);
+                } catch (...) {
+                    // 忽略非数值
+                }
+            }
+        }
+        return std::to_string(sum);
+    } else if (aggregateFunc.funcName == "AVG") {
+        if (fieldIndex == -1) {
+            return "0";
+        }
+        double sum = 0.0;
+        int count = 0;
+        for (const auto& record : records) {
+            if (fieldIndex < static_cast<int>(record.values.size())) {
+                try {
+                    sum += std::stod(record.values[fieldIndex]);
+                    count++;
+                } catch (...) {
+                    // 忽略非数值
+                }
+            }
+        }
+        if (count == 0) {
+            return "0";
+        }
+        return std::to_string(sum / count);
+    } else if (aggregateFunc.funcName == "MAX") {
+        if (fieldIndex == -1) {
+            return "";
+        }
+        bool hasValue = false;
+        double maxVal = 0.0;
+        std::string maxStr = "";
+        bool isNumeric = true;
+        
+        for (const auto& record : records) {
+            if (fieldIndex < static_cast<int>(record.values.size())) {
+                try {
+                    double val = std::stod(record.values[fieldIndex]);
+                    if (!hasValue || val > maxVal) {
+                        maxVal = val;
+                        hasValue = true;
+                    }
+                } catch (...) {
+                    isNumeric = false;
+                    if (!hasValue || record.values[fieldIndex] > maxStr) {
+                        maxStr = record.values[fieldIndex];
+                        hasValue = true;
+                    }
+                }
+            }
+        }
+        if (!hasValue) {
+            return "";
+        }
+        return isNumeric ? std::to_string(maxVal) : maxStr;
+    } else if (aggregateFunc.funcName == "MIN") {
+        if (fieldIndex == -1) {
+            return "";
+        }
+        bool hasValue = false;
+        double minVal = 0.0;
+        std::string minStr = "";
+        bool isNumeric = true;
+        
+        for (const auto& record : records) {
+            if (fieldIndex < static_cast<int>(record.values.size())) {
+                try {
+                    double val = std::stod(record.values[fieldIndex]);
+                    if (!hasValue || val < minVal) {
+                        minVal = val;
+                        hasValue = true;
+                    }
+                } catch (...) {
+                    isNumeric = false;
+                    if (!hasValue || record.values[fieldIndex] < minStr) {
+                        minStr = record.values[fieldIndex];
+                        hasValue = true;
+                    }
+                }
+            }
+        }
+        if (!hasValue) {
+            return "";
+        }
+        return isNumeric ? std::to_string(minVal) : minStr;
+    }
+    
+    return "";
+}
+
+// 保留旧方法以保持兼容性（但不再使用）
+std::string SelectHandler::calculateAggregate(const std::vector<std::vector<std::string>>& rows,
+                                              const std::vector<std::string>& columnNames,
+                                              const TableInfo& tableInfo,
+                                              const AggregateFunction& aggregateFunc) {
+    // 这个方法已废弃，保留以保持接口兼容性
+    // 实际应该使用calculateAggregateFromRecords
+    if (rows.empty()) {
+        if (aggregateFunc.funcName == "COUNT") {
+            return "0";
+        }
+        return "";
+    }
+    
+    // 查找聚合字段的索引
+    int fieldIndex = -1;
+    if (!aggregateFunc.isStar) {
+        // 在columnNames中查找字段
+        for (size_t i = 0; i < columnNames.size(); ++i) {
+            if (columnNames[i] == aggregateFunc.fieldName) {
+                fieldIndex = static_cast<int>(i);
+                break;
+            }
+        }
+    }
+    
+    if (aggregateFunc.funcName == "COUNT") {
+        if (aggregateFunc.isStar) {
+            return std::to_string(rows.size());
+        } else {
+            // COUNT(Field)：统计非空值
+            int count = 0;
+            for (const auto& row : rows) {
+                if (fieldIndex >= 0 && fieldIndex < static_cast<int>(row.size())) {
+                    if (!row[fieldIndex].empty()) {
+                        count++;
+                    }
+                }
+            }
+            return std::to_string(count);
+        }
+    } else if (aggregateFunc.funcName == "SUM") {
+        if (fieldIndex == -1) {
+            return "0";
+        }
+        double sum = 0.0;
+        for (const auto& row : rows) {
+            if (fieldIndex < static_cast<int>(row.size())) {
+                try {
+                    sum += std::stod(row[fieldIndex]);
+                } catch (...) {
+                    // 忽略非数值
+                }
+            }
+        }
+        return std::to_string(sum);
+    } else if (aggregateFunc.funcName == "AVG") {
+        if (fieldIndex == -1) {
+            return "0";
+        }
+        double sum = 0.0;
+        int count = 0;
+        for (const auto& row : rows) {
+            if (fieldIndex < static_cast<int>(row.size())) {
+                try {
+                    sum += std::stod(row[fieldIndex]);
+                    count++;
+                } catch (...) {
+                    // 忽略非数值
+                }
+            }
+        }
+        if (count == 0) {
+            return "0";
+        }
+        return std::to_string(sum / count);
+    } else if (aggregateFunc.funcName == "MAX") {
+        if (fieldIndex == -1) {
+            return "";
+        }
+        bool hasValue = false;
+        double maxVal = 0.0;
+        std::string maxStr = "";
+        bool isNumeric = true;
+        
+        for (const auto& row : rows) {
+            if (fieldIndex < static_cast<int>(row.size())) {
+                try {
+                    double val = std::stod(row[fieldIndex]);
+                    if (!hasValue || val > maxVal) {
+                        maxVal = val;
+                        hasValue = true;
+                    }
+                } catch (...) {
+                    isNumeric = false;
+                    if (!hasValue || row[fieldIndex] > maxStr) {
+                        maxStr = row[fieldIndex];
+                        hasValue = true;
+                    }
+                }
+            }
+        }
+        if (!hasValue) {
+            return "";
+        }
+        return isNumeric ? std::to_string(maxVal) : maxStr;
+    } else if (aggregateFunc.funcName == "MIN") {
+        if (fieldIndex == -1) {
+            return "";
+        }
+        bool hasValue = false;
+        double minVal = 0.0;
+        std::string minStr = "";
+        bool isNumeric = true;
+        
+        for (const auto& row : rows) {
+            if (fieldIndex < static_cast<int>(row.size())) {
+                try {
+                    double val = std::stod(row[fieldIndex]);
+                    if (!hasValue || val < minVal) {
+                        minVal = val;
+                        hasValue = true;
+                    }
+                } catch (...) {
+                    isNumeric = false;
+                    if (!hasValue || row[fieldIndex] < minStr) {
+                        minStr = row[fieldIndex];
+                        hasValue = true;
+                    }
+                }
+            }
+        }
+        if (!hasValue) {
+            return "";
+        }
+        return isNumeric ? std::to_string(minVal) : minStr;
+    }
+    
+    return "";
+}
+
+bool SelectHandler::applyGroupBy(std::vector<std::vector<std::string>>& rows,
+                                 const std::vector<std::string>& columnNames,
+                                 const TableInfo& tableInfo,
+                                 const std::vector<std::string>& groupByFields) {
+    // 这个方法在executeGroupByQuery中已经实现，这里保留接口
+    // 如果需要单独调用，可以在这里实现
+    return true;
+}
+
+bool SelectHandler::applyHaving(std::vector<std::vector<std::string>>& groupedRows,
+                               const std::vector<std::string>& columnNames,
+                               const TableInfo& tableInfo,
+                               const WhereCondition* havingClause) {
+    if (!havingClause) {
+        return true;
+    }
+    
+    // 过滤分组后的行
+    std::vector<std::vector<std::string>> filteredRows;
+    for (const auto& row : groupedRows) {
+        if (evaluateHavingCondition(row, columnNames, tableInfo, havingClause)) {
+            filteredRows.push_back(row);
+        }
+    }
+    
+    groupedRows = filteredRows;
+    return true;
+}
+
+// HAVING条件评估辅助函数
+bool SelectHandler::evaluateHavingCondition(const std::vector<std::string>& row,
+                                           const std::vector<std::string>& columnNames,
+                                           const TableInfo& tableInfo,
+                                           const WhereCondition* condition) {
+    if (!condition) {
+        return true;
+    }
+    
+    // 如果是简单条件
+    if (condition->isSimple()) {
+        // 在结果列中查找字段（可能是聚合函数名或分组字段名）
+        int fieldIndex = -1;
+        
+        // 首先尝试直接匹配字段名
+        for (size_t i = 0; i < columnNames.size(); ++i) {
+            if (columnNames[i] == condition->fieldName) {
+                fieldIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        
+        // 如果没找到，尝试匹配聚合函数格式
+        if (fieldIndex == -1) {
+            std::string fieldName = condition->fieldName;
+            
+            // 处理聚合函数格式：COUNT(*), SUM(Age)等
+            // 如果字段名是聚合函数（如COUNT, SUM等），尝试匹配列名
+            if (fieldName == "COUNT" || fieldName == "SUM" || fieldName == "AVG" || 
+                fieldName == "MAX" || fieldName == "MIN") {
+                // 尝试匹配 "COUNT(*)" 格式
+                for (size_t i = 0; i < columnNames.size(); ++i) {
+                    if (columnNames[i].find(fieldName + "(") == 0) {
+                        fieldIndex = static_cast<int>(i);
+                        break;
+                    }
+                }
+            } else {
+                // 尝试部分匹配（处理字段名可能是聚合函数的一部分）
+                for (size_t i = 0; i < columnNames.size(); ++i) {
+                    // 检查列名是否以字段名开头（处理 COUNT(*) 匹配 COUNT 的情况）
+                    if (columnNames[i].find(fieldName) == 0) {
+                        fieldIndex = static_cast<int>(i);
+                        break;
+                    }
+                }
+            }
+        }
+        
+        if (fieldIndex == -1 || fieldIndex >= static_cast<int>(row.size())) {
+            return false;
+        }
+        
+        // 获取字段值
+        const std::string& fieldValue = row[fieldIndex];
+        
+        // 根据运算符进行比较
+        if (condition->operator_ == "=") {
+            return fieldValue == condition->value;
+        } else if (condition->operator_ == "!=") {
+            return fieldValue != condition->value;
+        } else if (condition->operator_ == ">") {
+            // 尝试数值比较
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum > valueNum;
+            } catch (...) {
+                return fieldValue > condition->value;
+            }
+        } else if (condition->operator_ == "<") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum < valueNum;
+            } catch (...) {
+                return fieldValue < condition->value;
+            }
+        } else if (condition->operator_ == ">=") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum >= valueNum;
+            } catch (...) {
+                return fieldValue >= condition->value;
+            }
+        } else if (condition->operator_ == "<=") {
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double valueNum = std::stod(condition->value);
+                return fieldNum <= valueNum;
+            } catch (...) {
+                return fieldValue <= condition->value;
+            }
+        } else if (condition->operator_ == "LIKE") {
+            // LIKE模式匹配
+            std::string pattern = condition->value;
+            if (pattern.find('%') == std::string::npos) {
+                return fieldValue == pattern;
+            }
+            if (pattern.front() == '%' && pattern.back() != '%') {
+                std::string suffix = pattern.substr(1);
+                return fieldValue.length() >= suffix.length() && 
+                       fieldValue.substr(fieldValue.length() - suffix.length()) == suffix;
+            } else if (pattern.front() != '%' && pattern.back() == '%') {
+                std::string prefix = pattern.substr(0, pattern.length() - 1);
+                return fieldValue.length() >= prefix.length() && 
+                       fieldValue.substr(0, prefix.length()) == prefix;
+            } else if (pattern.front() == '%' && pattern.back() == '%') {
+                std::string substr = pattern.substr(1, pattern.length() - 2);
+                return fieldValue.find(substr) != std::string::npos;
+            }
+            return fieldValue == pattern;
+        } else if (condition->operator_ == "IN") {
+            // IN子句
+            for (const std::string& inValue : condition->inValues) {
+                if (fieldValue == inValue) {
+                    return true;
+                }
+            }
+            return false;
+        } else if (condition->operator_ == "BETWEEN") {
+            // BETWEEN范围查询
+            try {
+                double fieldNum = std::stod(fieldValue);
+                double startNum = std::stod(condition->betweenStart);
+                double endNum = std::stod(condition->betweenEnd);
+                return fieldNum >= startNum && fieldNum <= endNum;
+            } catch (...) {
+                return fieldValue >= condition->betweenStart && fieldValue <= condition->betweenEnd;
+            }
+        }
+        
+        return false;
+    } else {
+        // 复杂条件：递归评估
+        bool leftResult = true;
+        bool rightResult = true;
+        
+        if (condition->left) {
+            leftResult = evaluateHavingCondition(row, columnNames, tableInfo, condition->left.get());
+        }
+        if (condition->right) {
+            rightResult = evaluateHavingCondition(row, columnNames, tableInfo, condition->right.get());
+        }
+        
+        if (condition->logicalOp == "AND") {
+            return leftResult && rightResult;
+        } else if (condition->logicalOp == "OR") {
+            return leftResult || rightResult;
+        } else if (condition->logicalOp == "NOT") {
+            return !leftResult;
+        }
+        
+        return false;
     }
 }
 

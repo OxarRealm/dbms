@@ -329,11 +329,14 @@ SELECT * FROM Table1, Table2 WHERE Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 INNER JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 LEFT JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 RIGHT JOIN Table2 ON Table1.Field1=Table2.Field2;
+SELECT * FROM Table1 FULL OUTER JOIN Table2 ON Table1.Field1=Table2.Field2;
+SELECT * FROM Table1 FULL JOIN Table2 ON Table1.Field1=Table2.Field2;  -- OUTER is optional
 ```
 
 **SELECT (ORDER BY, DISTINCT, LIMIT):**
 ```sql
 SELECT * FROM TableName ORDER BY FieldName ASC;
+SELECT * FROM TableName ORDER BY FieldName ASC, FieldName2 DESC;  -- Multiple fields
 SELECT DISTINCT FieldName FROM TableName;
 SELECT * FROM TableName LIMIT 10;
 SELECT DISTINCT FieldName FROM TableName ORDER BY FieldName DESC LIMIT 5;
@@ -347,10 +350,38 @@ SELECT * FROM TableName WHERE NOT Field1 = 'value';
 SELECT * FROM TableName WHERE (Field1 > '10' AND Field2 < '20') OR Field3 = 'value';
 ```
 
+**SELECT (LIKE, IN, BETWEEN):**
+```sql
+SELECT * FROM TableName WHERE FieldName LIKE 'prefix%';  -- Prefix match
+SELECT * FROM TableName WHERE FieldName LIKE '%suffix';  -- Suffix match
+SELECT * FROM TableName WHERE FieldName LIKE '%contains%';  -- Contains match
+SELECT * FROM TableName WHERE FieldName IN ('value1', 'value2', 'value3');
+SELECT * FROM TableName WHERE FieldName BETWEEN 'value1' AND 'value2';  -- Inclusive
+```
+
+**SELECT (GROUP BY and Aggregate Functions):**
+```sql
+SELECT COUNT(*) FROM TableName;
+SELECT SUM(FieldName) FROM TableName;
+SELECT AVG(FieldName) FROM TableName;
+SELECT MAX(FieldName) FROM TableName;
+SELECT MIN(FieldName) FROM TableName;
+SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName;
+SELECT FieldName, COUNT(*), SUM(OtherField) FROM TableName GROUP BY FieldName;
+```
+
+**SELECT (HAVING):**
+```sql
+SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName HAVING COUNT(*) > 1;
+SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName HAVING FieldName > '25';
+SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName HAVING COUNT(*) > 1 AND FieldName < '30';
+```
+
 **Note**: 
-- The system supports INNER JOIN, LEFT JOIN, and RIGHT JOIN. FULL OUTER JOIN and NATURAL JOIN are not yet implemented.
+- The system supports INNER JOIN, LEFT JOIN, RIGHT JOIN, and FULL OUTER JOIN. NATURAL JOIN is not yet implemented.
 - The system supports ORDER BY (single or multiple fields, ASC/DESC), DISTINCT, LIMIT, comparison operators (>, <, >=, <=, !=), and complex WHERE conditions (AND, OR, NOT with parentheses support).
-- LIKE pattern matching, IN clause, and BETWEEN range queries are not yet implemented.
+- LIKE pattern matching (case-sensitive, supports % wildcard), IN clause, and BETWEEN range queries are fully implemented.
+- GROUP BY grouping, aggregate functions (COUNT, SUM, AVG, MAX, MIN), and HAVING clause are fully implemented.
 
 For detailed SQL execution test cases, please refer to [docs/testing/sql_execution_test_cases.md](../docs/testing/sql_execution_test_cases.md).
 
@@ -482,16 +513,22 @@ The system automatically analyzes query logs and provides index recommendations:
 
 ## Version Information
 
-- **Current Version**: v0.6.3
-- **Last Updated**: 2026-01-14
+- **Current Version**: v0.7.0
+- **Last Updated**: 2026-01-15
 
-### Recent Updates (v0.6.3)
+### Recent Updates (v0.7.0)
 
 - ✅ SQL Execution interface completed
 - ✅ Batch SQL execution support
 - ✅ Primary key uniqueness constraint enforcement
 - ✅ Case-insensitive table names and keywords
-- ✅ JOIN query support (INNER, LEFT, RIGHT)
+- ✅ JOIN query support (INNER, LEFT, RIGHT, FULL OUTER JOIN)
+- ✅ ORDER BY, DISTINCT, LIMIT support
+- ✅ Comparison operators (>, <, >=, <=, !=)
+- ✅ Complex WHERE conditions (AND, OR, NOT with parentheses)
+- ✅ LIKE pattern matching, IN clause, BETWEEN range queries
+- ✅ GROUP BY grouping and aggregate functions (COUNT, SUM, AVG, MAX, MIN)
+- ✅ HAVING clause for filtering grouped results
 - ✅ Fixed DROP TABLE data deletion issue
 - ✅ Fixed RENAME TABLE file synchronization issue
 - ✅ Comprehensive SQL test cases added

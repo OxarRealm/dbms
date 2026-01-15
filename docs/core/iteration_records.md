@@ -481,8 +481,69 @@
 
 ---
 
+---
+
+### v0.7.0 - SQL查询功能扩展
+
+**发布日期**：2026-01-15
+
+**更新内容**：
+- 实现ORDER BY排序功能（单字段和多字段排序，ASC/DESC）
+- 实现DISTINCT去重功能
+- 实现LIMIT分页功能
+- 实现比较运算符（>, <, >=, <=, !=）
+- 实现复杂WHERE条件（AND, OR, NOT，支持括号优先级）
+- 实现LIKE模式匹配（支持%通配符，前缀匹配、后缀匹配、包含匹配）
+- 实现IN子句（支持值列表查询）
+- 实现BETWEEN范围查询（支持数值和字符串范围查询，包含边界）
+- 实现GROUP BY分组功能
+- 实现聚合函数（COUNT, SUM, AVG, MAX, MIN）
+- 实现HAVING子句（支持对聚合函数结果和分组字段的过滤）
+- 实现FULL OUTER JOIN（全外连接）
+
+**主要文件**：
+- `include/sql_parser/token.h` - Token类型扩展（ORDER, BY, ASC, DESC, DISTINCT, LIMIT, AND, OR, NOT, LIKE, BETWEEN, GROUP, HAVING, COUNT, SUM, AVG, MAX, MIN, FULL, OUTER）
+- `include/sql_parser/ast_node.h` - AST节点扩展（OrderByInfo, WhereCondition树形结构, AggregateFunction, SelectField, groupBy, havingClause）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_where.cpp` - WHERE条件解析实现（新建，支持复杂条件和聚合函数）
+- `src/sql_parser/parser_select.cpp` - SELECT解析扩展（DISTINCT, ORDER BY, LIMIT, GROUP BY, HAVING, FULL OUTER JOIN）
+- `src/query/select_handler.cpp` - 查询执行扩展（applyDistinct, applyOrderBy, applyLimit, executeGroupByQuery, calculateAggregateFromRecords, applyHaving, evaluateHavingCondition, FULL OUTER JOIN逻辑）
+
+**功能特性**：
+- ORDER BY支持数值和字符串混合比较，自动识别数值类型
+- DISTINCT使用逐行比较实现，避免使用std::set
+- LIMIT在ORDER BY之后应用，确保返回排序后的前N条记录
+- 复杂WHERE条件支持递归评估，优先级：NOT > AND > OR
+- LIKE模式匹配大小写敏感（与PostgreSQL和Oracle对齐）
+- IN子句支持值列表查询
+- BETWEEN范围查询包含边界值（符合SQL标准）
+- GROUP BY使用std::map存储分组，支持多字段分组
+- 聚合函数直接从原始记录计算，支持COUNT(*), COUNT(Field), SUM, AVG, MAX, MIN
+- HAVING子句支持对聚合函数结果和分组字段的过滤，支持复杂条件
+- FULL OUTER JOIN = LEFT JOIN ∪ RIGHT JOIN，保留所有匹配和未匹配的记录
+
+**技术亮点**：
+- 使用递归下降解析器解析复杂WHERE条件，支持括号优先级
+- 聚合函数计算直接从原始记录进行，避免投影后的数据丢失
+- HAVING条件评估支持聚合函数引用，智能匹配字段名
+- FULL OUTER JOIN使用std::set跟踪已匹配记录，高效处理未匹配记录
+
+**测试结果**：
+- 所有新增SQL功能测试全部通过 ✅
+- ORDER BY、DISTINCT、LIMIT测试通过 ✅
+- 比较运算符测试通过 ✅
+- 复杂WHERE条件测试通过 ✅
+- LIKE、IN、BETWEEN测试通过 ✅
+- GROUP BY和聚合函数测试通过 ✅
+- HAVING子句测试通过 ✅
+- FULL OUTER JOIN测试通过 ✅
+
+**开发者**：项目组
+
+---
+
 **最后更新**：2026-01-15
 
-**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1-5.5（GUI开发）已完成，包括主窗口、表管理界面、数据操作界面、SQL执行界面。阶段7.0部分完成（ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件）。总计754个测试全部通过，新增SQL功能测试全部通过。
+**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1-5.5（GUI开发）已完成，包括主窗口、表管理界面、数据操作界面、SQL执行界面。阶段7.0大部分完成（ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件, LIKE, IN, BETWEEN, GROUP BY, 聚合函数, HAVING, FULL OUTER JOIN）。总计754个测试全部通过，新增SQL功能测试全部通过。
 
 ---
