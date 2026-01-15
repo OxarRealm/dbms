@@ -18,7 +18,7 @@ enum class TokenType {
     INSERT, INTO, DELETE, FROM, UPDATE, SET,
     SELECT, WHERE,
     VALUES, IN, INTO_KEYWORD,
-    JOIN, ON, INNER, LEFT, RIGHT, FULL, OUTER,
+    JOIN, ON, INNER, LEFT, RIGHT, FULL, OUTER, NATURAL,
     ORDER, BY, ASC, DESC,
     DISTINCT,
     LIMIT,
@@ -26,6 +26,8 @@ enum class TokenType {
     COUNT, SUM, AVG, MAX, MIN,
     AND, OR, NOT,
     LIKE, BETWEEN,
+    UNION, ALL,
+    EXISTS,
     
     // 数据类型
     INT, CHAR, FLOAT, DOUBLE, STRING,

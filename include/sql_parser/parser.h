@@ -102,6 +102,16 @@ private:
     std::unique_ptr<ASTNode> parseSelect();
     
     /**
+     * @brief 解析SELECT语句（不处理UNION，用于UNION内部的SELECT）
+     */
+    std::unique_ptr<SelectNode> parseSelectWithoutUnion();
+    
+    /**
+     * @brief 解析SELECT语句作为子查询（不期望分号，用于WHERE子句中的子查询）
+     */
+    std::unique_ptr<SelectNode> parseSelectAsSubquery();
+    
+    /**
      * @brief 解析WHERE条件（支持复杂条件）
      * @return WHERE条件节点（如果解析失败返回nullptr）
      */

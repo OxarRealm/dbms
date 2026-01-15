@@ -629,7 +629,7 @@
 **最后更新**：2026-01-15
 
 **重要更新**：
-- 2026-01-15 - **阶段7.0（大部分）完成**：SQL查询功能扩展实现完成
+- 2026-01-15 - **阶段7.0（全部）完成**：SQL查询功能扩展实现完成
   - ✅ ORDER BY、DISTINCT、LIMIT（已完成）
   - ✅ 比较运算符（>, <, >=, <=, !=）（已完成）
   - ✅ 复杂WHERE条件（AND, OR, NOT，支持括号优先级）（已完成）
@@ -637,7 +637,9 @@
   - ✅ GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）（已完成）
   - ✅ HAVING子句（已完成）
   - ✅ FULL OUTER JOIN（已完成）
-  - ⏳ NATURAL JOIN、UNION、子查询（待实现）
+  - ✅ NATURAL JOIN（已完成，支持所有变体）
+  - ✅ UNION和UNION ALL（已完成，支持多个UNION连接和全局ORDER BY/LIMIT）
+  - ✅ 子查询（已完成，支持标量、IN、EXISTS/NOT EXISTS、关联、嵌套子查询）
 
 **重要更新**：
 - 2026-01-12 - 确定数据库新技术方案（索引技术）

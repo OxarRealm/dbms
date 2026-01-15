@@ -54,6 +54,7 @@ std::string Token::getTypeName() const {
         case TokenType::RIGHT: return "RIGHT";
         case TokenType::FULL: return "FULL";
         case TokenType::OUTER: return "OUTER";
+        case TokenType::NATURAL: return "NATURAL";
         case TokenType::ORDER: return "ORDER";
         case TokenType::BY: return "BY";
         case TokenType::ASC: return "ASC";
@@ -72,6 +73,9 @@ std::string Token::getTypeName() const {
         case TokenType::NOT: return "NOT";
         case TokenType::LIKE: return "LIKE";
         case TokenType::BETWEEN: return "BETWEEN";
+        case TokenType::UNION: return "UNION";
+        case TokenType::ALL: return "ALL";
+        case TokenType::EXISTS: return "EXISTS";
         case TokenType::NOT_EQUALS: return "NOT_EQUALS";
         case TokenType::GREATER_THAN: return "GREATER_THAN";
         case TokenType::LESS_THAN: return "LESS_THAN";
@@ -122,6 +126,7 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"RIGHT", TokenType::RIGHT},
         {"FULL", TokenType::FULL},
         {"OUTER", TokenType::OUTER},
+        {"NATURAL", TokenType::NATURAL},
         {"ORDER", TokenType::ORDER},
         {"BY", TokenType::BY},
         {"ASC", TokenType::ASC},
@@ -139,7 +144,10 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"OR", TokenType::OR},
         {"NOT", TokenType::NOT},
         {"LIKE", TokenType::LIKE},
-        {"BETWEEN", TokenType::BETWEEN}
+        {"BETWEEN", TokenType::BETWEEN},
+        {"UNION", TokenType::UNION},
+        {"ALL", TokenType::ALL},
+        {"EXISTS", TokenType::EXISTS}
     };
     
     // 转换为大写进行比较（关键词不区分大小写）

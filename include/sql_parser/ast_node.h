@@ -195,11 +195,12 @@ struct SelectField {
 struct WhereCondition {
     std::string logicalOp;        // 逻辑运算符：AND, OR, NOT（空字符串表示简单条件）
     std::string fieldName;        // 字段名（简单条件）
-    std::string operator_;        // 比较运算符：=, !=, >, <, >=, <=, LIKE, IN, BETWEEN
+    std::string operator_;        // 比较运算符：=, !=, >, <, >=, <=, LIKE, IN, BETWEEN, EXISTS
     std::string value;            // 值（简单条件，用于=, !=, >, <, >=, <=, LIKE）
     std::vector<std::string> inValues;  // IN子句的值列表
     std::string betweenStart;     // BETWEEN起始值
     std::string betweenEnd;       // BETWEEN结束值
+    std::unique_ptr<SelectNode> subquery;  // 子查询（用于=, !=, >, <, >=, <=, IN, EXISTS等）
     std::unique_ptr<WhereCondition> left;   // 左子树（复杂条件）
     std::unique_ptr<WhereCondition> right;  // 右子树（复杂条件）
     
@@ -208,6 +209,11 @@ struct WhereCondition {
     // 判断是否为简单条件
     bool isSimple() const {
         return logicalOp.empty() && !fieldName.empty();
+    }
+    
+    // 判断是否包含子查询
+    bool hasSubquery() const {
+        return subquery != nullptr;
     }
 };
 
@@ -234,7 +240,11 @@ public:
     std::unique_ptr<WhereCondition> havingClause;  // HAVING条件（可选，与WHERE条件结构相同）
     int limitCount;                            // LIMIT子句（可选，-1表示无限制）
     
-    SelectNode() : distinct(false), limitCount(-1) {}
+    // UNION相关字段
+    std::vector<std::unique_ptr<SelectNode>> unionQueries;  // UNION的查询列表（可选）
+    bool unionAll;                             // 是否为UNION ALL（保留重复，默认为false，即去重）
+    
+    SelectNode() : distinct(false), limitCount(-1), unionAll(false) {}
     
     void accept(ASTVisitor* visitor) override;
     std::string getNodeType() const override { return "SelectNode"; }

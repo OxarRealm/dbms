@@ -338,16 +338,57 @@ SelectHandler类：
 **3.6.3 SELECT连接查询（JOIN）实现**
 
 扩展SQL解析器和SelectHandler：
-- 在TokenType中添加JOIN相关关键词（JOIN, ON, INNER, LEFT, RIGHT）
+- 在TokenType中添加JOIN相关关键词（JOIN, ON, INNER, LEFT, RIGHT, FULL, OUTER, NATURAL）
 - 在AST节点中添加JoinInfo结构（连接类型、右表名、左表字段、右表字段、运算符）
 - 扩展Parser支持JOIN语法解析（FROM Table1 JOIN Table2 ON ...）
 - 实现executeJoinQuery方法
 - 支持INNER JOIN（内连接，只返回匹配的记录）
 - 支持LEFT JOIN（左连接，保留左表所有记录，右表无匹配时填充空值）
+- 支持RIGHT JOIN（右连接，保留右表所有记录，左表无匹配时填充空值）
+- 支持FULL OUTER JOIN（全外连接，保留所有匹配和未匹配的记录）
+- 支持NATURAL JOIN（自然连接，自动基于共同字段连接，无需ON子句）
+  - NATURAL JOIN、NATURAL LEFT JOIN、NATURAL RIGHT JOIN、NATURAL INNER JOIN、NATURAL FULL JOIN
 - 支持JOIN条件评估（ON子句中的等值连接）
 - 支持JOIN查询带WHERE条件过滤
 
 **实现文件**：`include/sql_parser/token.h`, `src/sql_parser/token.cpp`, `include/sql_parser/ast_node.h`, `src/sql_parser/parser.cpp`, `src/query/select_handler.cpp`（扩展）
+
+**3.6.4 SELECT高级查询功能实现** ✅（已完成）
+
+扩展SQL解析器和SelectHandler：
+- **ORDER BY排序**：支持单字段和多字段排序，ASC/DESC方向，数值和字符串混合比较
+- **DISTINCT去重**：使用逐行比较实现，避免使用std::set
+- **LIMIT分页**：在ORDER BY之后应用，确保返回排序后的前N条记录
+- **比较运算符**：支持>, <, >=, <=, !=
+- **复杂WHERE条件**：支持AND, OR, NOT逻辑运算符，支持括号优先级，使用递归下降解析器
+- **LIKE模式匹配**：支持%通配符，前缀匹配、后缀匹配、包含匹配，大小写敏感
+- **IN子句**：支持值列表查询和子查询
+- **BETWEEN范围查询**：支持数值和字符串范围查询，包含边界值
+- **GROUP BY分组**：支持单字段和多字段分组，使用std::map存储分组
+- **聚合函数**：支持COUNT(*), COUNT(Field), SUM, AVG, MAX, MIN，直接从原始记录计算
+- **HAVING子句**：支持对聚合函数结果和分组字段的过滤，支持复杂条件
+- **UNION和UNION ALL**：
+  - 支持UNION（去重）和UNION ALL（保留重复）
+  - 支持多个SELECT语句用UNION连接
+  - 支持全局ORDER BY和LIMIT（应用于最终合并结果）
+  - UNION子查询不能包含ORDER BY或LIMIT（SQL标准）
+- **子查询**：
+  - 支持标量子查询（=, !=, >, <, >=, <=）
+  - 支持IN子查询
+  - 支持EXISTS/NOT EXISTS子查询
+  - 支持关联子查询（子查询引用外部查询字段，通过outerRecord和outerTableInfo传递上下文）
+  - 支持嵌套子查询（多层嵌套，包括聚合函数子查询）
+  - 使用数值比较处理浮点数精度问题（std::abs < 1e-9）
+
+**实现文件**：
+- `include/sql_parser/token.h` - Token类型扩展（ORDER, BY, ASC, DESC, DISTINCT, LIMIT, AND, OR, NOT, LIKE, BETWEEN, GROUP, HAVING, COUNT, SUM, AVG, MAX, MIN, FULL, OUTER, NATURAL, UNION, ALL, EXISTS）
+- `include/sql_parser/ast_node.h` - AST节点扩展（OrderByInfo, WhereCondition树形结构, AggregateFunction, SelectField, groupBy, havingClause, unionQueries, unionAll, subquery字段）
+- `include/sql_parser/parser.h` - 添加parseSelectWithoutUnion()和parseSelectAsSubquery()声明
+- `include/query/select_handler.h` - 扩展方法签名（outerRecord, outerTableInfo参数）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_where.cpp` - WHERE条件解析实现（新建，支持复杂条件、聚合函数和子查询）
+- `src/sql_parser/parser_select.cpp` - SELECT解析扩展（DISTINCT, ORDER BY, LIMIT, GROUP BY, HAVING, FULL OUTER JOIN, NATURAL JOIN, UNION）
+- `src/query/select_handler.cpp` - 查询执行扩展（applyDistinct, applyOrderBy, applyLimit, executeGroupByQuery, calculateAggregateFromRecords, applyHaving, evaluateHavingCondition, FULL OUTER JOIN逻辑, NATURAL JOIN逻辑, executeUnionQuery, executeSubquery, executeSingleTableQueryWithContext）
 
 **3.6.5 查询执行器整合**
 

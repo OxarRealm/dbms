@@ -275,11 +275,27 @@ SELECT * FROM Songs WHERE Genre='Rock';
   - **完成时间**：2026-01-14
   - **状态**：数据操作界面已完成 ✅
 
-**项目总进度**：78%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0部分完成（ORDER BY、DISTINCT、LIMIT、比较运算符、复杂WHERE条件）；阶段5.6-5.7待开发）
+**项目总进度**：85%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成（ORDER BY、DISTINCT、LIMIT、比较运算符、复杂WHERE条件、LIKE、IN、BETWEEN、GROUP BY、聚合函数、HAVING、FULL OUTER JOIN、NATURAL JOIN、UNION、子查询）；阶段5.6-5.7待开发）
 
 ---
 
 **最后更新时间**：2026-01-15
+
+**最新更新（v0.7.1）**：
+- ✅ NATURAL JOIN实现（2026-01-15）
+  - 支持NATURAL JOIN、NATURAL LEFT JOIN、NATURAL RIGHT JOIN、NATURAL INNER JOIN、NATURAL FULL JOIN
+  - 自动基于共同字段连接，无需ON子句
+- ✅ UNION实现（2026-01-15）
+  - 支持UNION（去重）和UNION ALL（保留重复）
+  - 支持多个SELECT语句用UNION连接
+  - 支持全局ORDER BY和LIMIT
+- ✅ 子查询实现（2026-01-15）
+  - 支持标量子查询（=, !=, >, <, >=, <=）
+  - 支持IN子查询
+  - 支持EXISTS/NOT EXISTS子查询
+  - 支持关联子查询（子查询引用外部查询字段）
+  - 支持嵌套子查询（多层嵌套，包括聚合函数子查询）
+  - 修复浮点数比较精度问题
 
 **最新更新**：
 - ✅ 阶段5.5：SQL执行界面已完成（2026-01-14）
@@ -296,11 +312,21 @@ SELECT * FROM Songs WHERE Genre='Rock';
   - 所有GUI消息框使用英文和Segoe UI字体
   - SQL执行测试用例文档完善（添加JOIN查询测试用例和未实现功能测试用例）
   - 移动test_sql_parser.cpp到scripts/unit_tests/sql_parser/目录
-- ✅ 阶段7.0（部分）：SQL查询功能扩展已完成（2026-01-15）
+- ✅ 阶段7.0：SQL查询功能扩展已完成（2026-01-15）
   - ORDER BY排序功能（支持单字段和多字段排序，ASC/DESC方向）
   - DISTINCT去重功能
   - LIMIT分页功能
   - 比较运算符（>, <, >=, <=, !=）
   - 复杂WHERE条件（AND, OR, NOT逻辑运算符，支持括号优先级）
+  - LIKE模式匹配（支持%通配符，大小写敏感）
+  - IN子句（支持值列表和子查询）
+  - BETWEEN范围查询（包含边界）
+  - GROUP BY分组（支持单字段和多字段分组）
+  - 聚合函数（COUNT, SUM, AVG, MAX, MIN）
+  - HAVING子句（分组过滤，支持复杂条件）
+  - FULL OUTER JOIN（全外连接）
+  - NATURAL JOIN（自然连接，支持所有变体）
+  - UNION和UNION ALL（并集操作，支持多个UNION连接）
+  - 子查询（标量子查询、IN子查询、EXISTS/NOT EXISTS子查询、关联子查询、嵌套子查询）
   - 递归下降解析器实现复杂WHERE条件解析
   - 所有SQL测试用例通过

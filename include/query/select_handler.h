@@ -79,10 +79,16 @@ private:
      * @param record 记录
      * @param tableInfo 表结构信息
      * @param condition WHERE条件节点
+     * @param outerRecord 外部查询的当前记录（用于关联子查询，可选）
+     * @param outerTableInfo 外部查询的表结构信息（用于关联子查询，可选）
+     * @param currentTableName 当前查询的表名（用于区分TableName.FieldName中的表名，可选）
      * @return 条件匹配返回true，否则返回false
      */
     bool evaluateWhereCondition(const Record& record, const TableInfo& tableInfo, 
-                               const WhereCondition* condition);
+                               const WhereCondition* condition,
+                               const Record* outerRecord = nullptr,
+                               const TableInfo* outerTableInfo = nullptr,
+                               const std::string* currentTableName = nullptr);
     
     /**
      * @brief 查找字段索引
@@ -101,12 +107,44 @@ private:
     bool executeSingleTableQuery(SelectNode* node, QueryResult& result);
     
     /**
+     * @brief 执行单表查询（支持外部查询上下文，用于关联子查询）
+     * @param node SELECT AST节点
+     * @param result 输出参数，查询结果
+     * @param outerRecord 外部查询的当前记录（用于关联子查询，可选）
+     * @param outerTableInfo 外部查询的表结构信息（用于关联子查询，可选）
+     * @return 成功返回true，失败返回false
+     */
+    bool executeSingleTableQueryWithContext(SelectNode* node, QueryResult& result,
+                                            const Record* outerRecord = nullptr,
+                                            const TableInfo* outerTableInfo = nullptr);
+    
+    /**
      * @brief 执行多表查询（笛卡尔积）
      * @param node SELECT AST节点
      * @param result 输出参数，查询结果
      * @return 成功返回true，失败返回false
      */
     bool executeMultiTableQuery(SelectNode* node, QueryResult& result);
+    
+    /**
+     * @brief 执行UNION查询
+     * @param node SELECT AST节点（包含UNION查询）
+     * @param result 输出参数，查询结果
+     * @return 成功返回true，失败返回false
+     */
+    bool executeUnionQuery(SelectNode* node, QueryResult& result);
+    
+    /**
+     * @brief 执行子查询
+     * @param node SELECT AST节点（子查询）
+     * @param result 输出参数，查询结果
+     * @param outerRecord 外部查询的当前记录（用于关联子查询，可选）
+     * @param outerTableInfo 外部查询的表结构信息（用于关联子查询，可选）
+     * @return 成功返回true，失败返回false
+     */
+    bool executeSubquery(SelectNode* node, QueryResult& result,
+                        const Record* outerRecord = nullptr,
+                        const TableInfo* outerTableInfo = nullptr);
     
     /**
      * @brief 执行JOIN连接查询
@@ -122,10 +160,16 @@ private:
      * @param tableInfo 表结构信息
      * @param records 记录列表
      * @param result 输出参数，查询结果
+     * @param outerRecord 外部查询的当前记录（用于关联子查询，可选）
+     * @param outerTableInfo 外部查询的表结构信息（用于关联子查询，可选）
+     * @param currentTableName 当前查询的表名（用于关联子查询，可选）
      * @return 成功返回true，失败返回false
      */
     bool executeGroupByQuery(SelectNode* node, const TableInfo& tableInfo,
-                            const std::vector<Record>& records, QueryResult& result);
+                            const std::vector<Record>& records, QueryResult& result,
+                            const Record* outerRecord = nullptr,
+                            const TableInfo* outerTableInfo = nullptr,
+                            const std::string* currentTableName = nullptr);
     
     /**
      * @brief 执行投影操作（选择字段）

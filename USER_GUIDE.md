@@ -331,6 +331,11 @@ SELECT * FROM Table1 LEFT JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 RIGHT JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 FULL OUTER JOIN Table2 ON Table1.Field1=Table2.Field2;
 SELECT * FROM Table1 FULL JOIN Table2 ON Table1.Field1=Table2.Field2;  -- OUTER is optional
+SELECT * FROM Table1 NATURAL JOIN Table2;  -- Automatic join on common columns
+SELECT * FROM Table1 NATURAL LEFT JOIN Table2;
+SELECT * FROM Table1 NATURAL RIGHT JOIN Table2;
+SELECT * FROM Table1 NATURAL INNER JOIN Table2;
+SELECT * FROM Table1 NATURAL FULL JOIN Table2;
 ```
 
 **SELECT (ORDER BY, DISTINCT, LIMIT):**
@@ -370,6 +375,31 @@ SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName;
 SELECT FieldName, COUNT(*), SUM(OtherField) FROM TableName GROUP BY FieldName;
 ```
 
+**SELECT (UNION):**
+```sql
+SELECT Field1, Field2 FROM Table1 UNION SELECT Field1, Field2 FROM Table2;  -- Remove duplicates
+SELECT Field1, Field2 FROM Table1 UNION ALL SELECT Field1, Field2 FROM Table2;  -- Keep duplicates
+SELECT Field1 FROM Table1 UNION SELECT Field1 FROM Table2 UNION SELECT Field1 FROM Table3;  -- Multiple UNIONs
+SELECT Field1, Field2 FROM Table1 UNION SELECT Field1, Field2 FROM Table2 ORDER BY Field1;  -- ORDER BY applies to final result
+```
+
+**SELECT (Subqueries):**
+```sql
+-- Scalar subquery
+SELECT * FROM Table1 WHERE Field1 = (SELECT Field1 FROM Table2 WHERE Field2 = 'value');
+SELECT * FROM Table1 WHERE Field1 > (SELECT AVG(Field1) FROM Table1);
+
+-- IN subquery
+SELECT * FROM Table1 WHERE Field1 IN (SELECT Field1 FROM Table2);
+
+-- EXISTS subquery
+SELECT * FROM Table1 WHERE EXISTS (SELECT * FROM Table2 WHERE Table2.Field1 = Table1.Field1);
+SELECT * FROM Table1 WHERE NOT EXISTS (SELECT * FROM Table2 WHERE Table2.Field1 = Table1.Field1);
+
+-- Nested subquery
+SELECT * FROM Table1 WHERE Field1 = (SELECT Field1 FROM Table2 WHERE Field2 = (SELECT MAX(Field2) FROM Table2));
+```
+
 **SELECT (HAVING):**
 ```sql
 SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName HAVING COUNT(*) > 1;
@@ -378,10 +408,12 @@ SELECT FieldName, COUNT(*) FROM TableName GROUP BY FieldName HAVING COUNT(*) > 1
 ```
 
 **Note**: 
-- The system supports INNER JOIN, LEFT JOIN, RIGHT JOIN, and FULL OUTER JOIN. NATURAL JOIN is not yet implemented.
+- The system supports INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN, and NATURAL JOIN (with all variants).
 - The system supports ORDER BY (single or multiple fields, ASC/DESC), DISTINCT, LIMIT, comparison operators (>, <, >=, <=, !=), and complex WHERE conditions (AND, OR, NOT with parentheses support).
-- LIKE pattern matching (case-sensitive, supports % wildcard), IN clause, and BETWEEN range queries are fully implemented.
+- LIKE pattern matching (case-sensitive, supports % wildcard), IN clause (with value lists and subqueries), and BETWEEN range queries are fully implemented.
 - GROUP BY grouping, aggregate functions (COUNT, SUM, AVG, MAX, MIN), and HAVING clause are fully implemented.
+- UNION and UNION ALL are fully implemented, supporting multiple UNION connections and global ORDER BY/LIMIT.
+- Subqueries are fully implemented, including scalar subqueries, IN subqueries, EXISTS/NOT EXISTS subqueries, correlated subqueries, and nested subqueries.
 
 For detailed SQL execution test cases, please refer to [docs/testing/sql_execution_test_cases.md](../docs/testing/sql_execution_test_cases.md).
 
@@ -513,10 +545,17 @@ The system automatically analyzes query logs and provides index recommendations:
 
 ## Version Information
 
-- **Current Version**: v0.7.0
+- **Current Version**: v0.7.1
 - **Last Updated**: 2026-01-15
 
-### Recent Updates (v0.7.0)
+### Recent Updates (v0.7.1)
+
+- ✅ NATURAL JOIN implementation (NATURAL JOIN, NATURAL LEFT/RIGHT/INNER/FULL JOIN)
+- ✅ UNION and UNION ALL implementation (with multiple UNION connections and global ORDER BY/LIMIT)
+- ✅ Subquery implementation (scalar, IN, EXISTS/NOT EXISTS, correlated, nested subqueries)
+- ✅ Fixed floating-point comparison precision issue (using numeric comparison instead of string comparison)
+
+### Previous Updates (v0.7.0)
 
 - ✅ SQL Execution interface completed
 - ✅ Batch SQL execution support

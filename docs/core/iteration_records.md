@@ -542,8 +542,60 @@
 
 ---
 
+---
+
+### v0.7.1 - NATURAL JOIN、UNION和子查询实现（2026-01-15）
+
+**版本说明**：
+- 实现NATURAL JOIN（自然连接）及其变体
+- 实现UNION和UNION ALL（并集操作）
+- 实现子查询（标量子查询、IN子查询、EXISTS子查询、关联子查询、嵌套子查询）
+
+**主要功能**：
+- NATURAL JOIN自动基于共同字段连接，支持NATURAL LEFT/RIGHT/INNER/FULL JOIN
+- UNION支持多个SELECT语句合并，支持去重（UNION）和保留重复（UNION ALL）
+- UNION支持全局ORDER BY和LIMIT
+- 子查询支持标量比较、IN子查询、EXISTS/NOT EXISTS子查询
+- 支持关联子查询（子查询引用外部查询字段）
+- 支持嵌套子查询（多层嵌套）
+- 修复浮点数比较精度问题（使用数值比较替代字符串比较）
+
+**主要文件**：
+- `include/sql_parser/token.h` - Token类型扩展（NATURAL, UNION, ALL, EXISTS）
+- `include/sql_parser/ast_node.h` - AST节点扩展（unionQueries, unionAll, subquery字段）
+- `include/sql_parser/parser.h` - 添加parseSelectWithoutUnion()和parseSelectAsSubquery()声明
+- `include/query/select_handler.h` - 扩展方法签名（outerRecord, outerTableInfo参数）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_select.cpp` - NATURAL JOIN和UNION解析实现
+- `src/sql_parser/parser_where.cpp` - 子查询解析实现
+- `src/query/select_handler.cpp` - NATURAL JOIN、UNION和子查询执行实现
+
+**功能特性**：
+- NATURAL JOIN自动查找共同字段并构建连接条件
+- UNION子查询不能包含ORDER BY或LIMIT（SQL标准）
+- UNION去重使用自定义行比较逻辑
+- 子查询支持关联引用（TableName.FieldName格式）
+- 标量子查询使用数值比较处理浮点数精度问题
+- 支持多层嵌套子查询（包括聚合函数子查询）
+
+**技术亮点**：
+- 实现parseSelectWithoutUnion()分离UNION解析逻辑
+- 实现parseSelectAsSubquery()专门用于子查询解析
+- 关联子查询通过outerRecord和outerTableInfo参数传递上下文
+- 字段解析优先级：当前子查询表 > 外部查询表 > 当前表
+- 浮点数比较使用epsilon（1e-9）避免精度问题
+
+**测试结果**：
+- NATURAL JOIN测试全部通过 ✅
+- UNION和UNION ALL测试全部通过 ✅
+- 子查询测试全部通过 ✅（包括关联子查询和嵌套子查询）
+
+**开发者**：项目组
+
+---
+
 **最后更新**：2026-01-15
 
-**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1-5.5（GUI开发）已完成，包括主窗口、表管理界面、数据操作界面、SQL执行界面。阶段7.0大部分完成（ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件, LIKE, IN, BETWEEN, GROUP BY, 聚合函数, HAVING, FULL OUTER JOIN）。总计754个测试全部通过，新增SQL功能测试全部通过。
+**状态**：阶段1、阶段2、阶段3和阶段4（核心数据结构与文件存储、DDL实现、DML实现、查询实现）已完成，683个测试全部通过。阶段8（数据库新技术实现）全部完成，相邻索引实现已完成（28个测试通过），哈希索引实现已完成（29个测试通过），智能索引建议系统实现已完成（14个测试通过）。阶段5.1-5.5（GUI开发）已完成，包括主窗口、表管理界面、数据操作界面、SQL执行界面。阶段7.0全部完成（ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件, LIKE, IN, BETWEEN, GROUP BY, 聚合函数, HAVING, FULL OUTER JOIN, NATURAL JOIN, UNION, 子查询）。总计754个测试全部通过，所有SQL功能测试全部通过。
 
 ---

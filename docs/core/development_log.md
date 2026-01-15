@@ -1119,4 +1119,139 @@
 
 ---
 
+---
+
+### 2026-01-15 - NATURAL JOIN实现
+
+**完成工作**：
+1. ✅ NATURAL JOIN语法解析
+   - 添加NATURAL关键字到TokenType枚举
+   - 实现NATURAL JOIN、NATURAL LEFT JOIN、NATURAL RIGHT JOIN、NATURAL INNER JOIN、NATURAL FULL JOIN解析
+   - NATURAL JOIN不需要ON子句，自动基于共同字段连接
+
+2. ✅ NATURAL JOIN执行逻辑
+   - 在executeJoinQuery中识别NATURAL JOIN类型
+   - 自动查找两个表的共同字段（字段名相同）
+   - 构建隐式ON条件（Table1.Field = Table2.Field）
+   - 支持所有NATURAL JOIN变体（LEFT, RIGHT, INNER, FULL）
+
+**技术决策**：
+- NATURAL JOIN通过查找共同字段名自动构建连接条件
+- 使用std::set<std::string>存储共同字段名
+- 为每个共同字段构建ON条件
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（NATURAL）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_select.cpp` - JOIN解析扩展（NATURAL JOIN）
+- `src/query/select_handler.cpp` - JOIN执行扩展（NATURAL JOIN逻辑）
+
+---
+
+### 2026-01-15 - UNION实现
+
+**完成工作**：
+1. ✅ UNION语法解析
+   - 添加UNION和ALL关键字到TokenType枚举
+   - 实现UNION和UNION ALL解析
+   - 支持多个SELECT语句用UNION连接
+   - 实现parseSelectWithoutUnion()方法，分离UNION解析逻辑
+   - 全局ORDER BY和LIMIT在UNION之后解析
+
+2. ✅ UNION执行逻辑
+   - 实现executeUnionQuery()方法
+   - 执行所有UNION子查询（临时清除ORDER BY和LIMIT）
+   - 检查列数兼容性
+   - UNION去重逻辑（行级比较）
+   - UNION ALL保留所有行
+   - 对最终结果应用全局ORDER BY和LIMIT
+
+**技术决策**：
+- UNION子查询不能包含ORDER BY或LIMIT（SQL标准）
+- 使用自定义行比较逻辑实现去重（std::sort + std::unique）
+- 全局ORDER BY和LIMIT应用于最终合并结果
+
+**遇到的问题和解决方案**：
+1. **问题**：UNION结果不正确（UserID值错误）
+   - **原因**：去重逻辑使用std::sort和std::unique，但std::vector<std::string>的默认比较可能不够精确
+   - **解决**：实现自定义行比较逻辑，逐列比较
+
+2. **问题**：UNION with ORDER BY不排序
+   - **原因**：applyOrderBy函数列名匹配逻辑不够健壮，字段未找到时静默失败
+   - **解决**：改进列名匹配（大小写不敏感，处理TableName.FieldName格式），添加错误检查
+
+3. **问题**：解析错误"ORDER BY and LIMIT cannot be used in UNION subqueries"
+   - **原因**：parseSelectWithoutUnion()仍然解析ORDER BY和LIMIT，导致在UNION子查询中检测到这些子句时报错
+   - **解决**：parseSelectWithoutUnion()不再解析ORDER BY和LIMIT，这些子句只在parseSelect()中作为全局子句解析
+
+**文件位置**：
+- `include/sql_parser/token.h` - Token类型扩展（UNION, ALL）
+- `include/sql_parser/ast_node.h` - SelectNode扩展（unionQueries, unionAll）
+- `include/sql_parser/parser.h` - 添加parseSelectWithoutUnion()声明
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_select.cpp` - UNION解析实现
+- `src/query/select_handler.cpp` - UNION执行实现
+
+---
+
+### 2026-01-15 - 子查询实现
+
+**完成工作**：
+1. ✅ 子查询语法解析
+   - 扩展WhereCondition结构，添加subquery字段（std::unique_ptr<SelectNode>）
+   - 实现标量子查询解析：Field = (SELECT ...)
+   - 实现IN子查询解析：Field IN (SELECT ...)
+   - 实现EXISTS子查询解析：EXISTS (SELECT ...)
+   - 实现parseSelectAsSubquery()方法，专门用于解析子查询（不期望分号）
+   - 支持TableName.FieldName作为值（用于关联子查询）
+
+2. ✅ 子查询执行逻辑
+   - 实现executeSubquery()方法，作为子查询执行入口
+   - 实现executeSingleTableQueryWithContext()方法，支持关联子查询上下文传递
+   - 扩展evaluateWhereCondition()方法，支持outerRecord、outerTableInfo、currentTableName参数
+   - 实现标量子查询结果比较（数值比较处理浮点数精度问题）
+   - 实现IN子查询结果匹配
+   - 实现EXISTS/NOT EXISTS子查询逻辑
+   - 支持嵌套子查询（多层嵌套）
+   - 支持关联子查询（子查询引用外部查询字段）
+
+**技术决策**：
+- 子查询AST存储在WhereCondition的subquery字段中
+- 关联子查询通过传递outerRecord和outerTableInfo实现
+- 字段解析优先级：当前子查询表 > 外部查询表 > 当前表
+- 标量子查询使用数值比较处理浮点数精度问题（std::abs < 1e-9）
+
+**遇到的问题和解决方案**：
+1. **问题**：EXISTS子查询解析错误"Expected identifier, but got: EXISTS"
+   - **原因**：parseSimpleCondition()期望fieldName是标识符，但EXISTS没有fieldName
+   - **解决**：在parseSimpleCondition()开始处检查EXISTS，设置fieldName为空字符串
+
+2. **问题**：关联子查询解析错误"Expected value (string or number) or subquery, but got: Users"
+   - **原因**：parseSimpleCondition()的值解析只支持STRING_LITERAL、NUMBER和子查询，不支持TableName.FieldName
+   - **解决**：添加IDENTIFIER支持，实现parseIdentifierOrQualifiedName()处理TableName.FieldName
+
+3. **问题**：EXISTS和NOT EXISTS返回错误结果（0行和全部行）
+   - **原因**：evaluateWhereCondition()未传递outerRecord和outerTableInfo，导致关联引用无法解析
+   - **解决**：扩展evaluateWhereCondition()参数，在executeSingleTableQuery中传递当前record和tableInfo
+
+4. **问题**：嵌套聚合子查询返回0行
+   - **原因**：executeGroupByQuery()未接受和传递outerRecord和outerTableInfo，导致嵌套子查询中的关联条件无法正确评估
+   - **解决**：扩展executeGroupByQuery()参数，传递外部查询上下文到evaluateWhereCondition()
+
+5. **问题**：嵌套子查询（测试用例9）返回空结果
+   - **原因**：std::to_string()对浮点数产生多余小数位（如"1000.500000"），导致字符串比较失败
+   - **解决**：在标量子查询比较中使用数值比较（std::stod + epsilon比较）替代字符串比较
+
+**文件位置**：
+- `include/sql_parser/ast_node.h` - WhereCondition扩展（subquery字段）
+- `include/sql_parser/token.h` - Token类型扩展（EXISTS）
+- `include/sql_parser/parser.h` - 添加parseSelectAsSubquery()声明
+- `include/query/select_handler.h` - 扩展方法签名（outerRecord, outerTableInfo参数）
+- `src/sql_parser/token.cpp` - Token映射扩展
+- `src/sql_parser/parser_where.cpp` - 子查询解析实现
+- `src/sql_parser/parser_select.cpp` - parseSelectAsSubquery()实现
+- `src/query/select_handler.cpp` - 子查询执行实现
+
+---
+
 **最后更新时间**：2026-01-15
