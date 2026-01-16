@@ -5,17 +5,20 @@
 
 #include "dml/insert_handler.h"
 #include "core/table_mode.h"
+#include "core/constraint.h"
 #include <algorithm>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
+#include <iostream>
 
-InsertHandler::InsertHandler() {
+InsertHandler::InsertHandler() : m_constraintManager(&m_dataManager) {
 }
 
 InsertHandler::~InsertHandler() {
 }
 
-bool InsertHandler::execute(const std::string& sql) {
+bool InsertHandler::execute(const std::string& sql, const std::string& basePath) {
     m_lastError = "";
     
     // 解析SQL语句
@@ -34,9 +37,66 @@ bool InsertHandler::execute(const std::string& sql) {
         return false;
     }
     
+    // 解析数据库路径：如果提供了basePath，使用它来解析相对路径
+    // 否则，假设databaseFileName是完整路径或当前目录下的文件名
+    std::string dbPath = insertNode->databaseFileName;
+    if (!basePath.empty()) {
+        // 如果basePath是完整路径，提取目录部分
+        std::string baseDir = basePath;
+        size_t lastSlash = baseDir.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            baseDir = baseDir.substr(0, lastSlash + 1);
+        } else {
+            baseDir = "";  // 如果basePath没有路径分隔符，使用当前目录
+        }
+        // 组合完整路径
+        if (!baseDir.empty()) {
+            dbPath = baseDir + insertNode->databaseFileName;
+        }
+    }
+    
     // 设置数据库路径
-    m_tableManager.setDatabasePath(insertNode->databaseFileName);
-    m_dataManager.setDatabasePath(insertNode->databaseFileName);
+    m_tableManager.setDatabasePath(dbPath);
+    m_dataManager.setDatabasePath(dbPath);
+    
+    // 提取数据库名（baseName）用于约束查询
+    // 约束注册时使用baseName，所以这里也需要提取baseName
+    // 注意：这里使用insertNode->databaseFileName（SQL中的数据库名），而不是dbPath（完整路径）
+    std::string dbNameForConstraints = insertNode->databaseFileName;
+    try {
+        // 尝试从路径中提取文件名（不含扩展名）
+        std::filesystem::path dbPathObj(insertNode->databaseFileName);
+        std::string fileName = dbPathObj.filename().string();
+        // 移除扩展名（如果有）
+        size_t dotPos = fileName.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            fileName = fileName.substr(0, dotPos);
+        }
+        // 如果提取成功且不为空，使用提取的文件名
+        if (!fileName.empty()) {
+            dbNameForConstraints = fileName;
+        }
+    } catch (...) {
+        // 如果filesystem操作失败，使用原始值
+        // 尝试手动提取
+        std::string dbPathStr = insertNode->databaseFileName;
+        size_t lastSlash = dbPathStr.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            dbPathStr = dbPathStr.substr(lastSlash + 1);
+        }
+        size_t dotPos = dbPathStr.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            dbPathStr = dbPathStr.substr(0, dotPos);
+        }
+        if (!dbPathStr.empty()) {
+            dbNameForConstraints = dbPathStr;
+        }
+    }
+    
+    // 调试输出
+    std::cerr << "[INSERT] dbNameForConstraints=" << dbNameForConstraints 
+              << ", insertNode->databaseFileName=" << insertNode->databaseFileName 
+              << ", dbPath=" << dbPath << std::endl;
     
     // 读取表结构
     TableInfo tableInfo;
@@ -44,6 +104,9 @@ bool InsertHandler::execute(const std::string& sql) {
         setError("Table does not exist: " + insertNode->tableName);
         return false;
     }
+    
+    // 应用默认值
+    applyDefaultValues(insertNode, tableInfo);
     
     // 验证插入的数据
     if (!validateInsertData(insertNode, tableInfo)) {
@@ -58,9 +121,24 @@ bool InsertHandler::execute(const std::string& sql) {
         return false;
     }
     
+    // 检查字段级唯一约束
+    if (!checkUniqueConstraints(insertNode->tableName, tableInfo, record, dbNameForConstraints)) {
+        return false;
+    }
+    
+    // 检查外键约束
+    if (!checkForeignKeyConstraints(insertNode->tableName, tableInfo, record, dbNameForConstraints)) {
+        return false;
+    }
+    
+    // 检查检查约束
+    if (!checkCheckConstraints(insertNode->tableName, tableInfo, record, dbNameForConstraints)) {
+        return false;
+    }
+    
     // 插入记录
     if (!m_dataManager.insertRecord(insertNode->tableName, record)) {
-        setError("Failed to insert record");
+        setError("Failed to insert record into table '" + insertNode->tableName + "'");
         return false;
     }
     
@@ -104,7 +182,7 @@ bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableI
         if (fieldType == "int") {
             // 验证是否为整数
             try {
-                std::stoi(value);
+                (void)std::stoi(value);  // 显式忽略返回值，避免[[nodiscard]]警告
             } catch (...) {
                 setError("Field " + std::string(field.sFieldName) + " expects integer, but got: " + value);
                 return false;
@@ -113,9 +191,9 @@ bool InsertHandler::validateInsertData(InsertNode* node, const TableInfo& tableI
             // 验证是否为浮点数
             try {
                 if (fieldType == "float") {
-                    std::stof(value);
+                    (void)std::stof(value);  // 显式忽略返回值，避免[[nodiscard]]警告
                 } else {
-                    std::stod(value);
+                    (void)std::stod(value);  // 显式忽略返回值，避免[[nodiscard]]警告
                 }
             } catch (...) {
                 setError("Field " + std::string(field.sFieldName) + " expects float, but got: " + value);

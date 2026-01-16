@@ -7,6 +7,8 @@
 #include "gui/table_management_widget.h"
 #include "gui/data_operation_widget.h"
 #include "gui/sql_query_widget.h"
+#include "core/constraint_storage.h"
+#include "core/constraint_registry.h"
 #include <QMessageBox>
 #include <QApplication>
 #include <QMenu>
@@ -367,6 +369,12 @@ void MainWindow::setCurrentDatabase(const std::string& dbPath)
         dbName = QString::fromLocal8Bit(dbPath.c_str());
     }
     m_currentDatabase = dbName;
+    
+    // Load constraints from .cst file
+    // 注意：数据库名应该是文件名（不含路径），路径用于确定.cst文件位置
+    std::string dbNameStr = dbName.toStdString();
+    ConstraintRegistry::getInstance().clearDatabase(dbNameStr);
+    ConstraintStorageManager::loadConstraints(dbNameStr, dbPath);
     
     // Update status bar
     updateStatusBar();

@@ -45,6 +45,9 @@ typedef struct {
     char bKey;                           // 是否为KEY键（1=KEY, 0=NOT_KEY）
     char bNullFlag;                      // 是否允许为空（1=NULL, 0=NO_NULL）
     char bValidFlag;                     // 是否有效（1=VALID, 0=INVALID）
+    // 扩展：约束信息（使用字符串存储，避免结构体大小变化）
+    char sDefaultValue[128];             // 默认值（字符串形式，空字符串表示无默认值）
+    char bUnique;                        // 是否为唯一约束（1=UNIQUE, 0=NOT_UNIQUE）
 } TableMode, *PTableMode;
 
 /**
@@ -55,6 +58,9 @@ typedef struct {
 struct TableInfo {
     char tableName[TABLE_NAME_LENGTH];   // 表名
     std::vector<TableMode> fields;       // 字段列表
+    // 扩展：表级约束信息（使用前向声明，需要在使用时包含constraint.h）
+    // 注意：由于循环依赖，约束列表暂时不在这里定义
+    // 实际使用时，需要包含constraint.h并手动管理约束列表
     
     TableInfo() {
         tableName[0] = '\0';
@@ -156,6 +162,9 @@ inline void initTableMode(TableMode& mode, const char* fieldName, const char* ty
     mode.bKey = keyFlag;
     mode.bNullFlag = nullFlag;
     mode.bValidFlag = validFlag;
+    // 初始化约束字段
+    mode.sDefaultValue[0] = '\0';
+    mode.bUnique = FLAG_NOT_KEY;  // 默认不是唯一约束
 }
 
 // 辅助函数：比较两个TableMode是否相等
@@ -165,7 +174,9 @@ inline bool compareTableMode(const TableMode& mode1, const TableMode& mode2) {
            mode1.iSize == mode2.iSize &&
            mode1.bKey == mode2.bKey &&
            mode1.bNullFlag == mode2.bNullFlag &&
-           mode1.bValidFlag == mode2.bValidFlag;
+           mode1.bValidFlag == mode2.bValidFlag &&
+           strcmp(mode1.sDefaultValue, mode2.sDefaultValue) == 0 &&
+           mode1.bUnique == mode2.bUnique;
 }
 
 // 辅助函数：大小写不敏感的字符串比较（用于表名、字段名等）

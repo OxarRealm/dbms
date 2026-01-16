@@ -15,13 +15,21 @@
 #include <QDialogButtonBox>
 #include <QHeaderView>
 #include <QCloseEvent>
+#include <QTabWidget>
+#include <QListWidget>
+#include <QTextEdit>
 #include <QString>
 #include <string>
 #include <vector>
 
 // Forward declarations
 class TableManager;
+class DataManager;
 struct TableInfo;
+struct ForeignKeyConstraint;
+struct UniqueConstraint;
+struct CheckConstraint;
+struct TableConstraints;
 
 /**
  * @file table_management_widget.h
@@ -43,19 +51,35 @@ public:
     /**
      * @brief Get the table information from dialog
      * @param tableInfo Output parameter
+     * @param constraints Output parameter for table constraints
      * @return true if valid, false otherwise
      */
-    bool getTableInfo(TableInfo& tableInfo);
+    bool getTableInfo(TableInfo& tableInfo, TableConstraints& constraints);
 
     // Make database name edit and label accessible for external setting
     QLineEdit *m_databaseNameEdit;
     QLabel *m_databaseNameLabel;
+
+    /**
+     * @brief Load constraints into the dialog
+     * @param constraints Constraints to load
+     */
+    void loadConstraints(const TableConstraints& constraints);
 
 private slots:
     void addField();
     void removeField();
     void moveFieldUp();
     void moveFieldDown();
+    void addForeignKey();
+    void editForeignKey();
+    void removeForeignKey();
+    void addUniqueConstraint();
+    void editUniqueConstraint();
+    void removeUniqueConstraint();
+    void addCheckConstraint();
+    void editCheckConstraint();
+    void removeCheckConstraint();
 
 protected:
     /**
@@ -68,14 +92,38 @@ private:
     void setupUI();
     void loadTableInfo(const TableInfo& tableInfo);
     void updateFieldTable();
+    void updateConstraintLists();
+    QStringList getFieldNames() const;
+    QStringList getTableNames() const;
 
     QLineEdit *m_tableNameEdit;
+    QTabWidget *m_tabWidget;
     QTableWidget *m_fieldTable;
     QPushButton *m_addFieldBtn;
     QPushButton *m_removeFieldBtn;
     QPushButton *m_moveUpBtn;
     QPushButton *m_moveDownBtn;
+    
+    // Constraints tab
+    QListWidget *m_foreignKeyList;
+    QListWidget *m_uniqueConstraintList;
+    QListWidget *m_checkConstraintList;
+    QPushButton *m_addForeignKeyBtn;
+    QPushButton *m_editForeignKeyBtn;
+    QPushButton *m_removeForeignKeyBtn;
+    QPushButton *m_addUniqueBtn;
+    QPushButton *m_editUniqueBtn;
+    QPushButton *m_removeUniqueBtn;
+    QPushButton *m_addCheckBtn;
+    QPushButton *m_editCheckBtn;
+    QPushButton *m_removeCheckBtn;
+    
     QDialogButtonBox *m_buttonBox;
+    
+    // Store constraints
+    std::vector<ForeignKeyConstraint> m_foreignKeys;
+    std::vector<UniqueConstraint> m_uniqueConstraints;
+    std::vector<CheckConstraint> m_checkConstraints;
 };
 
 /**
@@ -105,6 +153,7 @@ private slots:
     void onDeleteTable();
     void onTableSelectionChanged();
     void onRefresh();
+    void onViewConstraints();
 
 private:
     void setupUI();
@@ -134,6 +183,7 @@ private:
     
     // Backend
     TableManager *m_tableManager;
+    DataManager *m_dataManager;
     std::string m_databasePath;
 };
 

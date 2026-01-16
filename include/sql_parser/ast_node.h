@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/table_mode.h"
+#include "core/constraint.h"
 #include "sql_parser/token.h"
 #include <vector>
 #include <string>
@@ -43,6 +44,10 @@ public:
     std::string tableName;             // 表名
     std::vector<TableMode> fields;     // 字段列表
     std::string databaseFileName;      // 数据库文件名
+    // 扩展：表级约束
+    std::vector<ForeignKeyConstraint> foreignKeys;    // 外键约束列表
+    std::vector<UniqueConstraint> uniqueConstraints;  // 唯一约束列表（多字段）
+    std::vector<CheckConstraint> checkConstraints;    // 检查约束列表
     
     CreateTableNode() {}
     

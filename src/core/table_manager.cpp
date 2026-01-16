@@ -228,16 +228,58 @@ bool TableManager::readTableFromStream(std::ifstream& file, TableInfo& tableInfo
     }
 
     // 读取字段列表
+    // 注意：为了向后兼容，需要处理旧格式的TableMode（不包含sDefaultValue和bUnique字段）
+    // 旧格式TableMode大小 = FIELD_NAME_LENGTH(32) + TYPE_NAME_LENGTH(8) + sizeof(int)(4) + 3*sizeof(char)(3) = 47字节
+    // 新格式TableMode大小 = 旧格式 + 128(sDefaultValue) + 1(bUnique) = 176字节
+    const size_t OLD_TABLEMODE_SIZE = FIELD_NAME_LENGTH + TYPE_NAME_LENGTH + sizeof(int) + 3 * sizeof(char);  // 47字节
+    const size_t NEW_TABLEMODE_SIZE = sizeof(TableMode);  // 176字节
+    
     tableInfo.fields.clear();
     tableInfo.fields.reserve(fieldCount);
-    for (int i = 0; i < fieldCount; i++) {
-        TableMode field;
-        file.read(reinterpret_cast<char*>(&field), sizeof(TableMode));
-        if (file.gcount() != sizeof(TableMode)) {
-            std::cerr << "Error: Failed to read field " << i << std::endl;
-            return false;
+    
+    // 获取当前位置，用于检测文件格式
+    std::streampos startPos = file.tellg();
+    
+    // 先尝试读取新格式（完整TableMode）
+    bool isNewFormat = true;
+    if (fieldCount > 0) {
+        TableMode testField;
+        file.read(reinterpret_cast<char*>(&testField), NEW_TABLEMODE_SIZE);
+        if (file.gcount() != NEW_TABLEMODE_SIZE) {
+            // 读取失败，可能是旧格式
+            isNewFormat = false;
         }
-        tableInfo.fields.push_back(field);
+        file.seekg(startPos);  // 回到开始位置
+    }
+    
+    // 根据格式读取字段
+    if (isNewFormat) {
+        // 新格式：包含sDefaultValue和bUnique
+        for (int i = 0; i < fieldCount; i++) {
+            TableMode field;
+            file.read(reinterpret_cast<char*>(&field), NEW_TABLEMODE_SIZE);
+            if (file.gcount() != NEW_TABLEMODE_SIZE) {
+                std::cerr << "Error: Failed to read field " << i << " (new format)" << std::endl;
+                return false;
+            }
+            tableInfo.fields.push_back(field);
+        }
+    } else {
+        // 旧格式：不包含sDefaultValue和bUnique，需要手动初始化
+        for (int i = 0; i < fieldCount; i++) {
+            TableMode field;
+            memset(&field, 0, sizeof(TableMode));  // 先清零，确保新字段为0
+            // 读取旧格式数据
+            file.read(reinterpret_cast<char*>(&field), OLD_TABLEMODE_SIZE);
+            if (file.gcount() != OLD_TABLEMODE_SIZE) {
+                std::cerr << "Error: Failed to read field " << i << " (old format)" << std::endl;
+                return false;
+            }
+            // 初始化新字段为默认值
+            field.sDefaultValue[0] = '\0';  // 空默认值
+            field.bUnique = 0;  // 默认不是唯一约束（0 = NOT_UNIQUE）
+            tableInfo.fields.push_back(field);
+        }
     }
 
     return true;

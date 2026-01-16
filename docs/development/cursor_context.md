@@ -42,7 +42,7 @@
     - UNION和UNION ALL（支持多个UNION连接和全局ORDER BY/LIMIT）✅
     - 子查询（标量、IN、EXISTS/NOT EXISTS、关联、嵌套）✅
 - **当前任务**：阶段5（GUI开发）- 索引管理界面和推荐系统界面待开发
-- **完成度**：85% (阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成；阶段5.6-5.7待开发)
+- **完成度**：90% (阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成；约束功能全部完成；阶段5.6-5.7待开发)
 
 ### 已完成工作
 
@@ -336,6 +336,72 @@
 6. ⏳ **任务5.6**：索引管理界面（待开发）
 7. ⏳ **任务5.7**：推荐系统界面（待开发）
 
+#### 约束功能实现（已完成）
+1. ✅ **数据结构扩展**（已完成）
+   - 扩展TableMode结构，添加sDefaultValue和bUnique字段
+   - 创建constraint.h定义约束结构（ForeignKeyConstraint, UniqueConstraint, CheckConstraint）
+   - 扩展CreateTableNode AST节点，添加约束字段
+   - **完成时间**：2026-01-15
+
+2. ✅ **SQL解析器扩展**（已完成）
+   - 扩展TokenType枚举，添加约束相关关键词（UNIQUE, DEFAULT, CHECK, FOREIGN, REFERENCES, CASCADE, RESTRICT, SET, NULL_KEYWORD, NO, ACTION, AND, OR）
+   - 实现parseForeignKeyConstraint()解析外键约束
+   - 实现parseUniqueConstraint()解析多字段唯一约束
+   - 实现parseCheckConstraint()解析检查约束（支持AND/OR逻辑表达式）
+   - 扩展parseCreateTable()支持约束语法
+   - 扩展parseFlags()支持UNIQUE和DEFAULT关键字
+   - 修复parseInsert()和parseUpdate()支持负数解析
+   - **完成时间**：2026-01-15
+   - **文件**：`include/sql_parser/token.h`, `src/sql_parser/token.cpp`, `include/sql_parser/parser.h`, `src/sql_parser/parser.cpp`, `src/sql_parser/parser_constraints.cpp`
+
+3. ✅ **约束管理器实现**（已完成）
+   - 实现ConstraintManager类，提供约束检查接口
+   - 实现checkUniqueConstraint()检查唯一约束（单字段和多字段）
+   - 实现checkForeignKey()检查外键引用完整性
+   - 实现evaluateCheckExpression()评估检查约束表达式（支持AND/OR逻辑）
+   - 实现applyDefaultValues()应用默认值
+   - **完成时间**：2026-01-15
+   - **文件**：`include/core/constraint_manager.h`, `src/core/constraint_manager.cpp`
+
+4. ✅ **约束注册表实现**（已完成）
+   - 实现ConstraintRegistry单例，管理内存中的约束定义
+   - 提供约束注册、查询、清除接口
+   - **完成时间**：2026-01-15
+   - **文件**：`include/core/constraint_registry.h`, `src/core/constraint_registry.cpp`
+
+5. ✅ **约束存储管理器实现**（已完成）
+   - 实现ConstraintStorageManager类，负责约束持久化
+   - 实现saveConstraints()保存约束到.cst文件
+   - 实现loadConstraints()从.cst文件加载约束
+   - 实现deleteTableConstraints()删除表的约束
+   - **完成时间**：2026-01-15
+   - **文件**：`include/core/constraint_storage.h`, `src/core/constraint_storage.cpp`
+
+6. ✅ **DML约束检查集成**（已完成）
+   - InsertHandler集成约束检查（applyDefaultValues, checkUniqueConstraints, checkForeignKeyConstraints, checkCheckConstraints）
+   - UpdateHandler集成约束检查（checkUniqueConstraints, checkForeignKeyConstraints, checkCheckConstraints）
+   - DeleteHandler集成外键级联删除（checkForeignKeyConstraints，支持CASCADE和SET NULL）
+   - 修复GUI插入和更新操作，使用SQL执行路径确保约束检查
+   - **完成时间**：2026-01-15
+   - **文件**：`src/dml/insert_handler.cpp`, `src/dml/insert_handler_constraints.cpp`, `src/dml/update_handler.cpp`, `src/dml/update_handler_constraints.cpp`, `src/dml/delete_handler.cpp`
+
+7. ✅ **GUI约束管理界面**（已完成）
+   - TableEditDialog扩展，添加Constraints标签页
+   - 实现外键约束添加/编辑/删除界面
+   - 实现多字段唯一约束添加/编辑/删除界面
+   - 实现检查约束添加/编辑/删除界面
+   - 实现View Constraints按钮，快速查看所有约束
+   - 修复约束加载和显示问题
+   - **完成时间**：2026-01-15
+   - **文件**：`include/gui/table_management_widget.h`, `src/gui/table_management_widget.cpp`
+
+8. ✅ **约束持久化**（已完成）
+   - 修复约束加载时的数据库名称一致性（使用base name而非full path）
+   - 确保约束在应用重启后仍然有效
+   - **完成时间**：2026-01-15
+
+**约束功能测试统计**：所有约束功能测试通过 ✅
+
 ### 待开始工作
 1. ⏳ 阶段5：Qt GUI界面开发（5.1-5.3已完成，5.4-5.7待开发）
 2. ⏳ 阶段6：AI智能推荐算法实现
@@ -525,10 +591,10 @@ database-design/
 - ⏳ 索引管理界面
 
 ### 第六阶段：核心通用DBMS功能（第一阶段）
-- ⏳ 完善SQL查询功能（ORDER BY, GROUP BY, DISTINCT, LIMIT等）
-- ⏳ 完善约束管理（FOREIGN KEY, UNIQUE, CHECK, DEFAULT）
+- ✅ 完善SQL查询功能（ORDER BY, GROUP BY, DISTINCT, LIMIT等）✅
+- ✅ 完善约束管理（FOREIGN KEY, UNIQUE, CHECK, DEFAULT）✅
 - ⏳ 索引SQL接口（CREATE INDEX, DROP INDEX）
-- ⏳ SQL执行界面
+- ✅ SQL执行界面 ✅
 
 ### 第七阶段：高级DBMS功能（第二阶段）
 - ⏳ 事务管理（BEGIN/COMMIT/ROLLBACK）

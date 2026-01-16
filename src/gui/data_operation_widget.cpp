@@ -7,11 +7,15 @@
 #include "core/table_manager.h"
 #include "core/data_manager.h"
 #include "core/table_mode.h"
+#include "dml/insert_handler.h"
+#include "dml/update_handler.h"
+#include "dml/delete_handler.h"
 #include <QCloseEvent>
 #include <QHeaderView>
 #include <QTableWidgetItem>
 #include <QComboBox>
 #include <cstring>
+#include <sstream>
 
 // ==================== RecordEditDialog Implementation ====================
 
@@ -382,18 +386,105 @@ void DataOperationWidget::onInsertRecord()
     if (dialog.exec() == QDialog::Accepted) {
         Record record;
         if (dialog.getRecord(record)) {
-            // Check primary key uniqueness constraint
-            if (!checkPrimaryKeyUnique(m_currentTableName, m_currentTableInfo, record, -1)) {
-                QMessageBox::warning(this, "Primary Key Constraint Violation", 
-                    QString::fromStdString(m_lastError));
-                return;
+            // Build INSERT SQL statement to use InsertHandler (which handles constraints and defaults)
+            std::ostringstream sql;
+            sql << "INSERT INTO " << m_currentTableName << " VALUES (";
+            
+            for (size_t i = 0; i < record.values.size(); ++i) {
+                if (i > 0) sql << ", ";
+                // Escape string values
+                std::string value = record.values[i];
+                if (value.empty()) {
+                    sql << "''";  // Empty string
+                } else {
+                    // Check if it's a string type (needs quotes)
+                    bool isStringType = false;
+                    if (i < m_currentTableInfo.fields.size()) {
+                        std::string fieldType = std::string(m_currentTableInfo.fields[i].sType);
+                        if (fieldType == "string" || fieldType == "char") {
+                            isStringType = true;
+                        }
+                    }
+                    
+                    if (isStringType) {
+                        // Escape single quotes
+                        std::string escaped = value;
+                        size_t pos = 0;
+                        while ((pos = escaped.find("'", pos)) != std::string::npos) {
+                            escaped.replace(pos, 1, "''");
+                            pos += 2;
+                        }
+                        sql << "'" << escaped << "'";
+                    } else {
+                        sql << value;
+                    }
+                }
             }
             
-            if (m_dataManager->insertRecord(m_currentTableName, record)) {
+            // Extract database filename from path (without path and extension)
+            // m_databasePath is like "E:\Projects\VSCode\dbms\student_db"
+            // SQL needs just "student_db"
+            std::string dbFileName = m_databasePath;
+            // Extract basename (filename without path)
+            size_t lastSlash = dbFileName.find_last_of("/\\");
+            if (lastSlash != std::string::npos) {
+                dbFileName = dbFileName.substr(lastSlash + 1);
+            }
+            // Remove extension if present (shouldn't be, but just in case)
+            size_t lastDot = dbFileName.find_last_of(".");
+            if (lastDot != std::string::npos) {
+                dbFileName = dbFileName.substr(0, lastDot);
+            }
+            
+            sql << ") IN " << dbFileName << ";";
+            
+            // Use InsertHandler to execute INSERT (handles constraints and defaults)
+            InsertHandler insertHandler;
+            // Set the base path so InsertHandler can resolve the full path from filename
+            // We'll modify InsertHandler to accept a base path, or use a workaround:
+            // Store the full path and modify InsertHandler to use it.
+            // Actually, let's modify InsertHandler::execute to accept an optional base path.
+            // But that requires interface changes. For now, let's use a simpler approach:
+            // Modify InsertHandler to resolve the full path from the filename using the current working directory
+            // or store the base path in InsertHandler.
+            
+            // Workaround: Pass the full path through a modified execute method
+            // But InsertHandler::execute only takes SQL string. Let's check if we can
+            // modify it to also accept a base path, or use a different approach.
+            
+            // Actually, the real issue is that InsertHandler uses insertNode->databaseFileName
+            // which is just the filename. We need to convert it to full path.
+            // Let's modify InsertHandler::execute to resolve the full path.
+            
+            // For now, let's modify InsertHandler to accept a base path member or parameter.
+            // But that's a bigger change. Let's use a simpler workaround:
+            // We'll modify InsertHandler to store and use the base path.
+            
+            // Actually, looking at the code, InsertHandler sets the path from databaseFileName.
+            // The issue is that databaseFileName is just the filename, not the full path.
+            // We need to modify InsertHandler to resolve the full path.
+            // Let's add a method to set the base path, or modify execute to accept it.
+            
+            // Simplest solution: Modify InsertHandler to accept a base path in constructor or setter.
+            // But that requires interface changes. Let's use a workaround for now:
+            // We'll modify InsertHandler::execute to resolve the path from the filename.
+            
+            // Actually, let's check the actual error. The error says "Expected identifier, but got: constraint"
+            // This means the parser is expecting an identifier but got the CONSTRAINT keyword.
+            // This could happen if:
+            // 1. A value in VALUES is "constraint" and not quoted (but we quote string values)
+            // 2. The database filename is "constraint" (unlikely but possible)
+            // 3. There's a parsing error in the VALUES clause
+            
+            // Let's first fix the parser to handle keywords as identifiers in certain contexts,
+            // and then fix the path resolution issue.
+            
+            if (insertHandler.execute(sql.str(), m_databasePath)) {
                 QMessageBox::information(this, "Success", "Record inserted successfully.");
                 refreshDataTable();
             } else {
-                QMessageBox::warning(this, "Error", "Failed to insert record.");
+                QMessageBox::warning(this, "Error", 
+                    QString("Failed to insert record:\n%1").arg(QString::fromStdString(insertHandler.getLastError())));
             }
         }
     }
@@ -401,6 +492,12 @@ void DataOperationWidget::onInsertRecord()
 
 void DataOperationWidget::onEditRecord()
 {
+    if (m_databasePath.empty()) {
+        QMessageBox::information(this, "No Database", 
+            "Please create or open a database first.\n\nUse File -> Create Database or File -> Open Database.");
+        return;
+    }
+    
     if (m_currentTableName.empty()) {
         QMessageBox::information(this, "No Table Selected", 
             "Please select a table first.");
@@ -416,40 +513,118 @@ void DataOperationWidget::onEditRecord()
     
     RecordEditDialog dialog(this, &m_currentTableInfo, &m_currentRecords[row]);
     if (dialog.exec() == QDialog::Accepted) {
-        Record record;
-        if (dialog.getRecord(record)) {
-            // Find the actual record index (considering all records, not just valid ones)
-            std::vector<Record> allRecords;
-            if (!m_dataManager->readAllRecords(m_currentTableName, allRecords)) {
-                QMessageBox::warning(this, "Error", "Failed to load records for editing.");
-                return;
-            }
+        Record newRecord;
+        if (dialog.getRecord(newRecord)) {
+            // Get the original record
+            Record originalRecord = m_currentRecords[row];
             
-            // Find the valid record index in all records
-            size_t validIndex = 0;
-            size_t targetIndex = 0;
-            for (size_t i = 0; i < allRecords.size(); ++i) {
-                if (allRecords[i].isValid()) {
-                    if (validIndex == static_cast<size_t>(row)) {
-                        targetIndex = i;
-                        break;
-                    }
-                    validIndex++;
+            // Find primary key field for WHERE clause
+            std::string pkFieldName;
+            std::string pkValue;
+            for (size_t i = 0; i < m_currentTableInfo.fields.size(); ++i) {
+                if (m_currentTableInfo.fields[i].bKey == FLAG_KEY) {
+                    pkFieldName = std::string(m_currentTableInfo.fields[i].sFieldName);
+                    pkValue = originalRecord.getValue(i);
+                    break;
                 }
             }
             
-            // Check primary key uniqueness constraint (excluding current record)
-            if (!checkPrimaryKeyUnique(m_currentTableName, m_currentTableInfo, record, targetIndex)) {
-                QMessageBox::warning(this, "Primary Key Constraint Violation", 
-                    QString::fromStdString(m_lastError));
+            if (pkFieldName.empty()) {
+                QMessageBox::warning(this, "Error", "Cannot update record: table has no primary key.");
                 return;
             }
             
-            if (m_dataManager->updateRecord(m_currentTableName, targetIndex, record)) {
+            // Extract database filename from path (without path and extension)
+            std::string dbFileName = m_databasePath;
+            size_t lastSlash = dbFileName.find_last_of("/\\");
+            if (lastSlash != std::string::npos) {
+                dbFileName = dbFileName.substr(lastSlash + 1);
+            }
+            size_t lastDot = dbFileName.find_last_of(".");
+            if (lastDot != std::string::npos) {
+                dbFileName = dbFileName.substr(0, lastDot);
+            }
+            
+            // Build UPDATE SQL statements for each modified field
+            // Since UPDATE syntax only supports one field at a time, we need to update each field separately
+            UpdateHandler updateHandler;
+            bool allSucceeded = true;
+            std::string lastError;
+            
+            for (size_t i = 0; i < newRecord.values.size() && i < m_currentTableInfo.fields.size(); ++i) {
+                std::string fieldName = std::string(m_currentTableInfo.fields[i].sFieldName);
+                std::string newValue = newRecord.values[i];
+                std::string oldValue = originalRecord.getValue(i);
+                
+                // Skip if value hasn't changed
+                if (newValue == oldValue) {
+                    continue;
+                }
+                
+                // Build UPDATE SQL statement
+                std::ostringstream sql;
+                sql << "UPDATE " << m_currentTableName << " (SET " << fieldName << "=";
+                
+                // Escape string values
+                std::string fieldType = std::string(m_currentTableInfo.fields[i].sType);
+                if (fieldType == "string" || fieldType == "char") {
+                    // Escape single quotes
+                    std::string escaped = newValue;
+                    size_t pos = 0;
+                    while ((pos = escaped.find("'", pos)) != std::string::npos) {
+                        escaped.replace(pos, 1, "''");
+                        pos += 2;
+                    }
+                    sql << "'" << escaped << "'";
+                } else {
+                    sql << newValue;
+                }
+                
+                sql << " WHERE " << pkFieldName << "=";
+                
+                // Escape primary key value if it's a string
+                if (m_currentTableInfo.fields.size() > 0) {
+                    // Find the primary key field type
+                    std::string pkFieldType;
+                    for (size_t j = 0; j < m_currentTableInfo.fields.size(); ++j) {
+                        if (m_currentTableInfo.fields[j].bKey == FLAG_KEY) {
+                            pkFieldType = std::string(m_currentTableInfo.fields[j].sType);
+                            break;
+                        }
+                    }
+                    
+                    if (pkFieldType == "string" || pkFieldType == "char") {
+                        // Escape single quotes
+                        std::string escapedPk = pkValue;
+                        size_t pos = 0;
+                        while ((pos = escapedPk.find("'", pos)) != std::string::npos) {
+                            escapedPk.replace(pos, 1, "''");
+                            pos += 2;
+                        }
+                        sql << "'" << escapedPk << "'";
+                    } else {
+                        sql << pkValue;
+                    }
+                } else {
+                    sql << pkValue;
+                }
+                
+                sql << ") IN " << dbFileName << ";";
+                
+                // Execute UPDATE using UpdateHandler (which handles all constraints)
+                if (!updateHandler.execute(sql.str(), m_databasePath)) {
+                    allSucceeded = false;
+                    lastError = updateHandler.getLastError();
+                    break;  // Stop on first error
+                }
+            }
+            
+            if (allSucceeded) {
                 QMessageBox::information(this, "Success", "Record updated successfully.");
                 refreshDataTable();
             } else {
-                QMessageBox::warning(this, "Error", "Failed to update record.");
+                QMessageBox::warning(this, "Error", 
+                    QString("Failed to update record:\n%1").arg(QString::fromStdString(lastError)));
             }
         }
     }

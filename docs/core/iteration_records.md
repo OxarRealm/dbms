@@ -60,19 +60,33 @@
 - [ ] 推荐系统界面
 - **完成时间**：2026-01-14（v0.6.3：SQL执行界面已完成，包括批量执行、主键约束、大小写不敏感、DROP/RENAME TABLE修复）
 
-### v0.7.0 - 核心通用DBMS功能阶段（进行中）
+### v0.7.0 - 核心通用DBMS功能阶段 ✅（已完成）
 - [x] 完善SQL查询功能（ORDER BY, DISTINCT, LIMIT）✅
 - [x] 比较运算符（>, <, >=, <=, !=）✅
 - [x] 复杂WHERE条件（AND, OR, NOT）✅
-- [ ] LIKE模式匹配（待实现）
-- [ ] IN子句（待实现）
-- [ ] BETWEEN范围查询（待实现）
-- [ ] GROUP BY分组（待实现）
-- [ ] 聚合函数（COUNT, SUM, AVG, MAX, MIN）（待实现）
-- [ ] HAVING子句（待实现）
-- [ ] 完善约束管理（FOREIGN KEY, UNIQUE, CHECK, DEFAULT）
-- [ ] 索引SQL接口（CREATE INDEX, DROP INDEX）
-- **完成时间**：2026-01-15（部分完成：ORDER BY, DISTINCT, LIMIT, 比较运算符, 复杂WHERE条件）
+- [x] LIKE模式匹配 ✅
+- [x] IN子句 ✅
+- [x] BETWEEN范围查询 ✅
+- [x] GROUP BY分组 ✅
+- [x] 聚合函数（COUNT, SUM, AVG, MAX, MIN）✅
+- [x] HAVING子句 ✅
+- [x] FULL OUTER JOIN ✅
+- [x] NATURAL JOIN ✅
+- [x] UNION和UNION ALL ✅
+- [x] 子查询（标量、IN、EXISTS/NOT EXISTS、关联、嵌套）✅
+- **完成时间**：2026-01-15
+
+### v0.8.0 - 数据完整性约束功能阶段 ✅（已完成）
+- [x] PRIMARY KEY约束 ✅
+- [x] UNIQUE约束（字段级和表级多字段）✅
+- [x] DEFAULT约束 ✅
+- [x] FOREIGN KEY约束（支持ON DELETE/UPDATE动作）✅
+- [x] CHECK约束（支持AND/OR逻辑表达式）✅
+- [x] 约束持久化存储（.cst文件）✅
+- [x] GUI约束管理界面 ✅
+- [x] SQL约束语法支持 ✅
+- [x] DML约束检查集成 ✅
+- **完成时间**：2026-01-15
 
 ### v0.8.0 - 数据库新技术实现阶段（已完成）✅
 - [x] 相邻索引实现（28测试通过）✅

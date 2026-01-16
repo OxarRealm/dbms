@@ -332,22 +332,36 @@ bool DataManager::clearTable(const std::string& tableName) {
             
         // 明确检查：如果是目标表（大小写不敏感），则跳过（不添加到map中）
         // 这样可以确保删除所有大小写变体的同名表数据（如 Products, products, PRODUCTS）
+        // 注意：readTableDataFromStream已经处理了表名的尾随空格和空字符，所以这里直接比较即可
         if (strcasecmp_custom(currentTableName.c_str(), tableName.c_str()) == 0) {
             // 这是目标表，跳过，不添加到map中，相当于硬删除
             // 无论有多少条记录，都会被完全删除
             foundTargetTable = true;
+            std::cerr << "DEBUG: clearTable - Found and skipping table: '" << currentTableName 
+                      << "' (target: '" << tableName << "')" << std::endl;
             continue;
-    }
+        }
     
         // 不是目标表，添加到map中保留
         allTableData[currentTableName] = currentRecords;
     }
     readFile.close();
     
+    std::cerr << "DEBUG: clearTable - Target table '" << tableName 
+              << "' found: " << (foundTargetTable ? "YES" : "NO") 
+              << ", Remaining tables in file: " << allTableData.size() << std::endl;
+    
     // 如果找到了目标表，需要重新写入文件（排除目标表）
     // 如果没有找到目标表，也需要重新写入文件（确保文件格式正确）
     // 这是硬删除：原文件被删除，新文件只包含非目标表的数据
-    return rewriteAllTableData(allTableData);
+    bool result = rewriteAllTableData(allTableData);
+    if (result) {
+        std::cerr << "DEBUG: clearTable - Successfully rewrote .dat file, table '" 
+                  << tableName << "' removed." << std::endl;
+    } else {
+        std::cerr << "DEBUG: clearTable - Failed to rewrite .dat file." << std::endl;
+    }
+    return result;
 }
 
 bool DataManager::readTableDataFromStream(std::ifstream& file, std::string& tableName,
@@ -359,7 +373,12 @@ bool DataManager::readTableDataFromStream(std::ifstream& file, std::string& tabl
         return false;
     }
     tableNameBuffer[TABLE_NAME_LENGTH - 1] = '\0';
+    // 确保表名不包含尾随的空字符或空格
     tableName = std::string(tableNameBuffer);
+    // 去除尾随的空字符和空格
+    while (!tableName.empty() && (tableName.back() == '\0' || tableName.back() == ' ')) {
+        tableName.pop_back();
+    }
     
     // 读取记录数量
     int recordCount;

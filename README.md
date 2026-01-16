@@ -32,7 +32,15 @@
 - DELETE - 删除记录
 - UPDATE - 更新记录
 
-### 4. 数据库查询
+### 4. 数据完整性约束
+- PRIMARY KEY - 主键约束（唯一性、非空）
+- UNIQUE - 唯一约束（字段级和表级多字段唯一约束）
+- DEFAULT - 默认值约束
+- FOREIGN KEY - 外键约束（引用完整性，支持ON DELETE CASCADE/SET NULL/RESTRICT/NO ACTION，ON UPDATE RESTRICT）
+- CHECK - 检查约束（支持AND/OR逻辑表达式）
+- NOT NULL - 非空约束
+
+### 5. 数据库查询
 - SELECT 单表查询
 - SELECT 多表查询
 - SELECT 连接查询（INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN）
@@ -42,10 +50,17 @@
 - GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）
 - HAVING子句（分组过滤）
 
-### 5. AI智能推荐系统
-- 基于协同过滤的音乐推荐
-- 基于内容相似度的推荐
-- 个性化推荐结果展示
+### 6. 索引管理
+- 相邻索引（Adjacent Index）- 范围查询优化
+- 哈希索引（Hash Index）- 点查询优化（O(1)平均时间复杂度）
+- 智能索引建议系统（Index Advisor）- AI辅助索引推荐
+
+### 7. GUI图形界面
+- 数据库管理（创建、打开数据库）
+- 表结构管理（创建、编辑、重命名、删除表，约束管理）
+- 数据操作（插入、更新、删除、查看记录）
+- SQL执行（支持批量执行、结果显示、错误提示）
+- 索引管理（创建、查看、删除索引，索引建议）
 
 ## 项目结构
 
@@ -275,11 +290,27 @@ SELECT * FROM Songs WHERE Genre='Rock';
   - **完成时间**：2026-01-14
   - **状态**：数据操作界面已完成 ✅
 
-**项目总进度**：85%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成（ORDER BY、DISTINCT、LIMIT、比较运算符、复杂WHERE条件、LIKE、IN、BETWEEN、GROUP BY、聚合函数、HAVING、FULL OUTER JOIN、NATURAL JOIN、UNION、子查询）；阶段5.6-5.7待开发）
+**项目总进度**：90%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成（ORDER BY、DISTINCT、LIMIT、比较运算符、复杂WHERE条件、LIKE、IN、BETWEEN、GROUP BY、聚合函数、HAVING、FULL OUTER JOIN、NATURAL JOIN、UNION、子查询）；约束功能全部完成（PRIMARY KEY、UNIQUE、DEFAULT、FOREIGN KEY、CHECK）；阶段5.6-5.7待开发）
 
 ---
 
-**最后更新时间**：2026-01-15
+**最后更新时间**：2026-01-16
+
+**最新更新（v0.8.0）**：
+- ✅ 数据完整性约束功能全部实现（2026-01-15）
+  - PRIMARY KEY约束（主键唯一性、非空）
+  - UNIQUE约束（字段级和表级多字段唯一约束）
+  - DEFAULT约束（默认值，支持INSERT时自动应用）
+  - FOREIGN KEY约束（外键引用完整性，支持ON DELETE CASCADE/SET NULL/RESTRICT/NO ACTION，ON UPDATE RESTRICT）
+  - CHECK约束（检查约束，支持AND/OR逻辑表达式，如 `Price > 0 AND Price < 10000`）
+  - 约束持久化存储（.cst文件）
+  - GUI约束管理界面（创建、编辑、删除约束）
+  - SQL约束语法支持（CREATE TABLE、ALTER TABLE）
+  - DML约束检查（INSERT、UPDATE、DELETE操作时自动检查约束）
+- ✅ 文档重新分类和归档（2026-01-16）
+  - 测试文档移至testing目录
+  - 已完成文档归档至archive目录
+  - 生成GUI和SQL全面测试指南
 
 **最新更新（v0.7.1）**：
 - ✅ NATURAL JOIN实现（2026-01-15）

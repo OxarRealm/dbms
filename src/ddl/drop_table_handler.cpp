@@ -6,6 +6,7 @@
 #include "ddl/drop_table_handler.h"
 #include <iostream>
 #include <cstring>
+#include <filesystem>
 
 DropTableHandler::DropTableHandler() {
 }
@@ -13,7 +14,7 @@ DropTableHandler::DropTableHandler() {
 DropTableHandler::~DropTableHandler() {
 }
 
-bool DropTableHandler::execute(const std::string& sql) {
+bool DropTableHandler::execute(const std::string& sql, const std::string& basePath) {
     m_lastError = "";
     
     // 解析SQL语句
@@ -37,9 +38,27 @@ bool DropTableHandler::execute(const std::string& sql) {
         return false;
     }
     
+    // 解析数据库路径：如果提供了basePath，使用它来解析相对路径
+    // 否则，假设databaseFileName是完整路径或当前目录下的文件名
+    std::string dbPath = dropNode->databaseFileName;
+    if (!basePath.empty()) {
+        // 如果basePath是完整路径，提取目录部分
+        std::string baseDir = basePath;
+        size_t lastSlash = baseDir.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            baseDir = baseDir.substr(0, lastSlash + 1);
+        } else {
+            baseDir = "";  // 如果basePath没有路径分隔符，使用当前目录
+        }
+        // 组合完整路径
+        if (!baseDir.empty()) {
+            dbPath = baseDir + dropNode->databaseFileName;
+        }
+    }
+    
     // 设置数据库路径
-    m_tableManager.setDatabasePath(dropNode->databaseFileName);
-    m_dataManager.setDatabasePath(dropNode->databaseFileName);
+    m_tableManager.setDatabasePath(dbPath);
+    m_dataManager.setDatabasePath(dbPath);
     
     // 删除表
     return dropTable(dropNode);

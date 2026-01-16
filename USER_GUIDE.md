@@ -252,6 +252,99 @@ DELETE FROM Songs WHERE SongID=1 IN MusicDB;
 
 ---
 
+## Constraints Management
+
+The system supports comprehensive data integrity constraints to ensure data consistency and validity.
+
+### Constraint Types
+
+#### PRIMARY KEY Constraint
+- Ensures uniqueness and non-null values for key fields
+- Automatically enforced on INSERT and UPDATE operations
+- Example: `StudentID int KEY NO_NULL VALID`
+
+#### UNIQUE Constraint
+- Ensures uniqueness of field values (field-level or table-level multi-field)
+- Field-level: Set UNIQUE flag in field definition
+- Table-level: Define multi-field unique constraints in Constraints tab
+- Example: `Email string NOT_KEY NULL VALID UNIQUE`
+- Example (multi-field): `UNIQUE (StudentID, CourseID)`
+
+#### DEFAULT Constraint
+- Provides default values for fields when not specified in INSERT
+- Automatically applied when field value is NULL or empty
+- Example: `Age int NOT_KEY NULL VALID DEFAULT 18`
+
+#### FOREIGN KEY Constraint
+- Ensures referential integrity between tables
+- Supports ON DELETE actions: CASCADE, SET NULL, RESTRICT, NO ACTION
+- Supports ON UPDATE actions: RESTRICT, NO ACTION
+- Example: `FOREIGN KEY (StudentID) REFERENCES Students(StudentID) ON DELETE CASCADE ON UPDATE RESTRICT`
+
+#### CHECK Constraint
+- Validates field values against expressions
+- Supports comparison operators (>, <, >=, <=, =, !=)
+- Supports logical operators (AND, OR)
+- Example: `CHECK (Price > 0 AND Price < 10000)`
+
+### Creating Constraints
+
+**Method 1: Using GUI**
+
+1. Navigate to **Table Management** tab
+2. Click **Create Table** or **Edit Table**
+3. In the **Fields** tab:
+   - Set UNIQUE flag for field-level unique constraints
+   - Set DEFAULT value for default constraints
+4. In the **Constraints** tab:
+   - Click **Add Foreign Key** to add foreign key constraints
+   - Click **Add Unique Constraint** to add multi-field unique constraints
+   - Click **Add Check Constraint** to add check constraints
+5. Click **Create** or **Edit** to save
+
+**Method 2: Using SQL**
+
+```sql
+CREATE TABLE Students (
+    StudentID int KEY NO_NULL VALID UNIQUE,
+    Email string NOT_KEY NULL VALID UNIQUE DEFAULT '',
+    Age int NOT_KEY NULL VALID DEFAULT 18,
+    FOREIGN KEY (DeptID) REFERENCES Departments(DeptID) ON DELETE CASCADE,
+    UNIQUE (StudentID, Email),
+    CHECK (Age >= 16 AND Age <= 100)
+) INTO student_db;
+```
+
+### Viewing Constraints
+
+1. Navigate to **Table Management** tab
+2. Select a table from the table list
+3. Click **View Constraints** button (in the right panel)
+4. View all constraints (Foreign Keys, Unique Constraints, Check Constraints)
+
+### Editing Constraints
+
+1. Navigate to **Table Management** tab
+2. Select a table and click **Edit Table**
+3. Switch to **Constraints** tab
+4. Add, edit, or remove constraints
+5. Click **Edit** to save changes
+
+### Constraint Enforcement
+
+Constraints are automatically enforced during:
+- **INSERT operations**: Checks PRIMARY KEY, UNIQUE, FOREIGN KEY, CHECK constraints, applies DEFAULT values
+- **UPDATE operations**: Checks PRIMARY KEY, UNIQUE, FOREIGN KEY, CHECK constraints
+- **DELETE operations**: Checks FOREIGN KEY constraints, applies ON DELETE actions (CASCADE, SET NULL, etc.)
+
+### Constraint Persistence
+
+- Constraints are stored in `.cst` files (constraint storage files)
+- Constraints persist across application restarts
+- Constraints are automatically loaded when opening a database
+
+---
+
 ## SQL Execution
 
 ### Executing SQL Statements
@@ -545,10 +638,23 @@ The system automatically analyzes query logs and provides index recommendations:
 
 ## Version Information
 
-- **Current Version**: v0.7.1
-- **Last Updated**: 2026-01-15
+- **Current Version**: v0.8.0
+- **Last Updated**: 2026-01-16
 
-### Recent Updates (v0.7.1)
+### Recent Updates (v0.8.0)
+
+- ✅ Data integrity constraints fully implemented
+  - PRIMARY KEY constraint (uniqueness and non-null)
+  - UNIQUE constraint (field-level and table-level multi-field)
+  - DEFAULT constraint (automatic default value application)
+  - FOREIGN KEY constraint (referential integrity with ON DELETE/UPDATE actions)
+  - CHECK constraint (expression validation with AND/OR logic)
+  - Constraint persistence (stored in .cst files)
+  - GUI constraint management interface
+  - SQL constraint syntax support
+  - DML constraint checking (INSERT, UPDATE, DELETE)
+
+### Previous Updates (v0.7.1)
 
 - ✅ NATURAL JOIN implementation (NATURAL JOIN, NATURAL LEFT/RIGHT/INNER/FULL JOIN)
 - ✅ UNION and UNION ALL implementation (with multiple UNION connections and global ORDER BY/LIMIT)

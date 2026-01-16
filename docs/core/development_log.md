@@ -815,7 +815,7 @@
 
 ---
 
-## 2026-01-15（早上）
+## 2026-01-15
 
 ### 阶段5.5：SQL执行界面开发和问题修复
 
@@ -1254,4 +1254,184 @@
 
 ---
 
-**最后更新时间**：2026-01-15
+---
+
+## 2026-01-16 - 数据完整性约束功能实现
+
+**时间**：2026-01-16
+
+**完成工作**：
+
+### 1. 数据结构扩展
+1. ✅ 扩展TableMode结构
+   - 添加`sDefaultValue[128]`字段（默认值）
+   - 添加`bUnique`字段（唯一约束标志）
+   - 保持向后兼容性（旧.dbf文件仍可正常读取）
+
+2. ✅ 创建约束结构定义
+   - `ForeignKeyConstraint` - 外键约束结构
+   - `UniqueConstraint` - 多字段唯一约束结构
+   - `CheckConstraint` - 检查约束结构
+   - `TableConstraints` - 表级约束集合
+
+3. ✅ 扩展AST节点
+   - `CreateTableNode`添加`foreignKeys`, `uniqueConstraints`, `checkConstraints`字段
+
+**文件位置**：
+- `include/core/table_mode.h` - TableMode扩展
+- `include/core/constraint.h` - 约束结构定义
+- `include/sql_parser/ast_node.h` - AST节点扩展
+
+### 2. SQL解析器扩展
+1. ✅ Token类型扩展
+   - 添加约束相关关键词：UNIQUE, DEFAULT, CHECK, FOREIGN, REFERENCES, CASCADE, RESTRICT, SET, NULL_KEYWORD, NO, ACTION, AND, OR
+
+2. ✅ 约束解析实现
+   - `parseForeignKeyConstraint()` - 解析外键约束（支持ON DELETE/UPDATE动作）
+   - `parseUniqueConstraint()` - 解析多字段唯一约束
+   - `parseCheckConstraint()` - 解析检查约束（支持AND/OR逻辑表达式）
+   - 扩展`parseCreateTable()`支持约束语法
+   - 扩展`parseFlags()`支持UNIQUE和DEFAULT关键字
+
+3. ✅ 负数解析修复
+   - 修复`parseInsert()`和`parseUpdate()`支持负数解析（-10等）
+
+**文件位置**：
+- `include/sql_parser/token.h`, `src/sql_parser/token.cpp` - Token扩展
+- `include/sql_parser/parser.h`, `src/sql_parser/parser.cpp` - 解析器扩展
+- `src/sql_parser/parser_constraints.cpp` - 约束解析实现
+
+### 3. 约束管理器实现
+1. ✅ ConstraintManager类
+   - `checkUniqueConstraint()` - 检查唯一约束（单字段和多字段）
+   - `checkForeignKey()` - 检查外键引用完整性
+   - `evaluateCheckExpression()` - 评估检查约束表达式（支持AND/OR逻辑）
+   - `applyDefaultValues()` - 应用默认值
+
+**文件位置**：
+- `include/core/constraint_manager.h`, `src/core/constraint_manager.cpp`
+
+### 4. 约束注册表和存储
+1. ✅ ConstraintRegistry单例
+   - 管理内存中的约束定义
+   - 提供约束注册、查询、清除接口
+
+2. ✅ ConstraintStorageManager
+   - `saveConstraints()` - 保存约束到.cst文件
+   - `loadConstraints()` - 从.cst文件加载约束
+   - `deleteTableConstraints()` - 删除表的约束
+
+**文件位置**：
+- `include/core/constraint_registry.h`, `src/core/constraint_registry.cpp`
+- `include/core/constraint_storage.h`, `src/core/constraint_storage.cpp`
+
+### 5. DML约束检查集成
+1. ✅ InsertHandler集成
+   - `applyDefaultValues()` - 应用默认值
+   - `checkUniqueConstraints()` - 检查唯一约束
+   - `checkForeignKeyConstraints()` - 检查外键约束
+   - `checkCheckConstraints()` - 检查检查约束
+
+2. ✅ UpdateHandler集成
+   - `checkUniqueConstraints()` - 检查唯一约束
+   - `checkForeignKeyConstraints()` - 检查外键约束
+   - `checkCheckConstraints()` - 检查检查约束
+
+3. ✅ DeleteHandler集成
+   - `checkForeignKeyConstraints()` - 实现外键级联删除（CASCADE和SET NULL）
+   - 支持多级级联删除
+
+**文件位置**：
+- `src/dml/insert_handler.cpp`, `src/dml/insert_handler_constraints.cpp`
+- `src/dml/update_handler.cpp`, `src/dml/update_handler_constraints.cpp`
+- `src/dml/delete_handler.cpp`
+
+### 6. GUI约束管理界面
+1. ✅ TableEditDialog扩展
+   - 添加Constraints标签页
+   - 实现外键约束添加/编辑/删除界面
+   - 实现多字段唯一约束添加/编辑/删除界面
+   - 实现检查约束添加/编辑/删除界面
+   - 实现View Constraints按钮
+
+2. ✅ 约束加载和显示
+   - 修复约束加载问题（确保数据库名称一致性）
+   - 修复约束显示问题（列表正确显示约束信息）
+
+**文件位置**：
+- `include/gui/table_management_widget.h`, `src/gui/table_management_widget.cpp`
+
+### 7. 约束持久化修复
+1. ✅ 数据库名称一致性
+   - 修复约束加载时使用base name而非full path
+   - 确保约束在应用重启后仍然有效
+
+**遇到的问题和解决方案**：
+1. **问题**：约束在应用重启后失效
+   - **原因**：约束加载时使用的数据库名称（full path）与注册时使用的名称（base name）不一致
+   - **解决**：统一使用base name作为约束注册表的key
+
+2. **问题**：CHECK约束表达式只识别部分条件（如`> 0 AND < 100`只识别`> 0`）
+   - **原因**：`evaluateCheckExpression()`只支持单个条件
+   - **解决**：重构为支持AND/OR逻辑表达式，递归解析
+
+3. **问题**：UPDATE操作忽略CHECK约束
+   - **原因**：`UpdateHandler::checkCheckConstraints()`未正确调用或数据库名称不一致
+   - **解决**：修复数据库名称提取逻辑，确保约束检查正确执行
+
+4. **问题**：GUI插入操作失败（SQL解析错误）
+   - **原因**：数据库文件名包含路径或为SQL关键字
+   - **解决**：修复`parseDatabaseFileName()`和`parseInsert()`，使其更宽松
+
+5. **问题**：DROP TABLE后重新创建同名表，旧数据仍然加载
+   - **原因**：GUI删除表时只删除.dbf文件中的表结构，未删除.dat文件中的数据
+   - **解决**：在`TableManagementWidget::onDeleteTable()`中添加`DataManager::clearTable()`调用
+
+**测试结果**：
+- ✅ 所有约束功能测试通过
+- ✅ GUI约束管理界面测试通过
+- ✅ SQL约束语法测试通过
+- ✅ DML约束检查测试通过
+
+---
+
+## 2026-01-16 - 文档重新分类和测试指南生成
+
+**时间**：2026-01-16
+
+**完成工作**：
+
+### 1. 文档重新分类和归档
+1. ✅ 测试文档移至testing目录
+   - `drop_table_test_cases.md`
+   - `gui_constraint_testing_guide.md`
+   - `gui_constraint_ui_test_cases.md`
+   - `constraint_testing_summary.md`
+
+2. ✅ 已完成文档归档至archive目录
+   - `constraint_implementation_progress.md`
+   - `constraint_implementation_progress_full.md`
+   - `constraint_implementation_status.md`
+   - `gui_constraint_fixes_summary.md`
+   - `update_check_constraint_analysis.md`
+   - `test_coverage_analysis.md`
+   - `test_verification_summary.md`
+
+3. ✅ 更新文档目录说明
+   - 更新`docs/README.md`反映新的分类结构
+   - 创建`docs/archive/README.md`说明归档原则
+
+### 2. 全面测试指南生成
+1. ✅ GUI图形化操作全面测试指南
+   - 文件：`docs/testing/gui_comprehensive_test_guide.md`
+   - 场景化设计（学生管理系统）
+   - 前后连贯的测试流程
+   - 覆盖所有GUI功能
+
+2. ✅ SQL执行命令操作全面测试指南
+   - 文件：`docs/testing/sql_comprehensive_test_guide.md`
+   - 场景化设计（学生管理系统）
+   - 前后连贯的测试流程
+   - 覆盖所有SQL功能
+
+**最后更新时间**：2026-01-16

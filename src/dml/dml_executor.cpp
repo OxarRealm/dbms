@@ -31,7 +31,7 @@ bool DMLExecutor::execute(const std::string& sql) {
     bool result = false;
     switch (type) {
         case StatementType::INSERT:
-            result = m_insertHandler.execute(sql);
+            result = m_insertHandler.execute(sql, m_databasePath);
             if (result) {
                 m_affectedRows = 1;  // INSERT通常影响1条记录
             } else {
@@ -49,7 +49,7 @@ bool DMLExecutor::execute(const std::string& sql) {
             break;
             
         case StatementType::UPDATE:
-            result = m_updateHandler.execute(sql);
+            result = m_updateHandler.execute(sql, m_databasePath);
             if (result) {
                 m_affectedRows = m_updateHandler.getUpdatedCount();
             } else {

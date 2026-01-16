@@ -174,6 +174,30 @@ private:
     std::string parseDatabaseFileName();
     
     /**
+     * @brief 解析外键约束（用于CREATE TABLE）
+     * @param node CREATE TABLE节点
+     * @param constraintName 约束名称（可选，如果为空则自动生成）
+     * @return 成功返回true
+     */
+    bool parseForeignKeyConstraint(CreateTableNode& node, const std::string& constraintName = "");
+    
+    /**
+     * @brief 解析检查约束（用于CREATE TABLE）
+     * @param node CREATE TABLE节点
+     * @param constraintName 约束名称（可选，如果为空则自动生成）
+     * @return 成功返回true
+     */
+    bool parseCheckConstraint(CreateTableNode& node, const std::string& constraintName = "");
+    
+    /**
+     * @brief 解析唯一约束（多字段，用于CREATE TABLE）
+     * @param node CREATE TABLE节点
+     * @param constraintName 约束名称（可选，如果为空则自动生成）
+     * @return 成功返回true
+     */
+    bool parseUniqueConstraint(CreateTableNode& node, const std::string& constraintName = "");
+    
+    /**
      * @brief 设置错误信息
      */
     void setError(const std::string& error);

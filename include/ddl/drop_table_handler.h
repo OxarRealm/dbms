@@ -25,9 +25,10 @@ public:
     /**
      * @brief 执行DROP TABLE语句
      * @param sql DROP TABLE SQL语句
+     * @param basePath 数据库基础路径（可选，用于构建完整路径）
      * @return 成功返回true，失败返回false
      */
-    bool execute(const std::string& sql);
+    bool execute(const std::string& sql, const std::string& basePath = "");
     
     /**
      * @brief 获取最后的错误信息

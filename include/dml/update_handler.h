@@ -4,6 +4,7 @@
 #include "sql_parser/ast_node.h"
 #include "core/table_manager.h"
 #include "core/data_manager.h"
+#include "core/constraint_manager.h"
 #include <string>
 #include <memory>
 
@@ -25,9 +26,10 @@ public:
     /**
      * @brief 执行UPDATE语句
      * @param sql UPDATE SQL语句
+     * @param basePath 数据库基础路径（可选，用于解析相对路径的数据库文件名）
      * @return 成功返回true，失败返回false
      */
-    bool execute(const std::string& sql);
+    bool execute(const std::string& sql, const std::string& basePath = "");
     
     /**
      * @brief 获取最后的错误信息
@@ -42,6 +44,7 @@ public:
 private:
     TableManager m_tableManager;   // 表管理器
     DataManager m_dataManager;      // 数据管理器
+    ConstraintManager m_constraintManager;  // 约束管理器
     std::string m_lastError;       // 最后的错误信息
     size_t m_updatedCount;         // 更新的记录数量
     
@@ -95,5 +98,39 @@ private:
      */
     bool checkPrimaryKeyUnique(const std::string& tableName, const TableInfo& tableInfo, 
                                const Record& updatedRecord, size_t currentRecordIndex);
+    
+    /**
+     * @brief 检查唯一约束（更新时）
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param updatedRecord 更新后的记录
+     * @param currentRecordIndex 当前记录的索引（排除此记录）
+     * @param dbName 数据库名
+     * @return 通过检查返回true，否则返回false
+     */
+    bool checkUniqueConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                                const Record& updatedRecord, size_t currentRecordIndex, const std::string& dbName);
+    
+    /**
+     * @brief 检查外键约束（更新时）
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param updatedRecord 更新后的记录
+     * @param dbName 数据库名
+     * @return 通过检查返回true，否则返回false
+     */
+    bool checkForeignKeyConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                                    const Record& updatedRecord, const std::string& dbName);
+    
+    /**
+     * @brief 检查检查约束（更新时）
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param updatedRecord 更新后的记录
+     * @param dbName 数据库名
+     * @return 通过检查返回true，否则返回false
+     */
+    bool checkCheckConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                              const Record& updatedRecord, const std::string& dbName);
 };
 

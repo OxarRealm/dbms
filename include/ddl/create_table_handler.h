@@ -3,6 +3,7 @@
 #include "sql_parser/parser.h"
 #include "sql_parser/ast_node.h"
 #include "core/table_manager.h"
+#include "core/constraint_registry.h"
 #include <string>
 #include <memory>
 
@@ -50,10 +51,30 @@ private:
     bool validateTableStructure(CreateTableNode* node);
     
     /**
+     * @brief 验证表级约束
+     * @param node CREATE TABLE AST节点
+     * @return 验证通过返回true，否则返回false
+     */
+    bool validateConstraints(CreateTableNode* node);
+    
+    /**
+     * @brief 验证外键约束
+     * @param node CREATE TABLE AST节点
+     * @return 验证通过返回true，否则返回false
+     */
+    bool validateForeignKeyConstraints(CreateTableNode* node);
+    
+    /**
      * @brief 创建表结构信息
      * @param node CREATE TABLE AST节点
      * @return TableInfo结构
      */
     TableInfo createTableInfo(CreateTableNode* node);
+    
+    /**
+     * @brief 注册表级约束到约束注册表
+     * @param node CREATE TABLE AST节点
+     */
+    void registerConstraints(CreateTableNode* node);
 };
 

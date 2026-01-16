@@ -76,6 +76,14 @@ std::string Token::getTypeName() const {
         case TokenType::UNION: return "UNION";
         case TokenType::ALL: return "ALL";
         case TokenType::EXISTS: return "EXISTS";
+        case TokenType::UNIQUE: return "UNIQUE";
+        case TokenType::DEFAULT: return "DEFAULT";
+        case TokenType::CHECK: return "CHECK";
+        case TokenType::FOREIGN: return "FOREIGN";
+        case TokenType::REFERENCES: return "REFERENCES";
+        case TokenType::CASCADE: return "CASCADE";
+        case TokenType::RESTRICT: return "RESTRICT";
+        case TokenType::CONSTRAINT: return "CONSTRAINT";
         case TokenType::NOT_EQUALS: return "NOT_EQUALS";
         case TokenType::GREATER_THAN: return "GREATER_THAN";
         case TokenType::LESS_THAN: return "LESS_THAN";
@@ -147,7 +155,15 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"BETWEEN", TokenType::BETWEEN},
         {"UNION", TokenType::UNION},
         {"ALL", TokenType::ALL},
-        {"EXISTS", TokenType::EXISTS}
+        {"EXISTS", TokenType::EXISTS},
+        {"UNIQUE", TokenType::UNIQUE},
+        {"DEFAULT", TokenType::DEFAULT},
+        {"CHECK", TokenType::CHECK},
+        {"FOREIGN", TokenType::FOREIGN},
+        {"REFERENCES", TokenType::REFERENCES},
+        {"CASCADE", TokenType::CASCADE},
+        {"RESTRICT", TokenType::RESTRICT},
+        {"CONSTRAINT", TokenType::CONSTRAINT}
     };
     
     // 转换为大写进行比较（关键词不区分大小写）

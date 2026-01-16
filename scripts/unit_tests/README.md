@@ -78,13 +78,18 @@ cd index
 - test_table_manager: 30个测试
 - test_data_manager: 38个测试
 - test_file_manager: 41个测试
-- **总计**: 145个测试
+- test_constraint_manager: 23个测试（约束管理器）
+- **总计**: 168个测试
 
 ### SQL解析器 (sql_parser)
 - test_lexer: 78个测试
 - test_parser: 已集成到其他测试中
+- test_parser_select: SELECT语句解析测试
+- test_parser_where: WHERE条件解析测试
+- test_token: 92个测试（Token模块独立测试）
+- test_ast_node: 56个测试（AST Node模块独立测试）
 - test_sql_parser: 手动测试程序（用于验证SQL解析逻辑）
-- **总计**: 78个测试（不包括test_sql_parser手动测试）
+- **总计**: 226个测试（不包括test_sql_parser手动测试）
 
 ### DDL功能 (ddl)
 - test_create_table_handler: 24个测试
@@ -117,7 +122,7 @@ cd index
 - test_hash_index: 29个测试
 - **总计**: 57个测试
 
-**所有测试总计**: 736个测试
+**所有测试总计**: 925个测试（包括新增的Token、AST Node和约束管理器测试）
 
 ## 测试脚本说明
 

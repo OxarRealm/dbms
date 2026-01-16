@@ -55,6 +55,11 @@ file(GLOB_RECURSE CORE_SOURCES
     "src/index/*.cpp"
 )
 
+# 显式添加约束管理器（确保被包含）
+list(APPEND CORE_SOURCES "src/core/constraint_manager.cpp")
+list(APPEND CORE_SOURCES "src/core/constraint_registry.cpp")
+list(APPEND CORE_SOURCES "src/core/constraint_storage.cpp")
+
 file(GLOB_RECURSE DDL_SOURCES 
     "src/ddl/*.cpp"
 )
@@ -63,6 +68,10 @@ file(GLOB_RECURSE DML_SOURCES
     "src/dml/*.cpp"
 )
 
+# 显式添加INSERT和UPDATE约束处理（确保被包含）
+list(APPEND DML_SOURCES "src/dml/insert_handler_constraints.cpp")
+list(APPEND DML_SOURCES "src/dml/update_handler_constraints.cpp")
+
 file(GLOB_RECURSE QUERY_SOURCES 
     "src/query/*.cpp"
 )
@@ -70,6 +79,9 @@ file(GLOB_RECURSE QUERY_SOURCES
 file(GLOB_RECURSE SQL_PARSER_SOURCES 
     "src/sql_parser/*.cpp"
 )
+
+# 显式添加约束解析器（确保被包含）
+list(APPEND SQL_PARSER_SOURCES "src/sql_parser/parser_constraints.cpp")
 
 file(GLOB_RECURSE AI_SOURCES 
     "src/ai/*.cpp"

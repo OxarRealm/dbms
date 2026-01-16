@@ -4,19 +4,23 @@
  */
 
 #include "dml/update_handler.h"
+#include "core/constraint_registry.h"
 #include "core/table_mode.h"
+#include "core/constraint.h"
 #include <algorithm>
 #include <cstring>
 #include <sstream>
 #include <iomanip>
+#include <filesystem>
+#include <iostream>
 
-UpdateHandler::UpdateHandler() : m_updatedCount(0) {
+UpdateHandler::UpdateHandler() : m_constraintManager(&m_dataManager), m_updatedCount(0) {
 }
 
 UpdateHandler::~UpdateHandler() {
 }
 
-bool UpdateHandler::execute(const std::string& sql) {
+bool UpdateHandler::execute(const std::string& sql, const std::string& basePath) {
     m_lastError = "";
     m_updatedCount = 0;
     
@@ -36,9 +40,66 @@ bool UpdateHandler::execute(const std::string& sql) {
         return false;
     }
     
+    // 解析数据库路径：如果提供了basePath，使用它来解析相对路径
+    // 否则，假设databaseFileName是完整路径或当前目录下的文件名
+    std::string dbPath = updateNode->databaseFileName;
+    if (!basePath.empty()) {
+        // 如果basePath是完整路径，提取目录部分
+        std::string baseDir = basePath;
+        size_t lastSlash = baseDir.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            baseDir = baseDir.substr(0, lastSlash + 1);
+        } else {
+            baseDir = "";  // 如果basePath没有路径分隔符，使用当前目录
+        }
+        // 组合完整路径
+        if (!baseDir.empty()) {
+            dbPath = baseDir + updateNode->databaseFileName;
+        }
+    }
+    
     // 设置数据库路径
-    m_tableManager.setDatabasePath(updateNode->databaseFileName);
-    m_dataManager.setDatabasePath(updateNode->databaseFileName);
+    m_tableManager.setDatabasePath(dbPath);
+    m_dataManager.setDatabasePath(dbPath);
+    
+    // 提取数据库名（baseName）用于约束查询
+    // 约束注册时使用baseName，所以这里也需要提取baseName
+    // 注意：这里使用updateNode->databaseFileName（SQL中的数据库名），而不是dbPath（完整路径）
+    std::string dbNameForConstraints = updateNode->databaseFileName;
+    try {
+        // 尝试从路径中提取文件名（不含扩展名）
+        std::filesystem::path dbPath(updateNode->databaseFileName);
+        std::string fileName = dbPath.filename().string();
+        // 移除扩展名（如果有）
+        size_t dotPos = fileName.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            fileName = fileName.substr(0, dotPos);
+        }
+        // 如果提取成功且不为空，使用提取的文件名
+        if (!fileName.empty()) {
+            dbNameForConstraints = fileName;
+        }
+    } catch (...) {
+        // 如果filesystem操作失败，使用原始值
+        // 尝试手动提取
+        std::string dbPathStr = updateNode->databaseFileName;
+        size_t lastSlash = dbPathStr.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            dbPathStr = dbPathStr.substr(lastSlash + 1);
+        }
+        size_t dotPos = dbPathStr.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            dbPathStr = dbPathStr.substr(0, dotPos);
+        }
+        if (!dbPathStr.empty()) {
+            dbNameForConstraints = dbPathStr;
+        }
+    }
+    
+    // 调试输出
+    std::cerr << "[UPDATE] dbNameForConstraints=" << dbNameForConstraints 
+              << ", updateNode->databaseFileName=" << updateNode->databaseFileName 
+              << ", dbPath=" << dbPath << std::endl;
     
     // 读取表结构
     TableInfo tableInfo;
@@ -101,11 +162,29 @@ bool UpdateHandler::execute(const std::string& sql) {
             }
         }
         
+        // 检查唯一约束（包括字段级和表级多字段唯一约束）
+        // 注意：即使更新的字段不是唯一字段，如果它是多字段唯一约束的一部分，也应该检查
+        // 因此，始终检查唯一约束
+        if (!checkUniqueConstraints(updateNode->tableName, tableInfo, updatedRecord, 
+                                   recordIndex, dbNameForConstraints)) {
+            return false;
+        }
+        
+        // 检查外键约束
+        if (!checkForeignKeyConstraints(updateNode->tableName, tableInfo, updatedRecord, dbNameForConstraints)) {
+            return false;
+        }
+        
+        // 检查检查约束
+        if (!checkCheckConstraints(updateNode->tableName, tableInfo, updatedRecord, dbNameForConstraints)) {
+            return false;
+        }
+        
         // 更新记录
         if (m_dataManager.updateRecord(updateNode->tableName, recordIndex, updatedRecord)) {
             m_updatedCount++;
         } else {
-            setError("更新记录失败");
+            setError("Failed to update record in table '" + updateNode->tableName + "' at index " + std::to_string(recordIndex));
             return false;
         }
     }
@@ -228,7 +307,7 @@ bool UpdateHandler::validateUpdateValue(const std::string& value, const TableMod
     if (fieldType == "int") {
         // 验证是否为整数
         try {
-            std::stoi(value);
+            (void)std::stoi(value);  // 显式忽略返回值，避免[[nodiscard]]警告
         } catch (...) {
             setError("字段 " + std::string(field.sFieldName) + " 期望整数，但得到: " + value);
             return false;
@@ -237,9 +316,9 @@ bool UpdateHandler::validateUpdateValue(const std::string& value, const TableMod
         // 验证是否为浮点数
         try {
             if (fieldType == "float") {
-                std::stof(value);
+                (void)std::stof(value);  // 显式忽略返回值，避免[[nodiscard]]警告
             } else {
-                std::stod(value);
+                (void)std::stod(value);  // 显式忽略返回值，避免[[nodiscard]]警告
             }
         } catch (...) {
             setError("字段 " + std::string(field.sFieldName) + " 期望浮点数，但得到: " + value);
@@ -315,4 +394,65 @@ bool UpdateHandler::checkPrimaryKeyUnique(const std::string& tableName, const Ta
     
     return true;
 }
+
+bool UpdateHandler::checkUniqueConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                                            const Record& updatedRecord, size_t currentRecordIndex, const std::string& dbName) {
+    // 检查字段级唯一约束（bUnique标志）
+    for (size_t i = 0; i < tableInfo.fields.size() && i < updatedRecord.values.size(); ++i) {
+        const TableMode& field = tableInfo.fields[i];
+        if (field.bUnique == FLAG_KEY) {  // 使用FLAG_KEY表示唯一约束
+            if (!m_constraintManager.checkUniqueField(tableName, field.sFieldName, 
+                                                      updatedRecord.values[i], 
+                                                      dbName, static_cast<int>(currentRecordIndex))) {
+                setError(m_constraintManager.getLastError());
+                return false;
+            }
+        }
+    }
+    
+    // 检查表级唯一约束（多字段）
+    std::vector<UniqueConstraint> uniqueConstraints = 
+        ConstraintRegistry::getInstance().getUniqueConstraints(dbName, tableName);
+    
+    for (const auto& uniqueConstraint : uniqueConstraints) {
+        if (!m_constraintManager.checkUniqueConstraint(tableName, uniqueConstraint, 
+                                                       updatedRecord, tableInfo, dbName, 
+                                                       static_cast<int>(currentRecordIndex))) {
+            setError(m_constraintManager.getLastError());
+            return false;
+        }
+    }
+    
+    return true;
+}
+
+bool UpdateHandler::checkForeignKeyConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                                                const Record& updatedRecord, const std::string& dbName) {
+    // 从约束注册表获取外键约束
+    std::vector<ForeignKeyConstraint> foreignKeys = 
+        ConstraintRegistry::getInstance().getForeignKeyConstraints(dbName, tableName);
+    
+    for (const auto& fk : foreignKeys) {
+        // 找到外键字段的值
+        int fieldIndex = -1;
+        for (size_t i = 0; i < tableInfo.fields.size(); ++i) {
+            if (std::string(tableInfo.fields[i].sFieldName) == std::string(fk.fieldName)) {
+                fieldIndex = static_cast<int>(i);
+                break;
+            }
+        }
+        
+        if (fieldIndex >= 0 && fieldIndex < static_cast<int>(updatedRecord.values.size())) {
+            std::string value = updatedRecord.values[fieldIndex];
+            if (!m_constraintManager.checkForeignKey(fk, value, dbName)) {
+                setError(m_constraintManager.getLastError());
+                return false;
+            }
+        }
+    }
+    
+    return true;
+}
+
+// checkCheckConstraints implementation moved to update_handler_constraints.cpp
 

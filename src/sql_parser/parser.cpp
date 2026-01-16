@@ -5,6 +5,7 @@
 
 #include "sql_parser/parser.h"
 #include "core/table_mode.h"
+#include "core/constraint.h"
 #include <iostream>
 #include <algorithm>
 #include <cstring>
@@ -77,26 +78,101 @@ std::unique_ptr<ASTNode> Parser::parseCreateTable() {
     
     if (!expect(TokenType::LEFT_PAREN, "(")) return nullptr;
     
-    // 解析字段列表
+    // 解析字段列表和表级约束
     auto node = std::make_unique<CreateTableNode>();
     node->tableName = tableName;
     
     while (m_currentToken.type != TokenType::RIGHT_PAREN) {
+        // 检查是否是约束关键字（表级约束）
+        if (m_currentToken.type == TokenType::CONSTRAINT || 
+            m_currentToken.type == TokenType::FOREIGN ||
+            m_currentToken.type == TokenType::CHECK ||
+            m_currentToken.type == TokenType::UNIQUE) {
+            // 遇到约束关键字，退出字段解析循环，进入约束解析
+            break;
+        }
+        
+        // 解析字段定义
         TableMode field;
         if (!parseFieldDefinition(field)) {
             return nullptr;
         }
         node->fields.push_back(field);
         
-        // 如果还有逗号，继续解析下一个字段
+        // 如果还有逗号，继续解析下一个字段或约束
+        if (m_currentToken.type == TokenType::COMMA) {
+            advance();
+        } else if (m_currentToken.type != TokenType::RIGHT_PAREN &&
+                   m_currentToken.type != TokenType::CONSTRAINT &&
+                   m_currentToken.type != TokenType::FOREIGN &&
+                   m_currentToken.type != TokenType::CHECK &&
+                   m_currentToken.type != TokenType::UNIQUE) {
+            setError("Expected ',', ')', or constraint keyword, but got: " + m_currentToken.value);
+            return nullptr;
+        }
+    }
+    
+    // 解析表级约束（可选）
+    // 支持：FOREIGN KEY, CHECK, UNIQUE (多字段)
+    // 注意：约束解析在字段列表之后，但在右括号之前
+    while (m_currentToken.type == TokenType::CONSTRAINT || 
+           m_currentToken.type == TokenType::FOREIGN ||
+           m_currentToken.type == TokenType::CHECK ||
+           m_currentToken.type == TokenType::UNIQUE) {
+        
+        if (m_currentToken.type == TokenType::FOREIGN) {
+            // FOREIGN KEY (field) REFERENCES table(field) [ON DELETE action] [ON UPDATE action]
+            if (!parseForeignKeyConstraint(*node)) {
+                return nullptr;
+            }
+        } else if (m_currentToken.type == TokenType::CHECK) {
+            // CHECK (expression)
+            if (!parseCheckConstraint(*node)) {
+                return nullptr;
+            }
+        } else if (m_currentToken.type == TokenType::UNIQUE) {
+            // UNIQUE (field1, field2, ...) - 多字段唯一约束
+            if (!parseUniqueConstraint(*node)) {
+                return nullptr;
+            }
+        } else if (m_currentToken.type == TokenType::CONSTRAINT) {
+            // CONSTRAINT constraint_name ...
+            advance();
+            // 解析约束名称
+            std::string constraintName = parseIdentifier();
+            if (constraintName.empty()) return nullptr;
+            
+            // 根据下一个关键词决定约束类型
+            if (m_currentToken.type == TokenType::FOREIGN) {
+                if (!parseForeignKeyConstraint(*node, constraintName)) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::CHECK) {
+                if (!parseCheckConstraint(*node, constraintName)) {
+                    return nullptr;
+                }
+            } else if (m_currentToken.type == TokenType::UNIQUE) {
+                if (!parseUniqueConstraint(*node, constraintName)) {
+                    return nullptr;
+                }
+            } else {
+                setError("Expected FOREIGN, CHECK, or UNIQUE after CONSTRAINT, but got: " + m_currentToken.value);
+                return nullptr;
+            }
+        }
+        
+        // 如果还有逗号，继续解析下一个约束
         if (m_currentToken.type == TokenType::COMMA) {
             advance();
         } else if (m_currentToken.type != TokenType::RIGHT_PAREN) {
             setError("Expected ',' or ')', but got: " + m_currentToken.value);
             return nullptr;
+        } else {
+            break;  // 遇到右括号，约束解析结束
         }
     }
     
+    // 期望右括号
     if (!expect(TokenType::RIGHT_PAREN, ")")) return nullptr;
     
     // INTO DatabaseFileName;
@@ -243,8 +319,28 @@ bool Parser::parseDataType(TableMode& field) {
     } else if (m_currentToken.type == TokenType::STRING) {
         strncpy(field.sType, "string", TYPE_NAME_LENGTH - 1);
         field.sType[TYPE_NAME_LENGTH - 1] = '\0';
-        field.iSize = 0;  // 变长字符串
         advance();
+        
+        // 如果是string[50]或string(50)格式，需要解析大小
+        // 支持两种格式：string[50] 和 string(50)
+        if (m_currentToken.type == TokenType::LEFT_BRACKET || m_currentToken.type == TokenType::LEFT_PAREN) {
+            TokenType openBracket = m_currentToken.type;
+            TokenType closeBracket = (openBracket == TokenType::LEFT_BRACKET) ? 
+                                     TokenType::RIGHT_BRACKET : TokenType::RIGHT_PAREN;
+            std::string closeBracketStr = (openBracket == TokenType::LEFT_BRACKET) ? "]" : ")";
+            
+            advance();
+            if (m_currentToken.type == TokenType::NUMBER) {
+                field.iSize = std::stoi(m_currentToken.value);
+                advance();
+            } else {
+                setError("Expected number, but got: " + m_currentToken.value);
+                return false;
+            }
+            if (!expect(closeBracket, closeBracketStr)) return false;
+        } else {
+            field.iSize = 0;  // 默认变长字符串，大小为0
+        }
     } else {
         setError("Unknown data type: " + m_currentToken.value);
         return false;
@@ -290,6 +386,42 @@ bool Parser::parseFlags(TableMode& field) {
         return false;
     }
     
+    // 扩展：解析字段级约束（可选）
+    // UNIQUE - 唯一约束
+    if (m_currentToken.type == TokenType::UNIQUE) {
+        field.bUnique = FLAG_KEY;  // 使用FLAG_KEY表示唯一约束
+        advance();
+    } else {
+        field.bUnique = 0;  // 默认不是唯一约束
+    }
+    
+    // DEFAULT value - 默认值
+    if (m_currentToken.type == TokenType::DEFAULT) {
+        advance();
+        // 解析默认值（字符串或数字）
+        if (m_currentToken.type == TokenType::STRING_LITERAL) {
+            std::string defaultValue = m_currentToken.value;
+            // 去除引号
+            if (defaultValue.length() >= 2 && 
+                ((defaultValue.front() == '\'' && defaultValue.back() == '\'') ||
+                 (defaultValue.front() == '"' && defaultValue.back() == '"'))) {
+                defaultValue = defaultValue.substr(1, defaultValue.length() - 2);
+            }
+            strncpy(field.sDefaultValue, defaultValue.c_str(), 127);
+            field.sDefaultValue[127] = '\0';
+            advance();
+        } else if (m_currentToken.type == TokenType::NUMBER) {
+            strncpy(field.sDefaultValue, m_currentToken.value.c_str(), 127);
+            field.sDefaultValue[127] = '\0';
+            advance();
+        } else {
+            setError("Expected string or number for DEFAULT value, but got: " + m_currentToken.value);
+            return false;
+        }
+    } else {
+        field.sDefaultValue[0] = '\0';  // 默认无默认值
+    }
+    
     return true;
 }
 
@@ -318,14 +450,20 @@ std::string Parser::parseIdentifier() {
 
 std::string Parser::parseDatabaseFileName() {
     // INTO DatabaseFileName 或 IN DatabaseFileName
-    if (m_currentToken.type == TokenType::INTO || m_currentToken.type == TokenType::IN) {
-        advance();
-        std::string fileName = parseIdentifier();
-        return fileName;
-    } else {
+    // 注意：这个函数期望在调用时，当前token已经是IN或INTO
+    // 如果当前token不是IN或INTO，说明调用方式错误
+    if (m_currentToken.type != TokenType::INTO && m_currentToken.type != TokenType::IN) {
         setError("Expected INTO or IN, but got: " + m_currentToken.value);
         return "";
     }
+    
+    advance();  // 跳过IN或INTO
+    
+    // 数据库文件名可能是标识符，也可能是关键字（虽然不应该，但为了兼容性）
+    // 接受任何标识符或关键字作为文件名
+    std::string fileName = m_currentToken.value;
+    advance();
+    return fileName;
 }
 
 void Parser::advance() {
@@ -367,7 +505,14 @@ std::unique_ptr<ASTNode> Parser::parseInsert() {
     }
     
     // TableName
-    node->tableName = parseIdentifier();
+    // 表名可能是关键字（虽然不应该，但为了兼容性）
+    if (m_currentToken.type == TokenType::IDENTIFIER) {
+        node->tableName = parseIdentifier();
+    } else {
+        // 如果是关键字，也接受作为表名
+        node->tableName = m_currentToken.value;
+        advance();
+    }
     if (node->tableName.empty()) {
         return nullptr;
     }
@@ -385,15 +530,47 @@ std::unique_ptr<ASTNode> Parser::parseInsert() {
     // 解析值列表
     while (true) {
         // 解析值（字符串字面量或数字）
+        // 注意：也接受标识符和关键字作为值（可能是未加引号的字符串值）
+        // 这样可以处理值恰好是关键字的情况（虽然不应该，但为了兼容性）
         if (m_currentToken.type == TokenType::STRING_LITERAL) {
             node->values.push_back(m_currentToken.value);
             advance();
         } else if (m_currentToken.type == TokenType::NUMBER) {
             node->values.push_back(m_currentToken.value);
             advance();
+        } else if (m_currentToken.type == TokenType::ERROR && m_currentToken.value == "-") {
+            // 处理负数：-后面跟数字
+            advance();  // 跳过'-'
+            if (m_currentToken.type == TokenType::NUMBER) {
+                // 组合成负数
+                node->values.push_back("-" + m_currentToken.value);
+                advance();
+            } else {
+                setError("Expected number after '-', but got: " + m_currentToken.value);
+                return nullptr;
+            }
+        } else if (m_currentToken.type == TokenType::IDENTIFIER) {
+            // 允许标识符作为值（用于未加引号的字符串或数字）
+            // 这在GUI生成的SQL中可能出现，因为某些值可能没有正确加引号
+            node->values.push_back(m_currentToken.value);
+            advance();
         } else {
-            setError("Expected value (string or number), but got: " + m_currentToken.value);
-            return nullptr;
+            // 如果遇到关键字，也接受其值（虽然不应该，但为了兼容性）
+            // 这样可以处理值恰好是关键字的情况（例如：值"constraint"）
+            // 但需要排除一些特殊关键字，这些关键字不应该作为值
+            if (m_currentToken.type == TokenType::IN || 
+                m_currentToken.type == TokenType::INTO ||
+                m_currentToken.type == TokenType::VALUES ||
+                m_currentToken.type == TokenType::RIGHT_PAREN ||
+                m_currentToken.type == TokenType::COMMA ||
+                m_currentToken.type == TokenType::SEMICOLON) {
+                // 这些是语法关键字，不应该作为值
+                setError("Expected value (string, number, or identifier), but got: " + m_currentToken.value);
+                return nullptr;
+            }
+            // 其他关键字（如CONSTRAINT, UNIQUE等）可以作为值（虽然不应该）
+            node->values.push_back(m_currentToken.value);
+            advance();
         }
         
         // 检查是否有逗号（继续解析）或右括号（结束）
@@ -516,13 +693,24 @@ std::unique_ptr<ASTNode> Parser::parseUpdate() {
         return nullptr;
     }
     
-    // Value1
+    // Value1（支持负数）
     if (m_currentToken.type == TokenType::STRING_LITERAL) {
         node->setValue = m_currentToken.value;
         advance();
     } else if (m_currentToken.type == TokenType::NUMBER) {
         node->setValue = m_currentToken.value;
         advance();
+    } else if (m_currentToken.type == TokenType::ERROR && m_currentToken.value == "-") {
+        // 处理负数：-后面跟数字
+        advance();  // 跳过'-'
+        if (m_currentToken.type == TokenType::NUMBER) {
+            // 组合成负数
+            node->setValue = "-" + m_currentToken.value;
+            advance();
+        } else {
+            setError("Expected number after '-', but got: " + m_currentToken.value);
+            return nullptr;
+        }
     } else {
         setError("Expected value (string or number), but got: " + m_currentToken.value);
         return nullptr;
@@ -544,13 +732,24 @@ std::unique_ptr<ASTNode> Parser::parseUpdate() {
         return nullptr;
     }
     
-    // Value2
+    // Value2（支持负数）
     if (m_currentToken.type == TokenType::STRING_LITERAL) {
         node->whereValue = m_currentToken.value;
         advance();
     } else if (m_currentToken.type == TokenType::NUMBER) {
         node->whereValue = m_currentToken.value;
         advance();
+    } else if (m_currentToken.type == TokenType::ERROR && m_currentToken.value == "-") {
+        // 处理负数：-后面跟数字
+        advance();  // 跳过'-'
+        if (m_currentToken.type == TokenType::NUMBER) {
+            // 组合成负数
+            node->whereValue = "-" + m_currentToken.value;
+            advance();
+        } else {
+            setError("Expected number after '-', but got: " + m_currentToken.value);
+            return nullptr;
+        }
     } else {
         setError("Expected value (string or number), but got: " + m_currentToken.value);
         return nullptr;

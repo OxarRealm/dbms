@@ -51,7 +51,7 @@ bool DDLExecutor::execute(const std::string& sql) {
             break;
             
         case StatementType::DROP_TABLE:
-            result = m_dropHandler.execute(sql);
+            result = m_dropHandler.execute(sql, m_databasePath);
             if (!result) {
                 setError("DROP TABLE execution failed: " + m_dropHandler.getLastError());
             }

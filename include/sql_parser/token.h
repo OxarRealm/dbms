@@ -29,6 +29,10 @@ enum class TokenType {
     UNION, ALL,
     EXISTS,
     
+    // 约束关键词
+    UNIQUE, DEFAULT, CHECK, FOREIGN, REFERENCES,
+    CASCADE, RESTRICT, CONSTRAINT,
+    
     // 数据类型
     INT, CHAR, FLOAT, DOUBLE, STRING,
     

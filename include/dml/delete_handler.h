@@ -4,6 +4,7 @@
 #include "sql_parser/ast_node.h"
 #include "core/table_manager.h"
 #include "core/data_manager.h"
+#include "core/constraint_manager.h"
 #include <string>
 #include <memory>
 
@@ -42,6 +43,7 @@ public:
 private:
     TableManager m_tableManager;   // 表管理器
     DataManager m_dataManager;      // 数据管理器
+    ConstraintManager m_constraintManager;  // 约束管理器
     std::string m_lastError;       // 最后的错误信息
     size_t m_deletedCount;         // 删除的记录数量
     
@@ -68,5 +70,16 @@ private:
      * @return 字段索引，如果不存在返回-1
      */
     int findFieldIndex(const TableInfo& tableInfo, const std::string& fieldName);
+    
+    /**
+     * @brief 检查外键约束（删除时）
+     * @param tableName 表名
+     * @param tableInfo 表结构信息
+     * @param record 要删除的记录
+     * @param dbName 数据库名
+     * @return 通过检查返回true，否则返回false
+     */
+    bool checkForeignKeyConstraints(const std::string& tableName, const TableInfo& tableInfo, 
+                                    const Record& record, const std::string& dbName);
 };
 

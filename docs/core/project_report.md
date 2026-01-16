@@ -261,6 +261,41 @@ DDLExecutor类：
 
 **实现文件**：`include/ddl/ddl_executor.h`, `src/ddl/ddl_executor.cpp`
 
+**3.4.6 约束管理实现** ✅（已完成，2026-01-15）
+
+ConstraintManager类：
+- `checkUniqueConstraint()` - 检查唯一约束（单字段和多字段）
+- `checkForeignKey()` - 检查外键引用完整性
+- `evaluateCheckExpression()` - 评估检查约束表达式（支持AND/OR逻辑）
+- `applyDefaultValues()` - 应用默认值
+
+ConstraintRegistry单例：
+- 管理内存中的约束定义
+- 提供约束注册、查询、清除接口
+
+ConstraintStorageManager类：
+- `saveConstraints()` - 保存约束到.cst文件
+- `loadConstraints()` - 从.cst文件加载约束
+- `deleteTableConstraints()` - 删除表的约束
+
+**实现文件**：
+- `include/core/constraint_manager.h`, `src/core/constraint_manager.cpp`
+- `include/core/constraint_registry.h`, `src/core/constraint_registry.cpp`
+- `include/core/constraint_storage.h`, `src/core/constraint_storage.cpp`
+
+**3.4.7 SQL约束语法解析** ✅（已完成，2026-01-15）
+
+Parser约束解析扩展：
+- `parseForeignKeyConstraint()` - 解析外键约束（支持ON DELETE/UPDATE动作）
+- `parseUniqueConstraint()` - 解析多字段唯一约束
+- `parseCheckConstraint()` - 解析检查约束（支持AND/OR逻辑表达式）
+- 扩展`parseCreateTable()`支持约束语法
+- 扩展`parseFlags()`支持UNIQUE和DEFAULT关键字
+
+**实现文件**：
+- `src/sql_parser/parser_constraints.cpp` - 约束解析实现
+- `src/sql_parser/parser.cpp` - CREATE TABLE解析扩展
+
 #### 3.5 DML实现设计 ✅
 
 **3.5.1 INSERT实现**
@@ -308,6 +343,30 @@ DMLExecutor类：
 - getAffectedRows方法获取影响的记录数
 
 **实现文件**：`include/dml/dml_executor.h`, `src/dml/dml_executor.cpp`
+
+**3.5.5 DML约束检查集成** ✅（已完成，2026-01-15）
+
+InsertHandler约束检查：
+- `applyDefaultValues()` - 应用默认值（当字段值为空或NULL时）
+- `checkPrimaryKeyUnique()` - 检查主键唯一性
+- `checkUniqueConstraints()` - 检查唯一约束（字段级和表级多字段）
+- `checkForeignKeyConstraints()` - 检查外键引用完整性
+- `checkCheckConstraints()` - 检查检查约束表达式
+
+UpdateHandler约束检查：
+- `checkPrimaryKeyUnique()` - 检查主键唯一性
+- `checkUniqueConstraints()` - 检查唯一约束（字段级和表级多字段）
+- `checkForeignKeyConstraints()` - 检查外键引用完整性
+- `checkCheckConstraints()` - 检查检查约束表达式
+
+DeleteHandler约束检查：
+- `checkForeignKeyConstraints()` - 实现外键级联删除（CASCADE和SET NULL）
+- 支持多级级联删除（递归处理）
+
+**实现文件**：
+- `src/dml/insert_handler.cpp`, `src/dml/insert_handler_constraints.cpp`
+- `src/dml/update_handler.cpp`, `src/dml/update_handler_constraints.cpp`
+- `src/dml/delete_handler.cpp`
 
 #### 3.6 查询实现设计 ✅
 
@@ -753,7 +812,7 @@ IndexAdvisor类：
 
 **注**：本文档为项目报告模板，将在项目开发过程中逐步完善各项内容。
 
-**最后更新**：2026-01-15
+**最后更新**：2026-01-16
 
 **更新内容**：
 - 阶段5.1（GUI最小可运行程序）已完成（2026-01-14）
@@ -761,7 +820,7 @@ IndexAdvisor类：
 - 阶段5.3（GUI数据库管理和表结构管理界面）已完成（2026-01-14）
 - 阶段5.4（GUI数据操作界面）已完成（2026-01-14）
 - 阶段5.5（GUI SQL执行界面）已完成（2026-01-15）
-- 阶段7.0（SQL查询功能扩展）大部分完成（2026-01-15）
+- 阶段7.0（SQL查询功能扩展）全部完成（2026-01-15）
   - ORDER BY、DISTINCT、LIMIT功能实现
   - 比较运算符（>, <, >=, <=, !=）实现
   - 复杂WHERE条件（AND, OR, NOT，支持括号优先级）实现
@@ -769,10 +828,26 @@ IndexAdvisor类：
   - GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）实现
   - HAVING子句实现
   - FULL OUTER JOIN实现
+  - NATURAL JOIN实现（支持所有变体）
+  - UNION和UNION ALL实现（支持多个UNION连接和全局ORDER BY/LIMIT）
+  - 子查询实现（标量、IN、EXISTS/NOT EXISTS、关联、嵌套）
+- 数据完整性约束功能全部完成（2026-01-15）
+  - PRIMARY KEY约束（主键唯一性、非空）
+  - UNIQUE约束（字段级和表级多字段唯一约束）
+  - DEFAULT约束（默认值，支持INSERT时自动应用）
+  - FOREIGN KEY约束（外键引用完整性，支持ON DELETE CASCADE/SET NULL/RESTRICT/NO ACTION，ON UPDATE RESTRICT）
+  - CHECK约束（检查约束，支持AND/OR逻辑表达式）
+  - 约束持久化存储（.cst文件）
+  - GUI约束管理界面（创建、编辑、删除约束）
+  - SQL约束语法支持（CREATE TABLE、ALTER TABLE）
+  - DML约束检查集成（INSERT、UPDATE、DELETE操作时自动检查约束）
 - GUI程序能够成功编译并运行
 - 主窗口正常显示，所有基础功能正常工作
 - 所有新增SQL功能测试全部通过
+- 所有约束功能测试全部通过
 - 数据库管理、表管理、数据操作、SQL执行功能已实现并测试通过
 - 修复了DROP TABLE后数据未完全删除的问题
 - 修复了RENAME TABLE后.dbf和.dat文件不同步的问题
 - 完善了SQL执行测试用例文档（添加JOIN查询测试用例）
+- 文档重新分类和归档（2026-01-16）
+- 生成GUI和SQL全面测试指南（2026-01-16）
