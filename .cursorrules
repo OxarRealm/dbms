@@ -1,0 +1,333 @@
+# 数据库新技术实践课程设计 - 项目规则文档
+
+## 项目基本信息
+- **项目名称**：数据库管理系统 (Database Management System, DBMS)
+- **编程语言**：C++
+- **GUI框架**：Qt (C++)
+- **开发环境**：VSCode (Cursor)
+- **课程**：数据库新技术实践
+- **项目定位**：通用数据库管理系统（类似SQL Server）
+- **数据库新技术**：多种索引技术（相邻索引、哈希索引、B+树索引）、智能索引建议系统、查询优化
+
+## 代码规范
+
+### 1. 命名规范
+- **类名**：使用PascalCase，如 `TableManager`, `SQLParser`
+- **函数名**：使用camelCase，如 `createTable()`, `insertRecord()`
+- **变量名**：使用camelCase，如 `tableName`, `fieldCount`
+- **常量名**：使用UPPER_SNAKE_CASE，如 `MAX_FIELD_LENGTH`, `DB_FILE_EXTENSION`
+- **私有成员变量**：使用 `m_` 前缀，如 `m_tableName`, `m_fieldList`
+- **文件命名**：使用snake_case，如 `table_manager.cpp`, `sql_parser.h`
+
+### 2. 代码风格
+- 使用4个空格缩进（不使用Tab）
+- 大括号采用K&R风格（左大括号不换行）
+- 每行代码长度不超过120个字符
+- 函数之间空一行，类方法之间空一行
+- 注释使用中文，关键算法和复杂逻辑必须注释
+
+### 3. 头文件规范
+- 所有头文件使用 `#pragma once` 或头文件保护
+- 头文件包含顺序：系统头文件 → Qt头文件 → 项目头文件
+- 避免循环依赖
+- 头文件中只包含必要的声明，实现放在.cpp文件
+
+### 4. 文件组织
+- 核心功能放在 `src/core/` 和 `include/core/`
+- DDL功能放在 `src/ddl/` 和 `include/ddl/`
+- DML功能放在 `src/dml/` 和 `include/dml/`
+- 查询功能放在 `src/query/` 和 `include/query/`
+- SQL解析放在 `src/sql_parser/` 和 `include/sql_parser/`
+- AI推荐算法放在 `src/ai/` 和 `include/ai/`
+- GUI界面放在 `src/gui/` 和 `include/gui/`
+
+## 数据结构规范
+
+### 1. 表结构定义
+- 使用课程提供的 `TableMode` 结构体定义字段
+- 字段名长度限制：`FIELD_NAME_LENGTH` (建议32)
+- 支持的数据类型：char, int, float, double, string等
+
+### 2. 文件存储格式
+- **数据库文件 (.dbf)**：存储表结构模式
+  - 使用分隔符 '~' 分隔不同表
+  - 定长或变长存储方式（建议先使用变长）
+- **数据文件 (.dat)**：存储表记录
+  - 使用分隔符 '~' 分隔不同表的数据
+  - 记录采用定长或变长存储（根据字段类型）
+
+### 3. 错误处理
+- 使用返回值或异常处理错误
+- 函数返回bool表示成功/失败，或返回错误码
+- 关键操作需要错误检查和日志记录
+
+## SQL语法规范
+
+### DDL语句格式
+```sql
+CREATE TABLE TableName (
+    FieldName1 Type1 KEY_Flag1 NULL_Flag1 VALID_Flag1,
+    FieldName2 Type2 KEY_Flag2 NULL_Flag2 VALID_Flag2,
+    ...
+) INTO DatabaseFileName;
+
+EDIT TABLE TableName (
+    FieldName Type KEY_Flag NULL_Flag VALID_Flag
+) IN DatabaseFileName;
+
+RENAME TABLE OldTableName NewTableName IN DatabaseFileName;
+
+DROP TABLE TableName IN DatabaseFileName;
+```
+
+### DML语句格式
+```sql
+INSERT INTO TableName VALUES (value1, value2, ...) IN DatabaseFileName;
+
+DELETE FROM TableName WHERE Field=Value IN DatabaseFileName;
+
+UPDATE TableName (
+    SET Field1=Value1
+    WHERE Field2=Value2
+) IN DatabaseFileName;
+```
+
+### 查询语句格式
+```sql
+SELECT * FROM TableName1, TableName2 WHERE Condition;
+```
+
+## 数据库新技术规范
+
+### 1. 索引技术实现
+- **相邻索引（Adjacent Index）**：范围查询优化，维护相邻记录指针
+- **哈希索引（Hash Index）**：点查询优化，O(1)平均时间复杂度
+- **B+树索引（B+Tree Index）**：通用索引，支持排序和范围查询（计划中）
+- **智能索引建议系统（Index Advisor）**：AI辅助索引推荐，基于查询日志分析
+
+### 2. 索引数据结构
+- 相邻索引：相邻记录指针映射
+- 哈希索引：哈希表结构（链地址法）
+- B+树索引：B+树节点结构（计划中）
+- 索引建议：字段使用统计、慢查询识别、推荐算法
+
+### 3. 性能要求
+- 索引构建时间：可接受范围内
+- 查询性能提升：显著（2-5倍）
+- 索引建议响应时间 < 1秒
+
+## Qt GUI规范
+
+### 1. 界面设计
+- 使用Qt Designer设计界面（.ui文件）
+- 界面布局使用布局管理器，避免固定坐标
+- 保持界面简洁、美观、易用
+- 中文界面
+- **字体要求**：所有英文文本使用Segoe UI字体（通过QFont设置）
+
+### 2. 主要界面模块
+- 表结构管理界面（创建、查看、修改表）
+- 数据操作界面（插入、删除、修改、查看记录）
+- SQL执行界面（输入SQL语句，显示结果）
+- 推荐系统界面（输入查询，显示推荐结果）
+- 系统设置界面
+
+### 3. 信号槽机制
+- 使用Qt的信号槽机制处理事件
+- 避免直接调用，使用信号槽解耦
+
+## 测试规范
+
+### 1. 单元测试
+- 核心功能函数需要单元测试
+- 测试文件放在 `tests/` 目录
+- 使用断言验证功能正确性
+
+### 2. 集成测试
+- 测试SQL语句解析和执行
+- 测试文件读写操作
+- 测试推荐算法准确性
+
+### 3. 测试脚本要求
+- **每完成一个功能模块，必须编写对应的测试脚本**
+- 测试脚本放在 `scripts/` 目录的对应位置：
+  - 单元测试：`scripts/unit_tests/`
+  - 模块测试：`scripts/module_tests/`
+  - 集成测试：`scripts/integration_tests/`
+  - 边界测试：`scripts/boundary_tests/`
+  - 性能测试：`scripts/performance_tests/`
+- 测试脚本应包括：
+  - 测试代码（C++测试程序或脚本）
+  - 运行脚本（.ps1或.sh）
+  - 测试结果输出
+- **完成功能模块后，必须运行测试脚本验证功能**
+- 测试通过后才能进入下一个功能模块的开发
+
+## 文档规范
+
+### 1. 代码注释
+- 类和方法必须有注释说明功能
+- 复杂算法必须有详细注释
+- 使用Doxygen风格注释（可选）
+
+### 2. 文档格式规范
+- **日期格式**：使用YYYY-MM-DD格式（如2026-01-15）
+- **标题层级**：日期使用##（二级标题），子章节使用###（三级标题）
+- **列表格式**：使用统一的列表格式（- 或1.），保持一致性
+- **更新记录**：在文档末尾或指定位置记录最后更新时间
+- **格式一致性**：保持文档之间的格式风格统一，沿用历史格式排版
+
+### 3. 文档更新
+
+**更新时机**：
+- 完成一个功能模块后，需要更新相关文档
+- 修复重要bug后，更新开发日志
+- 版本发布前，更新版本记录
+
+**需要更新的文档列表**：
+- `docs/development/cursor_context.md` - 项目进度跟踪（必须更新）
+- `docs/core/development_log.md` - 开发日志（记录开发过程和决策）
+- `docs/core/iteration_records.md` - 版本迭代记录（版本发布时更新）
+- `docs/project/project_architecture.md` - 项目架构设计（架构变更时更新）
+- `docs/development/project_task_guide.md` - 任务进度指南（任务完成时更新进度）
+- `docs/core/project_report.md` - 项目报告（完成功能模块后补充相应内容）
+- `docs/README.md` - 文档目录说明（新增文档时更新）
+- `README.md` - 项目主README（重要更新时同步）
+- `USER_GUIDE.md` - 用户操作指南（功能变更时同步更新）
+- GUI中的Guide标签页内容（与USER_GUIDE.md保持同步）
+
+**文档更新流程**：
+1. 完成功能模块后，AI应提示用户是否需要更新文档
+2. 用户确认后，统一进行文档更新
+3. 或者用户主动要求更新文档时，AI应立即执行更新
+4. 确保所有相关文档同步更新，保持一致性
+
+**更新内容要求**：
+- 准确反映项目当前状态
+- 保持文档之间的信息一致
+- 及时记录重要决策和变更
+- 更新进度和完成度信息
+
+## 构建规范
+
+### 1. CMake配置
+- 使用CMake构建系统
+- CMakeLists.txt放在项目根目录
+- 支持Debug和Release模式
+
+### 2. 依赖管理
+- Qt版本：Qt 5.15+ 或 Qt 6.x
+- C++标准：C++14 或 C++17
+- 编译器：MSVC (Windows) 或 GCC/Clang (Linux/Mac)
+
+### 3. 终端命令执行规范
+
+**问题**：某些PowerShell命令可能会卡住或没有输出结果，常见原因包括：
+- 输出缓冲：某些命令输出量大，需要等待
+- 交互式提示：某些命令等待用户输入
+- 长时间运行：编译等操作需要时间
+- 管道和复杂过滤：复杂的Select-String和管道可能导致卡住
+
+**解决方案**：
+1. **使用简单的文件检查命令**：
+   ```powershell
+   Test-Path <文件路径>
+   Get-ChildItem -Path <目录> -Filter "*.cpp" | Select-Object Name
+   ```
+
+2. **避免复杂的管道和过滤**：
+   - 不推荐：`cmake --build . 2>&1 | Select-String -Pattern "error" | Select-Object -First 10`
+   - 推荐：直接运行 `cmake --build .`，然后手动查看输出
+
+3. **对于长时间运行的命令**：
+   - 使用 `is_background: true` 在后台运行
+   - 或者直接运行，不等待输出
+
+4. **检查文件是否存在**：
+   ```powershell
+   # 简单方式
+   Test-Path src\core\constraint_manager.cpp
+   
+   # 列出文件
+   Get-ChildItem -Path src\core -Filter "*.cpp"
+   ```
+
+5. **CMake配置检查**：
+   - 直接查看 `CMakeLists.txt` 文件内容
+   - 使用 `read_file` 工具读取文件，而不是运行CMake命令检查
+
+## Git提交规范
+
+### 提交信息格式
+```
+<type>(<scope>): <subject>
+
+<body>
+
+<footer>
+```
+
+类型（type）：
+- feat: 新功能
+- fix: 修复bug
+- docs: 文档更新
+- style: 代码格式调整
+- refactor: 重构
+- test: 测试相关
+- chore: 构建/工具相关
+
+示例：
+```
+feat(ddl): 实现CREATE TABLE语句解析
+
+实现了CREATE TABLE语句的词法分析和语法解析，
+支持字段定义和表结构创建。
+
+Closes #1
+```
+
+## 开发流程
+
+1. 创建功能分支
+2. 开发功能并编写测试
+3. 更新相关文档
+4. 提交代码（遵循提交规范）
+5. 合并到主分支
+
+## 文档规范
+
+### 1. 文档语言
+- **项目文档（.md文件）**：全部使用中文编写
+- **GUI界面**：所有用户可见的文本、弹窗、提示信息使用英文
+- **代码注释**：使用中文，关键算法和复杂逻辑必须注释
+- **错误消息**：所有错误消息使用英文（GUI界面要求）
+
+### 2. 文档更新
+- 完成功能模块后，需要更新相关文档
+- 修复重要bug后，更新开发日志
+- 版本发布前，更新版本记录
+
+## 注意事项
+
+1. **文件路径**：使用相对路径，避免硬编码绝对路径
+2. **编码**：所有源代码文件使用UTF-8编码
+3. **兼容性**：考虑Windows/Linux跨平台兼容性
+4. **性能**：关注文件I/O性能，大数据量时考虑优化
+5. **安全性**：SQL注入防护（虽然是自己实现的SQL，也要注意安全性）
+6. **语言规范**：项目文档使用中文，GUI界面使用英文
+
+## 课程要求对照
+
+- ✅ 表结构存储管理 (.dbf文件)
+- ✅ 记录存储管理 (.dat文件)
+- ✅ DDL实现（CREATE, EDIT, RENAME, DROP TABLE）
+- ✅ DML实现（INSERT, DELETE, UPDATE）
+- ✅ 查询实现（SELECT单表、多表、连接查询）
+- ✅ AI新技术融合（智能推荐系统）
+- ✅ GUI界面实现（Qt）
+
+## 参考资源
+
+- Qt官方文档：https://doc.qt.io/
+- C++参考：https://en.cppreference.com/
+- 课程参考书籍：《数据库管理系统内部结构及其C语言实现》

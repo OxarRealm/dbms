@@ -1,0 +1,363 @@
+# 数据库管理系统 (DBMS)
+
+> 数据库新技术实践课程设计项目
+
+## 项目简介
+
+本项目是一个基于C++和Qt开发的通用数据库管理系统（DBMS），实现了完整的数据库管理功能，包含表结构管理、数据操作、SQL查询、索引管理、查询优化等核心功能。系统采用自定义文件存储格式（.dbf和.dat文件），支持多种索引技术（相邻索引、哈希索引、B+树索引）和智能索引建议系统。
+
+## 技术栈
+
+- **编程语言**：C++
+- **GUI框架**：Qt (C++)
+- **开发环境**：VSCode (Cursor)
+- **构建工具**：CMake
+- **版本控制**：Git
+
+## 核心功能
+
+### 1. 数据存储结构的设计与管理
+- 表构造模式存储（.dbf文件）
+- 记录数据存储（.dat文件）
+- 支持多表存储和管理
+
+### 2. 数据定义语言（DDL）
+- CREATE TABLE - 创建表
+- EDIT TABLE - 编辑表结构
+- RENAME TABLE - 重命名表
+- DROP TABLE - 删除表
+
+### 3. 数据操纵语言（DML）
+- INSERT - 插入记录
+- DELETE - 删除记录
+- UPDATE - 更新记录
+
+### 4. 数据完整性约束
+- PRIMARY KEY - 主键约束（唯一性、非空）
+- UNIQUE - 唯一约束（字段级和表级多字段唯一约束）
+- DEFAULT - 默认值约束
+- FOREIGN KEY - 外键约束（引用完整性，支持ON DELETE CASCADE/SET NULL/RESTRICT/NO ACTION，ON UPDATE RESTRICT）
+- CHECK - 检查约束（支持AND/OR逻辑表达式）
+- NOT NULL - 非空约束
+
+### 5. 数据库查询
+- SELECT 单表查询
+- SELECT 多表查询
+- SELECT 连接查询（INNER JOIN, LEFT JOIN, RIGHT JOIN, FULL OUTER JOIN）
+- ORDER BY排序、DISTINCT去重、LIMIT分页
+- 复杂WHERE条件（AND, OR, NOT，支持括号优先级）
+- LIKE模式匹配、IN子句、BETWEEN范围查询
+- GROUP BY分组、聚合函数（COUNT, SUM, AVG, MAX, MIN）
+- HAVING子句（分组过滤）
+
+### 6. 索引管理
+- 相邻索引（Adjacent Index）- 范围查询优化
+- 哈希索引（Hash Index）- 点查询优化（O(1)平均时间复杂度）
+- 智能索引建议系统（Index Advisor）- AI辅助索引推荐
+
+### 7. GUI图形界面
+- 数据库管理（创建、打开数据库）
+- 表结构管理（创建、编辑、重命名、删除表，约束管理）
+- 数据操作（插入、更新、删除、查看记录）
+- SQL执行（支持批量执行、结果显示、错误提示）
+- 索引管理（创建、查看、删除索引，索引建议）
+
+## 项目结构
+
+```
+database-design/
+├── src/                    # 源代码目录
+│   ├── core/              # 核心功能（文件操作、数据结构）
+│   ├── ddl/               # DDL实现
+│   ├── dml/               # DML实现
+│   ├── query/             # 查询实现
+│   ├── sql_parser/        # SQL解析
+│   ├── ai/                # AI推荐算法
+│   └── gui/               # Qt界面
+├── include/                # 头文件目录
+├── resources/              # 资源文件
+├── tests/                  # 测试代码
+├── build/                  # 构建输出
+├── examples/               # 示例文件
+├── data/                   # 数据文件（.dbf, .dat）
+└── docs/                   # 文档目录
+```
+
+## 数据库设计
+
+### 核心数据表
+
+1. **Users（用户表）**
+   - UserID, UserName, RegisterTime
+
+2. **Songs（歌曲表）**
+   - SongID, SongName, Artist, Genre, Year, Duration
+
+3. **PlayRecords（播放记录表）**
+   - RecordID, UserID, SongID, PlayTime, PlayCount
+
+4. **Playlists（歌单表）**
+   - PlaylistID, UserID, PlaylistName, CreateTime
+
+5. **PlaylistSongs（歌单-歌曲关联表）**
+   - RelationID, PlaylistID, SongID
+
+## 编译和运行
+
+### 环境要求
+- C++14 或 C++17 编译器（推荐C++17）
+- Qt 5.15+ 或 Qt 6.x（当前使用Qt 5.15.2）
+- CMake 3.10+（当前使用CMake 4.2.1）
+- MSVC编译器（Windows）或 GCC/Clang（Linux/Mac）
+
+### 编译步骤
+
+```bash
+# 创建构建目录
+mkdir build
+cd build
+
+# 生成构建文件
+cmake ..
+
+# 编译
+cmake --build .
+
+# 运行
+./database-design  # Linux/Mac
+database-design.exe  # Windows
+```
+
+## 使用说明
+
+### 1. 创建数据库表
+
+```sql
+CREATE TABLE Songs (
+    SongID int KEY NO_NULL VALID,
+    SongName char[100] NOT_KEY NO_NULL VALID,
+    Artist char[50] NOT_KEY NULL VALID,
+    Genre char[30] NOT_KEY NULL VALID
+) INTO MusicDB;
+```
+
+### 2. 插入数据
+
+```sql
+INSERT INTO Songs VALUES (1, 'Bohemian Rhapsody', 'Queen', 'Rock') IN MusicDB;
+```
+
+### 3. 查询数据
+
+```sql
+SELECT * FROM Songs WHERE Genre='Rock';
+```
+
+### 4. 智能推荐
+
+在GUI界面中选择用户和查询条件，系统会自动推荐相似歌曲。
+
+## 开发日志
+
+详细开发过程请参考 [docs/core/development_log.md](docs/core/development_log.md)
+
+## 项目架构
+
+详细架构设计请参考 [docs/project/project_architecture.md](docs/project/project_architecture.md)
+
+## 版本历史
+
+版本迭代记录请参考 [docs/core/iteration_records.md](docs/core/iteration_records.md)
+
+## 课程报告
+
+项目报告请参考 [docs/core/project_report.md](docs/core/project_report.md)
+
+## 贡献者
+
+- 吕金鸣 (23013085) - 组长
+- 李雨宣 (23013083)
+
+## 许可证
+
+本项目为课程设计项目，仅供学习使用。
+
+## 参考资料
+
+- 《数据库管理系统内部结构及其C语言实现》，唐常杰，电子科技大学出版社，1995
+- Qt官方文档：https://doc.qt.io/
+- C++参考：https://en.cppreference.com/
+
+---
+
+## 当前状态
+
+- ✅ 项目初始化完成
+- ✅ 开发环境配置完成（CMake 4.2.1, Qt 5.15.2, MSVC编译器）
+- ✅ CMake配置验证通过
+- ✅ **阶段1：核心数据结构与文件存储已完成**
+  - ✅ 任务1.1：定义核心数据结构（36测试通过）
+  - ✅ 任务1.2：实现.dbf文件读写（30测试通过）
+  - ✅ 任务1.3：实现.dat文件读写（38测试通过）
+  - ✅ 任务1.4：基础文件I/O封装（41测试通过）
+  - **总计：145个测试全部通过**
+- ✅ **阶段2：DDL实现已完成**
+  - ✅ 任务2.1：SQL解析器基础框架（78测试通过）
+  - ✅ 任务2.2：CREATE TABLE实现（24测试通过）
+  - ✅ 任务2.3：EDIT TABLE实现（21测试通过）
+  - ✅ 任务2.4：RENAME TABLE实现（23测试通过）
+  - ✅ 任务2.5：DROP TABLE实现（27测试通过）
+  - ✅ 任务2.6：DDL执行器整合（38测试通过）
+  - **总计：211个测试全部通过**
+- ✅ **阶段3：DML实现已完成**
+  - ✅ 任务3.1：INSERT实现（43测试通过）
+  - ✅ 任务3.2：DELETE实现（38测试通过）
+  - ✅ 任务3.3：UPDATE实现（43测试通过）
+  - ✅ 任务3.4：DML执行器整合（42测试通过）
+  - **总计：166个测试全部通过**
+- ✅ **阶段4：查询实现已完成**
+  - ✅ 任务4.1：SELECT单表查询（30测试通过）
+  - ✅ 任务4.2：SELECT多表查询（50测试通过）
+  - ✅ 任务4.3：SELECT连接查询（57测试通过）
+  - ✅ 任务4.4：查询执行器整合（24测试通过）
+  - **总计：161个测试全部通过**
+- ✅ **阶段8：数据库新技术实现已完成**
+  - ✅ 任务8.1：相邻索引实现（28测试通过）
+  - ✅ 任务8.2：哈希索引实现（29测试通过）
+  - ✅ 任务8.3：智能索引建议系统（14测试通过）
+  - **总计：71个测试全部通过**
+- 🔄 **阶段5：GUI开发进行中**
+  - ✅ 任务5.1：Qt项目配置（GUI最小可运行程序）
+  - ✅ 任务5.2：主界面布局（标签页系统、状态栏、快捷键）
+  - ✅ 任务5.3：数据库管理和表管理界面（创建、编辑、删除表）
+  - ✅ 任务5.4：数据操作界面（插入、编辑、删除记录，查看记录）
+  - ⏳ 任务5.5：SQL执行界面（待开发）
+  - ⏳ 任务5.6：索引管理界面（待开发）
+  - ⏳ 任务5.7：推荐系统界面（待开发）
+  - ✅ 任务4.2：SELECT多表查询（50测试通过）
+  - ✅ 任务4.3：SELECT连接查询（57测试通过）
+  - ✅ 任务4.4：查询执行器整合（24测试通过）
+  - **总计：161个测试全部通过**
+- ✅ **阶段8.1：相邻索引实现已完成**
+  - ✅ 任务8.1：相邻索引实现（28测试通过）
+  - **完成时间**：2026-01-14
+- ✅ **阶段8.2：哈希索引实现已完成**
+  - ✅ 任务8.2：哈希索引实现（29测试通过）
+  - **完成时间**：2026-01-14
+- ✅ **阶段8.3：智能索引建议系统已完成**
+  - ✅ 任务8.3：智能索引建议系统（14测试通过）
+  - **完成时间**：2026-01-14
+- ✅ **阶段8：数据库新技术实现全部完成**
+  - **技术方案**：方案A（索引技术 + 智能推荐）
+  - **完成时间**：2026-01-14（3天完成）
+  - **测试总计**：71个测试全部通过
+  - **详细分析**：`docs/technical/database_new_technology_selection.md`
+- ✅ **阶段5.1：GUI最小可运行程序已完成**
+  - ✅ 主窗口类实现（MainWindow）
+  - ✅ 应用程序入口实现（main.cpp）
+  - ✅ 基础UI组件（标签、按钮、菜单栏、状态栏）
+  - ✅ 字体设置（英文使用Segoe UI）
+  - ✅ 编译问题修复（parser_select.cpp、Qt MOC、编码问题）
+  - **完成时间**：2026-01-14
+  - **状态**：GUI能够正常显示 ✅
+- ✅ **阶段5.2：GUI主界面布局已完成**
+  - ✅ 标签页系统（5个标签页：Table Management, Index Management, Data Operation, SQL Execution, Guide）
+  - ✅ 所有文字改为英文，字体使用Segoe UI
+  - ✅ 状态栏显示数据库名称和当前时间
+  - ✅ 全局键盘快捷键（Ctrl+Q, F1, Ctrl+Tab等）
+  - ✅ 窗口标题包含版本号（v0.6.1）
+  - ✅ Guide标签页显示USER_GUIDE.md内容
+  - **完成时间**：2026-01-14
+  - **状态**：主界面布局已完成 ✅
+- ✅ **阶段5.3：数据库管理和表结构管理界面已完成**
+  - ✅ 数据库管理功能（Create Database, Open Database）
+  - ✅ 表列表显示和表信息显示
+  - ✅ 创建表功能（TableEditDialog，支持字段定义）
+  - ✅ 编辑表功能（修改表结构）
+  - ✅ 删除表功能（带确认对话框）
+  - ✅ 刷新表列表功能
+  - ✅ 界面优化（居中显示、按钮文本、关闭事件处理）
+  - **完成时间**：2026-01-14
+  - **状态**：数据库管理和表结构管理界面已完成 ✅
+- ✅ **阶段5.4：数据操作界面已完成**
+  - ✅ 数据表格显示（QTableWidget，显示所有有效记录）
+  - ✅ 插入记录功能（RecordEditDialog，字段输入表单，数据验证）
+  - ✅ 编辑记录功能（选择记录后编辑，保存修改）
+  - ✅ 删除记录功能（选择记录后删除，带确认对话框）
+  - ✅ 表列表自动刷新（切换标签页时、创建新表后）
+  - ✅ 修复编译错误（TableInfo未定义问题）
+  - ✅ 修复表列表刷新问题（创建新表后自动刷新）
+  - **完成时间**：2026-01-14
+  - **状态**：数据操作界面已完成 ✅
+
+**项目总进度**：90%完成（阶段1-4和阶段8全部完成，754个测试全部通过；阶段5.1-5.5已完成；阶段7.0全部完成（ORDER BY、DISTINCT、LIMIT、比较运算符、复杂WHERE条件、LIKE、IN、BETWEEN、GROUP BY、聚合函数、HAVING、FULL OUTER JOIN、NATURAL JOIN、UNION、子查询）；约束功能全部完成（PRIMARY KEY、UNIQUE、DEFAULT、FOREIGN KEY、CHECK）；阶段5.6-5.7待开发）
+
+---
+
+**最后更新时间**：2026-01-16
+
+**最新更新（v0.8.0）**：
+- ✅ 数据完整性约束功能全部实现（2026-01-15）
+  - PRIMARY KEY约束（主键唯一性、非空）
+  - UNIQUE约束（字段级和表级多字段唯一约束）
+  - DEFAULT约束（默认值，支持INSERT时自动应用）
+  - FOREIGN KEY约束（外键引用完整性，支持ON DELETE CASCADE/SET NULL/RESTRICT/NO ACTION，ON UPDATE RESTRICT）
+  - CHECK约束（检查约束，支持AND/OR逻辑表达式，如 `Price > 0 AND Price < 10000`）
+  - 约束持久化存储（.cst文件）
+  - GUI约束管理界面（创建、编辑、删除约束）
+  - SQL约束语法支持（CREATE TABLE、ALTER TABLE）
+  - DML约束检查（INSERT、UPDATE、DELETE操作时自动检查约束）
+- ✅ 文档重新分类和归档（2026-01-16）
+  - 测试文档移至testing目录
+  - 已完成文档归档至archive目录
+  - 生成GUI和SQL全面测试指南
+
+**最新更新（v0.7.1）**：
+- ✅ NATURAL JOIN实现（2026-01-15）
+  - 支持NATURAL JOIN、NATURAL LEFT JOIN、NATURAL RIGHT JOIN、NATURAL INNER JOIN、NATURAL FULL JOIN
+  - 自动基于共同字段连接，无需ON子句
+- ✅ UNION实现（2026-01-15）
+  - 支持UNION（去重）和UNION ALL（保留重复）
+  - 支持多个SELECT语句用UNION连接
+  - 支持全局ORDER BY和LIMIT
+- ✅ 子查询实现（2026-01-15）
+  - 支持标量子查询（=, !=, >, <, >=, <=）
+  - 支持IN子查询
+  - 支持EXISTS/NOT EXISTS子查询
+  - 支持关联子查询（子查询引用外部查询字段）
+  - 支持嵌套子查询（多层嵌套，包括聚合函数子查询）
+  - 修复浮点数比较精度问题
+
+**最新更新**：
+- ✅ 阶段5.5：SQL执行界面已完成（2026-01-14）
+  - SQL语句输入和执行功能
+  - 批量SQL语句执行（自动分割多条语句）
+  - 主键唯一性约束（INSERT和UPDATE操作）
+  - 大小写不敏感支持（表名、关键字，与主流DBMS对齐）
+  - JOIN查询支持（INNER JOIN, LEFT JOIN, RIGHT JOIN）
+  - CREATE TABLE char[length]和char(length)语法支持
+  - JOIN查询TableName.FieldName语法支持
+  - UPDATE 0行受影响的消息提示（符合标准SQL行为）
+  - DROP TABLE硬删除修复（完全删除表结构和数据）
+  - RENAME TABLE文件同步修复（.dbf和.dat文件保持同步）
+  - 所有GUI消息框使用英文和Segoe UI字体
+  - SQL执行测试用例文档完善（添加JOIN查询测试用例和未实现功能测试用例）
+  - 移动test_sql_parser.cpp到scripts/unit_tests/sql_parser/目录
+- ✅ 阶段7.0：SQL查询功能扩展已完成（2026-01-15）
+  - ORDER BY排序功能（支持单字段和多字段排序，ASC/DESC方向）
+  - DISTINCT去重功能
+  - LIMIT分页功能
+  - 比较运算符（>, <, >=, <=, !=）
+  - 复杂WHERE条件（AND, OR, NOT逻辑运算符，支持括号优先级）
+  - LIKE模式匹配（支持%通配符，大小写敏感）
+  - IN子句（支持值列表和子查询）
+  - BETWEEN范围查询（包含边界）
+  - GROUP BY分组（支持单字段和多字段分组）
+  - 聚合函数（COUNT, SUM, AVG, MAX, MIN）
+  - HAVING子句（分组过滤，支持复杂条件）
+  - FULL OUTER JOIN（全外连接）
+  - NATURAL JOIN（自然连接，支持所有变体）
+  - UNION和UNION ALL（并集操作，支持多个UNION连接）
+  - 子查询（标量子查询、IN子查询、EXISTS/NOT EXISTS子查询、关联子查询、嵌套子查询）
+  - 递归下降解析器实现复杂WHERE条件解析
+  - 所有SQL测试用例通过

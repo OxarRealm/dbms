@@ -1,0 +1,101 @@
+# 构建输出
+build/
+bin/
+*.exe
+*.out
+*.o
+*.obj
+*.so
+*.dylib
+*.dll
+*.a
+*.lib
+
+# Qt相关
+*.pro.user
+*.pro.user.*
+moc_*.cpp
+moc_*.h
+qrc_*.cpp
+ui_*.h
+*.qmlc
+*.jsc
+object_script.*.Release
+object_script.*.Debug
+*_plugin_import.cpp
+/.qmake.cache
+/.qmake.stash
+*.pro.user.*
+*.qm
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+Testing/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.sdf
+*.opensdf
+*.db
+*.opendb
+
+# 编译中间文件
+*.log
+*.tlog
+*.pdb
+*.idb
+*.ilk
+*.exp
+*.map
+
+# 数据库文件（示例数据可以保留，但临时数据忽略）
+*.dbf.bak
+*.dat.bak
+temp_*.dbf
+temp_*.dat
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+
+# 文档生成
+docs/html/
+docs/latex/
+
+# 测试覆盖率
+coverage/
+*.gcov
+*.gcda
+*.gcno
+
+# 测试结果
+test_results/
+test_data/
+*.dbf
+*.dat
+
+# 其他
+.vscode-test/
+*.stackdump
