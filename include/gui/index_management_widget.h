@@ -105,6 +105,12 @@ public:
     void setDatabasePath(const std::string& dbPath);
 
     /**
+     * @brief Set IndexAdvisor reference (for sharing query logs from SQLQueryWidget)
+     * @param advisor Pointer to IndexAdvisor instance (can be null)
+     */
+    void setIndexAdvisor(class IndexAdvisor* advisor);
+
+    /**
      * @brief Refresh index list
      */
     void refreshIndexList();
@@ -134,6 +140,7 @@ private:
 
     std::string m_databasePath;
     IndexManager* m_indexManager;  // 维护一个IndexManager实例
+    class IndexAdvisor* m_indexAdvisor;  // 索引建议器引用（从SQLQueryWidget共享）
     
     // UI Components
     QVBoxLayout *m_mainLayout;

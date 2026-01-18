@@ -10,8 +10,12 @@
 #include <QSplitter>
 #include <QString>
 #include <QStringList>
+#include <QListWidget>
+#include <QGroupBox>
+#include <QScrollArea>
 #include <string>
 #include "query/select_handler.h"
+#include "index/index_advisor.h"
 
 // Forward declarations
 class QueryExecutor;
@@ -39,6 +43,12 @@ public:
      */
     void setDatabasePath(const std::string& dbPath);
 
+    /**
+     * @brief Get the IndexAdvisor instance (for sharing with IndexManagementWidget)
+     * @return Reference to the IndexAdvisor
+     */
+    class IndexAdvisor* getIndexAdvisor();
+
 private slots:
     void onExecuteSQL();
     void onClearSQL();
@@ -52,6 +62,9 @@ private:
     void displaySuccess(const std::string& message, size_t affectedRows = 0);
     QStringList splitSQLStatements(const QString& sqlText);
     void executeBatchStatements(const QStringList& statements);
+    void updateAdvicePanel(const std::string& sql, const std::string& tableName,
+                          const std::vector<std::string>& whereFields,
+                          double executionTime, size_t resultCount);
 
     // UI Components
     QVBoxLayout *m_mainLayout;
@@ -66,10 +79,19 @@ private:
     QPushButton *m_clearResultsBtn;
     
     QWidget *m_resultWidget;
-    QVBoxLayout *m_resultLayout;
+    QHBoxLayout *m_resultLayout;  // Changed to horizontal layout
+    QWidget *m_resultTableWidget;
+    QVBoxLayout *m_resultTableLayout;
     QLabel *m_resultLabel;
     QTableWidget *m_resultTable;
     QLabel *m_statusLabel;
+    
+    // Smart Advice Panel (right side)
+    QGroupBox *m_advicePanel;
+    QVBoxLayout *m_adviceLayout;
+    QLabel *m_adviceTitle;
+    QListWidget *m_adviceList;
+    QLabel *m_adviceEmptyLabel;
     
     // Backend
     QueryExecutor *m_queryExecutor;

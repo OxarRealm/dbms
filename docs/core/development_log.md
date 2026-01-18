@@ -1435,3 +1435,138 @@
    - 覆盖所有SQL功能
 
 **最后更新时间**：2026-01-16
+
+---
+
+## 2026-01-18 - 智能推荐系统实现（反模式检测、查询优化、GUI集成）
+
+### 功能实现
+
+#### 1. 常见反模式检测
+- **SELECT * 检测**：检测并警告使用 `SELECT *` 的性能影响
+- **LIKE前通配符检测**：检测 `LIKE '%xxx'` 和 `LIKE '%xxx%'` 模式，提示无法使用索引
+- **实现位置**：`src/index/index_advisor.cpp::detectAntiPatterns()`
+
+#### 2. 基础索引建议增强
+- **智能索引类型判断**：根据字段类型和查询模式自动选择索引类型（Hash/B+Tree/Adjacent）
+- **基于查询频率推荐**：当字段使用次数≥3且平均执行时间≥0.1ms时推荐创建索引
+- **提供具体SQL建议**：生成完整的 `CREATE INDEX` SQL语句
+- **实现位置**：`src/index/index_advisor.cpp::generateIndexAdviceForQuery()`
+
+#### 3. 查询范围优化检测
+- **全表扫描检测**：检测无WHERE条件的查询，警告全表扫描
+- **缺失索引警告**：检测WHERE字段无索引且执行时间>10ms的情况
+- **大结果集警告**：检测返回记录>1000且执行时间>50ms的情况，建议添加LIMIT
+- **实现位置**：`src/index/index_advisor.cpp::detectRangeOptimization()`
+
+#### 4. GUI界面集成
+- **智能推荐面板**：在SQL执行界面右下角添加"Smart Recommendations"面板
+- **实时建议显示**：查询执行后自动分析并显示建议
+- **颜色编码**：按严重程度用颜色区分（warning=黄色，info=蓝色，error=红色）
+- **实现位置**：`src/gui/sql_query_widget.cpp::updateAdvicePanel()`
+
+### 技术细节
+
+1. **反模式检测**：使用正则表达式检测SQL文本中的反模式
+2. **索引推荐逻辑**：
+   - 检查字段使用统计（从查询日志分析）
+   - 判断是否已有索引（使用IndexManager检查）
+   - 根据字段类型选择索引类型（主键+整数→hash，其他→btree）
+3. **查询分析**：综合分析反模式、索引推荐、范围优化三个方面
+
+### 测试
+
+- **测试脚本**：`scripts/module_tests/test_smart_recommendations.cpp`
+- **测试脚本运行器**：`scripts/module_tests/test_smart_recommendations.ps1`
+- **手动测试SQL**：`test_data/test_smart_recommendations.sql`
+
+### 文档更新
+
+- 更新了 `docs/core/development_log.md`
+- 创建了测试SQL文件供用户手动测试
+
+## 2026-01-18 - 智能索引建议系统完善（B+树索引支持）
+
+**时间**：2026-01-18
+
+**完成工作**：
+
+### 1. 完善IndexAdvisor支持B+树索引（btree）
+1. ✅ 添加BTreeIndex成员变量
+   - 在`include/index/index_advisor.h`中添加`BTreeIndex m_btreeIndex`成员
+   - 更新`setDatabasePath()`方法，同时设置btree索引路径
+
+2. ✅ 实现isSuitableForBTreeIndex()方法
+   - B+树索引支持所有可排序类型（int, float, double, string, char）
+   - B+树索引是通用索引，适合点查询、范围查询和排序
+
+3. ✅ 更新索引检查逻辑
+   - `analyzeQueryLogs()`：检查所有三种索引类型（hash/adjacent/btree）
+   - `evaluateIndexEffect()`：评估时检查所有索引类型
+   - 确保不会重复推荐已有索引的字段
+
+### 2. 完善索引推荐算法
+1. ✅ 优化索引类型选择策略
+   - **Hash索引**：适合主键和int/string类型，点查询场景，预期提升50%
+   - **B+树索引**：通用索引，适合所有查询类型，预期提升40%
+   - **Adjacent索引**：适合范围查询，预期提升30%
+   - 根据字段类型和查询模式智能选择
+
+2. ✅ 更新推荐理由说明
+   - Hash索引："字段适合哈希索引，可优化点查询性能（O(1)时间复杂度）"
+   - B+树索引："字段适合B+树索引，可优化点查询、范围查询和排序（通用索引）"
+   - Adjacent索引："字段适合相邻索引，可优化范围查询性能"
+
+### 3. 修复字段名比较问题
+1. ✅ 修复isSuitableForHashIndex/isSuitableForAdjacentIndex/isSuitableForBTreeIndex中的字段名比较
+   - **问题**：`field.sFieldName == fieldName`无法正确比较`char[]`和`std::string`
+   - **解决**：使用`strcmp(field.sFieldName, fieldName.c_str()) == 0`
+   - **修改文件**：`src/index/index_advisor.cpp`
+   - **添加头文件**：`#include <cstring>`
+
+### 4. 创建测试脚本
+1. ✅ 创建完整功能测试程序
+   - **文件**：`scripts/module_tests/test_index_advisor_system.cpp`
+   - **功能**：测试查询日志记录、字段使用统计、慢查询识别、索引推荐生成、索引效果评估
+   - **特点**：详细的输出格式，包含推荐SQL语句生成
+
+2. ✅ 创建测试运行脚本
+   - **文件**：`scripts/module_tests/test_index_advisor_system.ps1`
+   - **功能**：自动编译和运行测试程序
+   - **特点**：检查测试数据库存在性，提供详细错误信息
+
+**技术决策**：
+- **索引类型选择策略**：优先推荐hash（点查询），其次btree（通用），最后adjacent（范围查询）
+- **推荐条件阈值**：使用次数≥3次，平均执行时间≥10ms
+- **推荐形式**：返回`IndexRecommendation`结构体，包含完整的索引创建建议信息
+
+**遇到的问题**：
+1. **问题**：字段名比较不正确
+   - **现象**：`isSuitableForHashIndex`等方法无法正确识别字段
+   - **原因**：`char[]`类型不能直接用`==`与`std::string`比较
+   - **解决**：使用`strcmp()`进行字符串比较
+   - **参考**：`src/core/index_manager.cpp`中类似问题的解决方式
+
+**测试结果**：
+- ✅ 索引类型判断逻辑正确（hash/adjacent/btree）
+- ✅ 字段名比较修复后，字段识别正常
+- ✅ 推荐算法能够根据字段类型选择合适的索引类型
+- ⏳ 完整功能测试脚本已创建，待运行验证
+
+**文件修改清单**：
+- `include/index/index_advisor.h`：添加BTreeIndex成员和isSuitableForBTreeIndex声明
+- `src/index/index_advisor.cpp`：
+  - 添加`#include <cstring>`
+  - 实现`isSuitableForBTreeIndex()`方法
+  - 修复字段名比较（使用strcmp）
+  - 更新`setDatabasePath()`、`analyzeQueryLogs()`、`evaluateIndexEffect()`方法
+  - 完善`generateRecommendations()`索引类型选择逻辑
+- `scripts/module_tests/test_index_advisor_system.cpp`：新建测试程序
+- `scripts/module_tests/test_index_advisor_system.ps1`：新建测试脚本
+- `test_data/student_grade_db_queries.sql`：添加智能索引建议系统测试指导
+
+**下一步计划**：
+- 运行测试脚本验证功能正确性
+- 考虑GUI界面集成索引推荐功能（如需要）
+
+**最后更新时间**：2026-01-18

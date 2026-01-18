@@ -21,6 +21,10 @@
 #include <QFont>
 #include <QFileInfo>
 #include <algorithm>
+#include <map>
+#include <set>
+#include <cctype>
+#include <locale>
 
 // ==================== CreateIndexDialog Implementation ====================
 
@@ -151,6 +155,7 @@ bool CreateIndexDialog::hasTables() const
 IndexManagementWidget::IndexManagementWidget(QWidget *parent)
     : QWidget(parent)
     , m_databasePath("")
+    , m_indexAdvisor(nullptr)
     , m_indexManager(nullptr)
     , m_mainLayout(nullptr)
     , m_tableCombo(nullptr)
@@ -391,11 +396,186 @@ void IndexManagementWidget::updateRecommendationsTable()
         return;
     }
 
-    IndexAdvisor advisor;
-    advisor.setDatabasePath(m_databasePath);
+    // Use shared IndexAdvisor from SQLQueryWidget if available, otherwise create a new one
+    IndexAdvisor* advisorToUse = m_indexAdvisor;
+    bool needToDelete = false;
+    
+    if (!advisorToUse) {
+        // Create a temporary advisor if no shared one is available
+        advisorToUse = new IndexAdvisor();
+        advisorToUse->setDatabasePath(m_databasePath);
+        // Set IndexManager to the temporary advisor
+        if (m_indexManager) {
+            advisorToUse->setIndexManager(m_indexManager);
+        }
+        needToDelete = true;
+    }
 
+    // Ensure IndexManager has loaded indices from .idx file (same as updateIndexTable does)
+    // This is critical - we must load indices before checking, just like refreshIndexList does
+    std::string dbName = getDatabaseName();
+    if (!dbName.empty() && m_indexManager) {
+        IndexStorageManager::loadIndices(dbName, m_databasePath, *m_indexManager);
+    }
+
+    // Debug: Check log count
+    size_t logCount = advisorToUse->getLogCount();
+    
+    // Debug: Get field stats to see why no recommendations
+    std::vector<FieldUsageStats> stats;
+    advisorToUse->analyzeQueryLogs(stats);
+
+    // Override hasIndex check using IndexManager (which has loaded indices from .idx file)
+    // IndexAdvisor's internal Index objects may not have loaded indices from .idx file
+    // So we update stats with correct hasIndex values from IndexManager
+    // Use the SAME method as updateIndexTable: getAllIndices from m_indexManager
+    if (m_indexManager) {
+        // Get all indices using the SAME method as updateIndexTable
+        // This ensures we're checking against the same data source
+        std::vector<IndexInfo> allIndices;
+        m_indexManager->getAllIndices(allIndices);
+        
+        // Debug: Print loaded indices for troubleshooting
+        // Create a lookup map for faster checking
+        // Use case-insensitive comparison to handle potential case mismatches
+        std::map<std::string, std::set<std::string>> indexMap;  // tableName -> set of fieldNames
+        for (const auto& idx : allIndices) {
+            indexMap[idx.tableName].insert(idx.fieldName);
+        }
+        
+        // Now override hasIndex for each stat using the loaded indices
+        for (auto& s : stats) {
+            // First try exact match (case-sensitive)
+            auto tableIt = indexMap.find(s.tableName);
+            if (tableIt != indexMap.end()) {
+                auto fieldIt = tableIt->second.find(s.fieldName);
+                if (fieldIt != tableIt->second.end()) {
+                    s.hasIndex = true;
+                    continue;  // Found exact match, skip fallback
+                }
+            }
+            
+            // If no exact match, try case-insensitive search
+            bool found = false;
+            for (const auto& tablePair : indexMap) {
+                // Case-insensitive table name comparison
+                std::string tableLower = tablePair.first;
+                std::transform(tableLower.begin(), tableLower.end(), tableLower.begin(), ::tolower);
+                std::string statTableLower = s.tableName;
+                std::transform(statTableLower.begin(), statTableLower.end(), statTableLower.begin(), ::tolower);
+                
+                if (tableLower == statTableLower) {
+                    // Found matching table, check fields
+                    for (const auto& fieldName : tablePair.second) {
+                        std::string fieldLower = fieldName;
+                        std::transform(fieldLower.begin(), fieldLower.end(), fieldLower.begin(), ::tolower);
+                        std::string statFieldLower = s.fieldName;
+                        std::transform(statFieldLower.begin(), statFieldLower.end(), statFieldLower.begin(), ::tolower);
+                        
+                        if (fieldLower == statFieldLower) {
+                            s.hasIndex = true;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found) break;
+                }
+            }
+            
+            // If still not found, use IndexManager::hasIndex as final fallback
+            if (!found) {
+                s.hasIndex = m_indexManager->hasIndex(s.tableName, s.fieldName, "hash") ||
+                             m_indexManager->hasIndex(s.tableName, s.fieldName, "btree") ||
+                             m_indexManager->hasIndex(s.tableName, s.fieldName, "adjacent");
+            }
+        }
+    }
+
+    // Generate recommendations manually using corrected stats
+    // generateRecommendations calls analyzeQueryLogs which uses IndexAdvisor's internal
+    // Index objects that haven't loaded from .idx file, so hasIndex may be wrong.
+    // Instead, we'll generate recommendations directly from the corrected stats.
     std::vector<IndexRecommendation> recommendations;
-    if (!advisor.generateRecommendations(recommendations, 10)) {
+    
+    for (const auto& fieldStats : stats) {
+        // Skip if already has index (using corrected hasIndex from IndexManager)
+        if (fieldStats.hasIndex) {
+            continue;
+        }
+        
+        // Skip if usage count is too low
+        if (fieldStats.usageCount < 3) {
+            continue;
+        }
+        
+        // Skip if average execution time is too low
+        if (fieldStats.avgExecutionTime < 0.1) {
+            continue;
+        }
+        
+        IndexRecommendation recommendation;
+        recommendation.tableName = fieldStats.tableName;
+        recommendation.fieldName = fieldStats.fieldName;
+        recommendation.usageCount = fieldStats.usageCount;
+        recommendation.avgExecutionTime = fieldStats.avgExecutionTime;
+        
+        // Determine index type by checking table structure
+        // Check if field is primary key or integer type for hash index
+        TableManager tableManager;
+        tableManager.setDatabasePath(m_databasePath);
+        TableInfo tableInfo;
+        bool isPrimaryKey = false;
+        bool isIntegerType = false;
+        std::string fieldType = "";
+        
+        if (tableManager.readTable(fieldStats.tableName, tableInfo)) {
+            for (const auto& field : tableInfo.fields) {
+                if (strcmp(field.sFieldName, fieldStats.fieldName.c_str()) == 0) {
+                    isPrimaryKey = (field.bKey == FLAG_KEY);
+                    isIntegerType = (strcmp(field.sType, "int") == 0);
+                    break;
+                }
+            }
+        }
+        
+        // Determine index type based on field characteristics
+        if (isPrimaryKey && isIntegerType) {
+            recommendation.indexType = "hash";
+            recommendation.expectedImprovement = 50.0;
+            recommendation.reason = "Field suitable for hash index, optimizes point query performance (O(1) time complexity)";
+        } else {
+            recommendation.indexType = "btree";
+            recommendation.expectedImprovement = 40.0;
+            recommendation.reason = "Field suitable for B+ tree index, optimizes point queries, range queries, and sorting (general-purpose index)";
+        }
+        
+        // Adjust improvement based on usage frequency and execution time
+        double score = (std::min(fieldStats.usageCount * 5.0, 50.0) + 
+                       std::min(fieldStats.avgExecutionTime / 2.0, 50.0));
+        recommendation.expectedImprovement *= (1.0 + score / 100.0);
+        
+        recommendations.push_back(recommendation);
+    }
+    
+    // Sort by score (usage count + execution time)
+    std::sort(recommendations.begin(), recommendations.end(),
+              [](const IndexRecommendation& a, const IndexRecommendation& b) {
+                  return (a.usageCount * 5.0 + a.avgExecutionTime / 2.0) > 
+                         (b.usageCount * 5.0 + b.avgExecutionTime / 2.0);
+              });
+    
+    // Limit to 10 recommendations
+    if (recommendations.size() > 10) {
+        recommendations.resize(10);
+    }
+    
+    bool generated = !recommendations.empty();
+    
+    // If no recommendations found, return early (message will be shown in onViewRecommendations)
+    if (!generated || recommendations.empty()) {
+        if (needToDelete) {
+            delete advisorToUse;
+        }
         return;
     }
 
@@ -420,10 +600,34 @@ void IndexManagementWidget::updateRecommendationsTable()
         
         QString improvementStr = QString::number(rec.expectedImprovement, 'f', 1) + "%";
         m_recommendationsTable->setItem(row, 3, new QTableWidgetItem(improvementStr));
-        m_recommendationsTable->setItem(row, 4, new QTableWidgetItem(QString::fromStdString(rec.reason)));
+        
+        // Add index type explanation to reason
+        QString reasonText = QString::fromStdString(rec.reason);
+        if (rec.indexType == "hash") {
+            reasonText += "\n(Hash: Best for point queries, O(1) time complexity)";
+        } else if (rec.indexType == "btree") {
+            reasonText += "\n(B+ Tree: General-purpose, supports point/range queries and sorting)";
+        } else if (rec.indexType == "adjacent") {
+            reasonText += "\n(Adjacent: Optimized for range queries)";
+        }
+        m_recommendationsTable->setItem(row, 4, new QTableWidgetItem(reasonText));
     }
 
     m_recommendationsTable->resizeColumnsToContents();
+    
+    if (needToDelete) {
+        delete advisorToUse;
+    }
+}
+
+void IndexManagementWidget::setIndexAdvisor(IndexAdvisor* advisor)
+{
+    m_indexAdvisor = advisor;
+    
+    // Set IndexManager to IndexAdvisor so it can check for existing indices
+    if (m_indexAdvisor && m_indexManager) {
+        m_indexAdvisor->setIndexManager(m_indexManager);
+    }
 }
 
 std::vector<std::string> IndexManagementWidget::getAvailableTables() const
@@ -601,6 +805,77 @@ void IndexManagementWidget::onRefresh()
 void IndexManagementWidget::onViewRecommendations()
 {
     refreshRecommendations();
+    
+    // Show informative message if no recommendations (only when user clicks the button)
+    if (m_recommendationsTable->rowCount() == 0) {
+        // Get advisor to check log count
+        IndexAdvisor* advisorToUse = m_indexAdvisor;
+        bool needToDelete = false;
+        
+        if (!advisorToUse) {
+            advisorToUse = new IndexAdvisor();
+            advisorToUse->setDatabasePath(m_databasePath);
+            // Set IndexManager to the temporary advisor
+            if (m_indexManager) {
+                advisorToUse->setIndexManager(m_indexManager);
+            }
+            needToDelete = true;
+        }
+        
+        size_t logCount = advisorToUse->getLogCount();
+        std::vector<FieldUsageStats> stats;
+        advisorToUse->analyzeQueryLogs(stats);
+        
+        QString msg;
+        if (logCount == 0) {
+            msg = "No query logs found.\n\n"
+                  "Please execute some SELECT queries in the SQL Execution tab first.\n\n"
+                  "Example:\n"
+                  "  SELECT * FROM Students WHERE StudentID = 1;";
+        } else {
+            msg = QString("No recommendations generated.\n\n"
+                          "Query logs: %1\n"
+                          "Fields analyzed: %2\n\n").arg(logCount).arg(stats.size());
+            if (stats.size() > 0) {
+                msg += "Field statistics:\n";
+                for (size_t i = 0; i < std::min(stats.size(), size_t(5)); i++) {
+                    const auto& s = stats[i];
+                    msg += QString("  - %1.%2: count=%3, avgTime=%4ms, hasIndex=%5\n")
+                        .arg(QString::fromStdString(s.tableName))
+                        .arg(QString::fromStdString(s.fieldName))
+                        .arg(s.usageCount)
+                        .arg(QString::number(s.avgExecutionTime, 'f', 2))
+                        .arg(s.hasIndex ? "Yes" : "No");
+                }
+                // Debug: Show loaded indices for comparison
+                if (m_indexManager) {
+                    std::vector<IndexInfo> debugIndices;
+                    m_indexManager->getAllIndices(debugIndices);
+                    if (!debugIndices.empty()) {
+                        msg += QString("\nLoaded indices (%1):\n").arg(debugIndices.size());
+                        for (size_t i = 0; i < std::min(debugIndices.size(), size_t(5)); i++) {
+                            const auto& idx = debugIndices[i];
+                            msg += QString("  - %1.%2 (%3)\n")
+                                .arg(QString::fromStdString(idx.tableName))
+                                .arg(QString::fromStdString(idx.fieldName))
+                                .arg(QString::fromStdString(idx.indexType));
+                        }
+                    } else {
+                        msg += "\n(No indices loaded from .idx file)";
+                    }
+                }
+                
+                msg += "\nRecommendation conditions: count>=3, avgTime>=0.1ms, no existing index";
+            }
+        }
+        
+        if (needToDelete) {
+            delete advisorToUse;
+        }
+        
+        QMessageBox::information(this, "No Recommendations", msg);
+    }
+    
     m_createRecommendedBtn->setEnabled(m_recommendationsTable->rowCount() > 0);
 }
 

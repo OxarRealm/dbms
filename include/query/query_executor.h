@@ -70,6 +70,12 @@ public:
     IndexAdvisor& getIndexAdvisor();
     
     /**
+     * @brief 获取索引管理器（用于检查索引是否存在）
+     * @return IndexManager指针
+     */
+    IndexManager* getIndexManager();
+    
+    /**
      * @brief 获取最后的错误信息
      */
     std::string getLastError() const;
@@ -88,6 +94,13 @@ public:
      */
     static std::string identifyStatementType(const std::string& sql);
     
+    /**
+     * @brief 从路径中提取数据库名（不含扩展名）
+     * @param dbPath 数据库路径
+     * @return 数据库名
+     */
+    static std::string extractDatabaseName(const std::string& dbPath);
+    
 private:
     DDLExecutor m_ddlExecutor;        // DDL执行器
     DMLExecutor m_dmlExecutor;        // DML执行器
@@ -96,13 +109,6 @@ private:
     IndexManager m_indexManager;      // 索引管理器（用于检测索引使用）
     std::string m_lastError;          // 最后的错误信息
     std::string m_databasePath;      // 数据库路径
-    
-    /**
-     * @brief 从路径中提取数据库名（不含扩展名）
-     * @param dbPath 数据库路径
-     * @return 数据库名
-     */
-    static std::string extractDatabaseName(const std::string& dbPath);
     
     /**
      * @brief 设置错误信息

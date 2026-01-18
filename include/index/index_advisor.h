@@ -3,11 +3,15 @@
 #include "core/table_mode.h"
 #include "core/adjacent_index.h"
 #include "core/hash_index.h"
+#include "core/btree_index.h"
 #include <string>
 #include <vector>
 #include <map>
 #include <chrono>
 #include <ctime>
+
+// Forward declaration
+class IndexManager;
 
 /**
  * @file index_advisor.h
@@ -53,13 +57,36 @@ struct FieldUsageStats {
 struct IndexRecommendation {
     std::string tableName;              // 表名
     std::string fieldName;              // 字段名
-    std::string indexType;              // 索引类型（"adjacent" 或 "hash"）
+    std::string indexType;              // 索引类型（"hash", "adjacent", "btree"）
     double expectedImprovement;         // 预期性能提升（百分比）
     std::string reason;                 // 推荐理由
     size_t usageCount;                  // 字段使用次数
     double avgExecutionTime;            // 平均执行时间（毫秒）
     
     IndexRecommendation() : expectedImprovement(0.0), usageCount(0), avgExecutionTime(0.0) {}
+};
+
+/**
+ * @brief 查询建议类型
+ */
+enum class QueryAdviceType {
+    ANTI_PATTERN,      // 反模式警告
+    INDEX_RECOMMEND,   // 索引推荐
+    RANGE_OPTIMIZATION, // 范围优化建议
+    PERFORMANCE_WARNING // 性能警告
+};
+
+/**
+ * @brief 查询建议项
+ */
+struct QueryAdvice {
+    QueryAdviceType type;               // 建议类型
+    std::string title;                   // 标题
+    std::string message;                 // 建议内容
+    std::string severity;                // 严重程度（"warning", "info", "error"）
+    std::string suggestion;              // 具体建议（可选）
+    
+    QueryAdvice() : type(QueryAdviceType::ANTI_PATTERN), severity("info") {}
 };
 
 /**
@@ -82,6 +109,12 @@ public:
      * @param dbFilePath 数据库文件路径（不含扩展名）
      */
     void setDatabasePath(const std::string& dbFilePath);
+
+    /**
+     * @brief 设置IndexManager（用于检查索引是否存在）
+     * @param indexManager IndexManager指针（可以为nullptr）
+     */
+    void setIndexManager(IndexManager* indexManager);
 
     /**
      * @brief 记录查询日志
@@ -151,12 +184,74 @@ public:
     bool getFieldStats(const std::string& tableName, const std::string& fieldName,
                       FieldUsageStats& stats) const;
 
+    /**
+     * @brief 分析当前查询，生成实时建议
+     * @param sql SQL语句
+     * @param tableName 表名
+     * @param whereFields WHERE子句字段列表
+     * @param executionTime 执行时间（毫秒）
+     * @param resultCount 返回记录数
+     * @param adviceList 输出参数，建议列表
+     * @return 成功返回true，失败返回false
+     */
+    bool analyzeCurrentQuery(const std::string& sql, const std::string& tableName,
+                            const std::vector<std::string>& whereFields,
+                            double executionTime, size_t resultCount,
+                            std::vector<QueryAdvice>& adviceList) const;
+
+    /**
+     * @brief 检测反模式
+     * @param sql SQL语句
+     * @param adviceList 输出参数，建议列表
+     * @return 检测到的反模式数量
+     */
+    size_t detectAntiPatterns(const std::string& sql, std::vector<QueryAdvice>& adviceList) const;
+
+    /**
+     * @brief 为当前查询生成索引建议
+     * @param tableName 表名
+     * @param whereFields WHERE子句字段列表
+     * @param executionTime 执行时间（毫秒）
+     * @param adviceList 输出参数，建议列表
+     * @return 生成的建议数量
+     */
+    size_t generateIndexAdviceForQuery(const std::string& tableName,
+                                       const std::vector<std::string>& whereFields,
+                                       double executionTime,
+                                       std::vector<QueryAdvice>& adviceList) const;
+
+    /**
+     * @brief 检测查询范围优化机会
+     * @param sql SQL语句
+     * @param tableName 表名
+     * @param whereFields WHERE子句字段列表
+     * @param executionTime 执行时间（毫秒）
+     * @param resultCount 返回记录数
+     * @param adviceList 输出参数，建议列表
+     * @return 检测到的优化机会数量
+     */
+    size_t detectRangeOptimization(const std::string& sql, const std::string& tableName,
+                                  const std::vector<std::string>& whereFields,
+                                  double executionTime, size_t resultCount,
+                                  std::vector<QueryAdvice>& adviceList) const;
+
 private:
     std::vector<QueryLogEntry> m_queryLogs;  // 查询日志列表
     std::string m_dbFilePath;                // 数据库文件路径（不含扩展名）
     
-    AdjacentIndex m_adjacentIndex;          // 相邻索引（用于检查索引是否存在）
-    HashIndex m_hashIndex;                   // 哈希索引（用于检查索引是否存在）
+    AdjacentIndex m_adjacentIndex;          // 相邻索引（用于检查索引是否存在，向后兼容）
+    HashIndex m_hashIndex;                   // 哈希索引（用于检查索引是否存在，向后兼容）
+    BTreeIndex m_btreeIndex;                 // B+树索引（用于检查索引是否存在，向后兼容）
+    
+    IndexManager* m_indexManager;            // IndexManager指针（用于检查索引是否存在，优先使用）
+    
+    /**
+     * @brief 检查字段是否已有索引（优先使用IndexManager，如果未设置则使用内部索引对象）
+     * @param tableName 表名
+     * @param fieldName 字段名
+     * @return 有索引返回true，否则返回false
+     */
+    bool checkHasIndex(const std::string& tableName, const std::string& fieldName) const;
 
     /**
      * @brief 判断字段类型是否适合哈希索引
@@ -175,6 +270,15 @@ private:
      */
     bool isSuitableForAdjacentIndex(const std::string& tableName,
                                    const std::string& fieldName) const;
+
+    /**
+     * @brief 判断字段类型是否适合B+树索引
+     * @param tableName 表名
+     * @param fieldName 字段名
+     * @return 适合返回true，否则返回false
+     */
+    bool isSuitableForBTreeIndex(const std::string& tableName,
+                                 const std::string& fieldName) const;
 
     /**
      * @brief 计算推荐分数

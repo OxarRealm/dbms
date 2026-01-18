@@ -81,6 +81,9 @@ void QueryExecutor::setDatabasePath(const std::string& dbPath) {
             IndexStorageManager::loadIndices(dbName, dbPath, m_indexManager);
         }
     }
+    
+    // Set IndexManager to IndexAdvisor so it can check for existing indices
+    m_indexAdvisor.setIndexManager(&m_indexManager);
 }
 
 // Helper function to extract database name from path
@@ -111,6 +114,10 @@ std::string QueryExecutor::extractDatabaseName(const std::string& dbPath) {
 
 IndexAdvisor& QueryExecutor::getIndexAdvisor() {
     return m_indexAdvisor;
+}
+
+IndexManager* QueryExecutor::getIndexManager() {
+    return &m_indexManager;
 }
 
 std::string QueryExecutor::getLastError() const {

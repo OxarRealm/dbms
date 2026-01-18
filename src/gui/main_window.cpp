@@ -190,9 +190,15 @@ QWidget* MainWindow::createGuideTab()
 QWidget* MainWindow::createIndexManagementTab()
 {
     m_indexManagementWidget = new IndexManagementWidget(this);
+    // Share IndexAdvisor from SQLQueryWidget (must create SQL tab first)
+    // This is done in setCurrentDatabase to ensure both widgets exist
     // If database is already loaded, set it
     if (!m_databasePath.empty()) {
         m_indexManagementWidget->setDatabasePath(m_databasePath);
+        // Connect IndexAdvisor after SQLQueryWidget is created
+        if (m_sqlQueryWidget) {
+            m_indexManagementWidget->setIndexAdvisor(m_sqlQueryWidget->getIndexAdvisor());
+        }
     }
     return m_indexManagementWidget;
 }
@@ -379,6 +385,10 @@ void MainWindow::setCurrentDatabase(const std::string& dbPath)
     if (m_indexManagementWidget) {
         m_indexManagementWidget->setDatabasePath(m_databasePath);
         m_indexManagementWidget->refreshIndexList();
+        // Share IndexAdvisor from SQLQueryWidget so recommendations can access query logs
+        if (m_sqlQueryWidget) {
+            m_indexManagementWidget->setIndexAdvisor(m_sqlQueryWidget->getIndexAdvisor());
+        }
     }
     
     // Update data operation widget if it exists
