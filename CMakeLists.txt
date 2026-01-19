@@ -108,6 +108,7 @@ set(GUI_HEADERS
     "include/gui/sql_query_widget.h"
     "include/gui/user_management_widget.h"
     "include/gui/login_dialog.h"
+    "include/gui/user_selection_dialog.h"
     "include/gui/role_management_dialog.h"
     "include/gui/permission_management_dialog.h"
 )
@@ -134,57 +135,60 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # 测试可执行文件（不需要Qt）
-add_executable(test_index_integration
-    scripts/module_tests/test_index_integration.cpp
-    ${CORE_SOURCES}
-    ${DDL_SOURCES}
-    ${DML_SOURCES}
-    ${QUERY_SOURCES}
-    ${SQL_PARSER_SOURCES}
-    ${INDEX_SOURCES}
-)
+# 已注释：临时测试文件，不需要在主程序编译时构建
+# add_executable(test_index_integration
+#     scripts/module_tests/test_index_integration.cpp
+#     ${CORE_SOURCES}
+#     ${DDL_SOURCES}
+#     ${DML_SOURCES}
+#     ${QUERY_SOURCES}
+#     ${SQL_PARSER_SOURCES}
+#     ${INDEX_SOURCES}
+# )
 
 # 测试程序需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
-target_link_libraries(test_index_integration
-    Qt6::Core
-)
-target_compile_definitions(test_index_integration PRIVATE
-    -D_CRT_SECURE_NO_WARNINGS
-)
+# target_link_libraries(test_index_integration
+#     Qt6::Core
+# )
+# target_compile_definitions(test_index_integration PRIVATE
+#     -D_CRT_SECURE_NO_WARNINGS
+# )
 
 # 数据库生成工具（不需要Qt）
-add_executable(create_student_grade_database
-    scripts/utils/create_student_grade_database.cpp
-    ${CORE_SOURCES}
-    ${DDL_SOURCES}
-    ${DML_SOURCES}
-    ${QUERY_SOURCES}
-    ${SQL_PARSER_SOURCES}
-)
+# 已注释：临时工具文件，不需要在主程序编译时构建
+# add_executable(create_student_grade_database
+#     scripts/utils/create_student_grade_database.cpp
+#     ${CORE_SOURCES}
+#     ${DDL_SOURCES}
+#     ${DML_SOURCES}
+#     ${QUERY_SOURCES}
+#     ${SQL_PARSER_SOURCES}
+# )
 
 # 数据库生成工具需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
-target_link_libraries(create_student_grade_database
-    Qt6::Core
-)
-target_compile_definitions(create_student_grade_database PRIVATE
-    -D_CRT_SECURE_NO_WARNINGS
-)
+# target_link_libraries(create_student_grade_database
+#     Qt6::Core
+# )
+# target_compile_definitions(create_student_grade_database PRIVATE
+#     -D_CRT_SECURE_NO_WARNINGS
+# )
 
 # 外键约束添加工具（不需要Qt）
-add_executable(add_foreign_keys
-    scripts/utils/add_foreign_keys.cpp
-    ${CORE_SOURCES}
-    ${DDL_SOURCES}
-    ${SQL_PARSER_SOURCES}
-)
+# 已注释：临时工具文件，不需要在主程序编译时构建
+# add_executable(add_foreign_keys
+#     scripts/utils/add_foreign_keys.cpp
+#     ${CORE_SOURCES}
+#     ${DDL_SOURCES}
+#     ${SQL_PARSER_SOURCES}
+# )
 
 # 外键约束添加工具需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
-target_link_libraries(add_foreign_keys
-    Qt6::Core
-)
-target_compile_definitions(add_foreign_keys PRIVATE
-    -D_CRT_SECURE_NO_WARNINGS
-)
+# target_link_libraries(add_foreign_keys
+#     Qt6::Core
+# )
+# target_compile_definitions(add_foreign_keys PRIVATE
+#     -D_CRT_SECURE_NO_WARNINGS
+# )
 
 # 如果是Qt5，改为:
 # target_link_libraries(${PROJECT_NAME}

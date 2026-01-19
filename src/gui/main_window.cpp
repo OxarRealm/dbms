@@ -9,8 +9,9 @@
 #include "gui/sql_query_widget.h"
 #include "gui/index_management_widget.h"
 #include "gui/user_management_widget.h"
-#include "gui/login_dialog.h"
+#include "gui/user_selection_dialog.h"
 #include "core/constraint_storage.h"
+#include "core/session_manager.h"
 #include "core/constraint_registry.h"
 #include "core/index_storage.h"
 #include "core/index_manager.h"
@@ -49,13 +50,7 @@ MainWindow::MainWindow(QWidget *parent)
 {
     setupFonts();
     
-    // Show login dialog first
-    LoginDialog loginDialog(this);
-    if (loginDialog.exec() != QDialog::Accepted) {
-        // User cancelled login - will close in main()
-        return;
-    }
-    
+    // No login required at startup - login will be required when opening a database
     setupUI();
     createMenuBar();
     createStatusBar();
@@ -307,8 +302,25 @@ void MainWindow::onCreateDatabase()
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         
         if (ret == QMessageBox::Yes) {
-            // Open existing database
+            // Open existing database - show user selection dialog
+            UserSelectionDialog userDialog(this, dbPath.toLocal8Bit().constData());
+            
+            if (userDialog.exec() != QDialog::Accepted) {
+                // User cancelled login - don't open database
+                QMessageBox::information(this, "Cancelled", 
+                    QString("Database '%1' was not opened.").arg(dbName));
+                return;
+            }
+            
+            // Set selected user in session
+            std::string selectedUser = userDialog.getSelectedUser();
+            SessionManager::getInstance().login(selectedUser);
+            
+            // Set current database
             setCurrentDatabase(dbPath.toLocal8Bit().constData());
+            
+            QMessageBox::information(this, "Success", 
+                QString("Database '%1' opened successfully as user '%2'.").arg(dbName).arg(QString::fromStdString(selectedUser)));
             return;
         } else {
             return; // User cancelled
@@ -339,8 +351,11 @@ void MainWindow::onCreateDatabase()
     // Set current database
     setCurrentDatabase(dbPath.toLocal8Bit().constData());
     
+    // For new database, default to admin user
+    SessionManager::getInstance().login("admin");
+    
     QMessageBox::information(this, "Success", 
-        QString("Database '%1' created successfully.").arg(dbName));
+        QString("Database '%1' created successfully. Logged in as 'admin'.").arg(dbName));
 }
 
 void MainWindow::onOpenDatabase()
@@ -367,11 +382,27 @@ void MainWindow::onOpenDatabase()
         return;
     }
     
+    // Show user selection dialog for this database
+    // admin/admin is always available (default)
+    // Other users can be selected if they exist in the database
+    UserSelectionDialog userDialog(this, dbPath.toLocal8Bit().constData());
+    
+    if (userDialog.exec() != QDialog::Accepted) {
+        // User cancelled login - don't open database
+        QMessageBox::information(this, "Cancelled", 
+            QString("Database '%1' was not opened.").arg(dbName));
+        return;
+    }
+    
+    // Set selected user in session
+    std::string selectedUser = userDialog.getSelectedUser();
+    SessionManager::getInstance().login(selectedUser);
+    
     // Set current database
     setCurrentDatabase(dbPath.toLocal8Bit().constData());
     
     QMessageBox::information(this, "Success", 
-        QString("Database '%1' opened successfully.").arg(dbName));
+        QString("Database '%1' opened successfully as user '%2'.").arg(dbName).arg(QString::fromStdString(selectedUser)));
 }
 
 void MainWindow::setCurrentDatabase(const std::string& dbPath)
