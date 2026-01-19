@@ -92,6 +92,41 @@ private:
     std::unique_ptr<ASTNode> parseDropIndex();
     
     /**
+     * @brief 解析CREATE USER语句
+     */
+    std::unique_ptr<ASTNode> parseCreateUser();
+    
+    /**
+     * @brief 解析ALTER USER语句
+     */
+    std::unique_ptr<ASTNode> parseAlterUser();
+    
+    /**
+     * @brief 解析DROP USER语句
+     */
+    std::unique_ptr<ASTNode> parseDropUser();
+    
+    /**
+     * @brief 解析CREATE ROLE语句
+     */
+    std::unique_ptr<ASTNode> parseCreateRole();
+    
+    /**
+     * @brief 解析DROP ROLE语句
+     */
+    std::unique_ptr<ASTNode> parseDropRole();
+    
+    /**
+     * @brief 解析GRANT语句
+     */
+    std::unique_ptr<ASTNode> parseGrant();
+    
+    /**
+     * @brief 解析REVOKE语句
+     */
+    std::unique_ptr<ASTNode> parseRevoke();
+    
+    /**
      * @brief 解析INSERT语句
      */
     std::unique_ptr<ASTNode> parseInsert();

@@ -71,6 +71,62 @@ bool DDLExecutor::execute(const std::string& sql) {
             }
             break;
             
+        case StatementType::CREATE_USER:
+            result = m_createUserHandler.execute(sql);
+            if (!result) {
+                setError("CREATE USER execution failed: " + m_createUserHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::ALTER_USER:
+            result = m_alterUserHandler.execute(sql);
+            if (!result) {
+                setError("ALTER USER execution failed: " + m_alterUserHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::DROP_USER:
+            result = m_dropUserHandler.execute(sql);
+            if (!result) {
+                setError("DROP USER execution failed: " + m_dropUserHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::CREATE_ROLE:
+            result = m_createRoleHandler.execute(sql);
+            if (!result) {
+                setError("CREATE ROLE execution failed: " + m_createRoleHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::DROP_ROLE:
+            result = m_dropRoleHandler.execute(sql);
+            if (!result) {
+                setError("DROP ROLE execution failed: " + m_dropRoleHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::GRANT:
+            result = m_grantHandler.execute(sql);
+            if (!result) {
+                setError("GRANT execution failed: " + m_grantHandler.getLastError());
+            }
+            break;
+            
+        case StatementType::REVOKE:
+            result = m_revokeHandler.execute(sql);
+            if (!result) {
+                setError("REVOKE execution failed: " + m_revokeHandler.getLastError());
+            } else {
+                // 即使成功，也保存调试信息（如果有）
+                std::string debugInfo = m_revokeHandler.getLastError();
+                if (!debugInfo.empty()) {
+                    // 将调试信息保存到m_lastError，这样QueryExecutor可以获取
+                    m_lastError = debugInfo;
+                }
+            }
+            break;
+            
         case StatementType::UNKNOWN:
         default:
             setError("Unknown DDL statement type");
@@ -86,6 +142,14 @@ std::string DDLExecutor::getLastError() const {
 
 void DDLExecutor::setDatabasePath(const std::string& dbPath) {
     m_databasePath = dbPath;
+    // 设置权限相关Handler的数据库路径
+    m_createUserHandler.setDatabasePath(dbPath);
+    m_alterUserHandler.setDatabasePath(dbPath);
+    m_dropUserHandler.setDatabasePath(dbPath);
+    m_createRoleHandler.setDatabasePath(dbPath);
+    m_dropRoleHandler.setDatabasePath(dbPath);
+    m_grantHandler.setDatabasePath(dbPath);
+    m_revokeHandler.setDatabasePath(dbPath);
     // 注意：各个处理器会在执行时从SQL中解析数据库路径
     // 这里可以预留，如果将来需要统一设置路径
 }
@@ -105,10 +169,17 @@ bool DDLExecutor::isDDLStatement(const std::string& sql) {
     // 检查DDL关键字
     if (upperSql.find("CREATE TABLE") == 0 ||
         upperSql.find("CREATE INDEX") == 0 ||
+        upperSql.find("CREATE USER") == 0 ||
+        upperSql.find("CREATE ROLE") == 0 ||
         upperSql.find("EDIT TABLE") == 0 ||
         upperSql.find("RENAME TABLE") == 0 ||
         upperSql.find("DROP TABLE") == 0 ||
-        upperSql.find("DROP INDEX") == 0) {
+        upperSql.find("DROP INDEX") == 0 ||
+        upperSql.find("DROP USER") == 0 ||
+        upperSql.find("DROP ROLE") == 0 ||
+        upperSql.find("ALTER USER") == 0 ||
+        upperSql.find("GRANT") == 0 ||
+        upperSql.find("REVOKE") == 0) {
         return true;
     }
     
@@ -123,13 +194,27 @@ DDLExecutor::StatementType DDLExecutor::identifyStatementType(const std::string&
     // Lexer会自动跳过空白，所以直接检查第一个关键字
     // 检查第一个关键字
     if (token.type == TokenType::CREATE) {
-        // 检查下一个token是否为TABLE或INDEX
+        // 检查下一个token是否为TABLE、INDEX、USER或ROLE
         Token nextToken = lexer.nextToken();
         if (nextToken.type == TokenType::TABLE) {
             return StatementType::CREATE_TABLE;
         } else if (nextToken.type == TokenType::INDEX) {
             return StatementType::CREATE_INDEX;
+        } else if (nextToken.type == TokenType::USER) {
+            return StatementType::CREATE_USER;
+        } else if (nextToken.type == TokenType::ROLE) {
+            return StatementType::CREATE_ROLE;
         }
+    } else if (token.type == TokenType::ALTER) {
+        // 检查下一个token是否为USER
+        Token nextToken = lexer.nextToken();
+        if (nextToken.type == TokenType::USER) {
+            return StatementType::ALTER_USER;
+        }
+    } else if (token.type == TokenType::GRANT) {
+        return StatementType::GRANT;
+    } else if (token.type == TokenType::REVOKE) {
+        return StatementType::REVOKE;
     } else if (token.type == TokenType::EDIT) {
         // 检查下一个token是否为TABLE
         Token nextToken = lexer.nextToken();
@@ -143,12 +228,16 @@ DDLExecutor::StatementType DDLExecutor::identifyStatementType(const std::string&
             return StatementType::RENAME_TABLE;
         }
     } else if (token.type == TokenType::DROP) {
-        // 检查下一个token是否为TABLE或INDEX
+        // 检查下一个token是否为TABLE、INDEX、USER或ROLE
         Token nextToken = lexer.nextToken();
         if (nextToken.type == TokenType::TABLE) {
             return StatementType::DROP_TABLE;
         } else if (nextToken.type == TokenType::INDEX) {
             return StatementType::DROP_INDEX;
+        } else if (nextToken.type == TokenType::USER) {
+            return StatementType::DROP_USER;
+        } else if (nextToken.type == TokenType::ROLE) {
+            return StatementType::DROP_ROLE;
         }
     }
     

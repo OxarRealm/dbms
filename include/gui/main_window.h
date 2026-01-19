@@ -122,6 +122,12 @@ private:
     QWidget* createIndexManagementTab();
 
     /**
+     * @brief Create user management tab
+     * @return Widget for user management
+     */
+    QWidget* createUserManagementTab();
+
+    /**
      * @brief Setup keyboard shortcuts
      */
     void setupShortcuts();
@@ -152,5 +158,6 @@ private:
     class IndexManagementWidget *m_indexManagementWidget;  // Index management widget
     class DataOperationWidget *m_dataOperationWidget;     // Data operation widget
     class SQLQueryWidget *m_sqlQueryWidget;                // SQL query widget
+    class UserManagementWidget *m_userManagementWidget;   // User management widget
 };
 

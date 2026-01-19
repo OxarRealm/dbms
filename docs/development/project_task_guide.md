@@ -691,3 +691,9 @@
 - 2026-01-14 - 阶段5.3（GUI数据库管理和表管理界面）完成
 - 2026-01-14 - 阶段5.4（GUI数据操作界面）完成
 - 2026-01-14 - **项目方向调整**：从"智能音乐播放管理系统"调整为"通用数据库管理系统"
+- 2026-01-18 - 阶段9.0（用户权限管理系统）完成
+  - 核心权限管理模块（UserManager, RoleManager, PermissionManager, SessionManager）
+  - SQL解析器扩展（支持CREATE USER, ALTER USER, DROP USER, CREATE ROLE, DROP ROLE, GRANT, REVOKE）
+  - DDL执行器集成（用户权限相关Handler）
+  - GUI界面实现（登录、用户管理、角色管理、权限管理）
+  - 关键Bug修复（REVOKE操作、内存和文件数据一致性等）

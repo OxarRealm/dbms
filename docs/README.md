@@ -48,6 +48,8 @@
 - **constraint_testing_summary.md** - 约束功能测试总结
 - **union_test_cases.md** - UNION功能测试用例
 - **subquery_test_cases.md** - 子查询功能测试用例
+- **permission_parser_test_guide.md** - 权限SQL解析器测试指南
+- **user_permission_debug_guide.md** - 用户权限系统调试指南
 
 ---
 
@@ -63,6 +65,7 @@
 - **final_preparation_checklist.md** - 最终准备检查清单
 - **documentation_update_summary.md** - 文档更新总结
 - **summary_response.md** - 总结响应
+- **user_permission_system_guide.md** - 用户权限系统使用指南
 
 ---
 
@@ -169,13 +172,16 @@
 
 ---
 
-**最后更新**：2026-01-16
+**最后更新**：2026-01-18
 
-**最新更新（2026-01-16）**：
-- ✅ 文档重新分类和归档完成
-  - 测试文档移至testing目录
-  - 已完成文档归档至archive目录
-  - 更新文档目录说明
-- ✅ 生成全面测试指南
-  - GUI图形化操作全面测试指南
-  - SQL执行命令操作全面测试指南
+**最新更新（2026-01-18）**：
+- ✅ 用户权限管理系统实现完成
+  - 核心权限管理模块（UserManager, RoleManager, PermissionManager, SessionManager）
+  - SQL解析器扩展（支持CREATE USER, ALTER USER, DROP USER, CREATE ROLE, DROP ROLE, GRANT, REVOKE）
+  - DDL执行器集成（用户权限相关Handler）
+  - GUI界面实现（登录、用户管理、角色管理、权限管理）
+  - 关键Bug修复（REVOKE操作、内存和文件数据一致性等）
+- ✅ 新增测试和指南文档
+  - permission_parser_test_guide.md - 权限SQL解析器测试指南
+  - user_permission_debug_guide.md - 用户权限系统调试指南
+  - user_permission_system_guide.md - 用户权限系统使用指南

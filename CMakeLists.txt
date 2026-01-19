@@ -87,6 +87,8 @@ file(GLOB_RECURSE SQL_PARSER_SOURCES
 
 # 显式添加约束解析器（确保被包含）
 list(APPEND SQL_PARSER_SOURCES "src/sql_parser/parser_constraints.cpp")
+# 显式添加权限相关语句解析器（确保被包含）
+list(APPEND SQL_PARSER_SOURCES "src/sql_parser/parser_user_permission.cpp")
 
 file(GLOB_RECURSE AI_SOURCES 
     "src/ai/*.cpp"
@@ -104,6 +106,10 @@ set(GUI_HEADERS
     "include/gui/index_management_widget.h"
     "include/gui/data_operation_widget.h"
     "include/gui/sql_query_widget.h"
+    "include/gui/user_management_widget.h"
+    "include/gui/login_dialog.h"
+    "include/gui/role_management_dialog.h"
+    "include/gui/permission_management_dialog.h"
 )
 
 # 所有源文件
@@ -138,7 +144,10 @@ add_executable(test_index_integration
     ${INDEX_SOURCES}
 )
 
-# 测试程序不需要链接Qt
+# 测试程序需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
+target_link_libraries(test_index_integration
+    Qt6::Core
+)
 target_compile_definitions(test_index_integration PRIVATE
     -D_CRT_SECURE_NO_WARNINGS
 )
@@ -153,7 +162,10 @@ add_executable(create_student_grade_database
     ${SQL_PARSER_SOURCES}
 )
 
-# 数据库生成工具不需要链接Qt
+# 数据库生成工具需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
+target_link_libraries(create_student_grade_database
+    Qt6::Core
+)
 target_compile_definitions(create_student_grade_database PRIVATE
     -D_CRT_SECURE_NO_WARNINGS
 )
@@ -166,7 +178,10 @@ add_executable(add_foreign_keys
     ${SQL_PARSER_SOURCES}
 )
 
-# 外键约束添加工具不需要链接Qt
+# 外键约束添加工具需要链接Qt Core（因为包含了user_manager等使用Qt的源文件）
+target_link_libraries(add_foreign_keys
+    Qt6::Core
+)
 target_compile_definitions(add_foreign_keys PRIVATE
     -D_CRT_SECURE_NO_WARNINGS
 )

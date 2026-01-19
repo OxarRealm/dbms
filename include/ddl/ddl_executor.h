@@ -6,6 +6,7 @@
 #include "ddl/drop_table_handler.h"
 #include "ddl/create_index_handler.h"
 #include "ddl/drop_index_handler.h"
+#include "ddl/user_permission_handler.h"
 #include "sql_parser/parser.h"
 #include <string>
 #include <memory>
@@ -59,6 +60,13 @@ private:
     DropTableHandler m_dropHandler;        // DROP TABLE处理器
     CreateIndexHandler m_createIndexHandler;  // CREATE INDEX处理器
     DropIndexHandler m_dropIndexHandler;      // DROP INDEX处理器
+    CreateUserHandler m_createUserHandler;    // CREATE USER处理器
+    AlterUserHandler m_alterUserHandler;      // ALTER USER处理器
+    DropUserHandler m_dropUserHandler;        // DROP USER处理器
+    CreateRoleHandler m_createRoleHandler;    // CREATE ROLE处理器
+    DropRoleHandler m_dropRoleHandler;         // DROP ROLE处理器
+    GrantHandler m_grantHandler;              // GRANT处理器
+    RevokeHandler m_revokeHandler;            // REVOKE处理器
     std::string m_lastError;               // 最后的错误信息
     std::string m_databasePath;             // 数据库路径
     
@@ -75,10 +83,17 @@ private:
     enum class StatementType {
         CREATE_TABLE,
         CREATE_INDEX,
+        CREATE_USER,
+        CREATE_ROLE,
         EDIT_TABLE,
         RENAME_TABLE,
         DROP_TABLE,
         DROP_INDEX,
+        DROP_USER,
+        DROP_ROLE,
+        ALTER_USER,
+        GRANT,
+        REVOKE,
         UNKNOWN
     };
     StatementType identifyStatementType(const std::string& sql);

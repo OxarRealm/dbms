@@ -37,7 +37,12 @@ std::unique_ptr<ASTNode> Parser::parse() {
         case TokenType::EDIT:
         case TokenType::RENAME:
         case TokenType::DROP:
+        case TokenType::ALTER:
             return parseDDL();
+        case TokenType::GRANT:
+            return parseGrant();
+        case TokenType::REVOKE:
+            return parseRevoke();
         case TokenType::INSERT:
             return parseInsert();
         case TokenType::DELETE:
@@ -62,8 +67,12 @@ std::unique_ptr<ASTNode> Parser::parseDDL() {
                 return parseCreateTable();
             } else if (nextToken.type == TokenType::INDEX) {
                 return parseCreateIndex();
+            } else if (nextToken.type == TokenType::USER) {
+                return parseCreateUser();
+            } else if (nextToken.type == TokenType::ROLE) {
+                return parseCreateRole();
             } else {
-                setError("Expected TABLE or INDEX after CREATE");
+                setError("Expected TABLE, INDEX, USER, or ROLE after CREATE");
                 return nullptr;
             }
         case TokenType::EDIT:
@@ -75,8 +84,19 @@ std::unique_ptr<ASTNode> Parser::parseDDL() {
                 return parseDropTable();
             } else if (nextToken.type == TokenType::INDEX) {
                 return parseDropIndex();
+            } else if (nextToken.type == TokenType::USER) {
+                return parseDropUser();
+            } else if (nextToken.type == TokenType::ROLE) {
+                return parseDropRole();
             } else {
-                setError("Expected TABLE or INDEX after DROP");
+                setError("Expected TABLE, INDEX, USER, or ROLE after DROP");
+                return nullptr;
+            }
+        case TokenType::ALTER:
+            if (nextToken.type == TokenType::USER) {
+                return parseAlterUser();
+            } else {
+                setError("Expected USER after ALTER");
                 return nullptr;
             }
         default:

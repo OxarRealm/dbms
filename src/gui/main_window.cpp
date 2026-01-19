@@ -8,6 +8,8 @@
 #include "gui/data_operation_widget.h"
 #include "gui/sql_query_widget.h"
 #include "gui/index_management_widget.h"
+#include "gui/user_management_widget.h"
+#include "gui/login_dialog.h"
 #include "core/constraint_storage.h"
 #include "core/constraint_registry.h"
 #include "core/index_storage.h"
@@ -43,8 +45,17 @@ MainWindow::MainWindow(QWidget *parent)
     , m_tableManagementWidget(nullptr)
     , m_dataOperationWidget(nullptr)
     , m_sqlQueryWidget(nullptr)
+    , m_userManagementWidget(nullptr)
 {
     setupFonts();
+    
+    // Show login dialog first
+    LoginDialog loginDialog(this);
+    if (loginDialog.exec() != QDialog::Accepted) {
+        // User cancelled login - will close in main()
+        return;
+    }
+    
     setupUI();
     createMenuBar();
     createStatusBar();
@@ -102,6 +113,7 @@ void MainWindow::createTabWidget()
     m_tabWidget->addTab(createIndexManagementTab(), "Index Management");
     m_tabWidget->addTab(createDataOperationTab(), "Data Operation");
     m_tabWidget->addTab(createSQLExecutionTab(), "SQL Execution");
+    m_tabWidget->addTab(createUserManagementTab(), "User Management");
     m_tabWidget->addTab(createGuideTab(), "Guide");
 
     // Connect tab change signal
@@ -201,6 +213,16 @@ QWidget* MainWindow::createIndexManagementTab()
         }
     }
     return m_indexManagementWidget;
+}
+
+QWidget* MainWindow::createUserManagementTab()
+{
+    m_userManagementWidget = new UserManagementWidget(this);
+    // If database is already loaded, set it
+    if (!m_databasePath.empty()) {
+        m_userManagementWidget->setDatabasePath(m_databasePath);
+    }
+    return m_userManagementWidget;
 }
 
 void MainWindow::createMenuBar()
@@ -400,6 +422,11 @@ void MainWindow::setCurrentDatabase(const std::string& dbPath)
     // Update SQL query widget if it exists
     if (m_sqlQueryWidget) {
         m_sqlQueryWidget->setDatabasePath(m_databasePath);
+    }
+    
+    // Update user management widget if it exists
+    if (m_userManagementWidget) {
+        m_userManagementWidget->setDatabasePath(m_databasePath);
     }
     
     // Update status bar message

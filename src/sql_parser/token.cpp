@@ -87,6 +87,17 @@ std::string Token::getTypeName() const {
         case TokenType::INDEX: return "INDEX";
         case TokenType::USING: return "USING";
         case TokenType::SHOW: return "SHOW";
+        case TokenType::USER: return "USER";
+        case TokenType::ROLE: return "ROLE";
+        case TokenType::PRIVILEGES: return "PRIVILEGES";
+        case TokenType::IDENTIFIED: return "IDENTIFIED";
+        case TokenType::GRANT: return "GRANT";
+        case TokenType::REVOKE: return "REVOKE";
+        case TokenType::TO: return "TO";
+        case TokenType::WITH: return "WITH";
+        case TokenType::OPTION: return "OPTION";
+        case TokenType::ALTER: return "ALTER";
+        case TokenType::DATABASE: return "DATABASE";
         case TokenType::NOT_EQUALS: return "NOT_EQUALS";
         case TokenType::GREATER_THAN: return "GREATER_THAN";
         case TokenType::LESS_THAN: return "LESS_THAN";
@@ -169,7 +180,18 @@ TokenType keywordToTokenType(const std::string& keyword) {
         {"CONSTRAINT", TokenType::CONSTRAINT},
         {"INDEX", TokenType::INDEX},
         {"USING", TokenType::USING},
-        {"SHOW", TokenType::SHOW}
+        {"SHOW", TokenType::SHOW},
+        {"USER", TokenType::USER},
+        {"ROLE", TokenType::ROLE},
+        {"PRIVILEGES", TokenType::PRIVILEGES},
+        {"IDENTIFIED", TokenType::IDENTIFIED},
+        {"GRANT", TokenType::GRANT},
+        {"REVOKE", TokenType::REVOKE},
+        {"TO", TokenType::TO},
+        {"WITH", TokenType::WITH},
+        {"OPTION", TokenType::OPTION},
+        {"ALTER", TokenType::ALTER},
+        {"DATABASE", TokenType::DATABASE}
     };
     
     // 转换为大写进行比较（关键词不区分大小写）

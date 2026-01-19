@@ -290,6 +290,113 @@ public:
 };
 
 /**
+ * @brief CREATE USER语句AST节点
+ */
+class CreateUserNode : public ASTNode {
+public:
+    std::string userName;             // 用户名
+    std::string password;             // 密码（明文）
+    
+    CreateUserNode() {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "CreateUserNode"; }
+};
+
+/**
+ * @brief ALTER USER语句AST节点
+ */
+class AlterUserNode : public ASTNode {
+public:
+    std::string userName;             // 用户名
+    std::string newPassword;          // 新密码（可选，修改密码时使用）
+    bool disable;                     // 是否禁用（true=禁用, false=启用）
+    bool isPasswordChange;            // 是否为密码修改（true=修改密码, false=禁用/启用）
+    
+    AlterUserNode() : disable(false), isPasswordChange(false) {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "AlterUserNode"; }
+};
+
+/**
+ * @brief DROP USER语句AST节点
+ */
+class DropUserNode : public ASTNode {
+public:
+    std::string userName;             // 用户名
+    
+    DropUserNode() {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "DropUserNode"; }
+};
+
+/**
+ * @brief CREATE ROLE语句AST节点
+ */
+class CreateRoleNode : public ASTNode {
+public:
+    std::string roleName;             // 角色名
+    std::string description;          // 角色描述（可选）
+    
+    CreateRoleNode() {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "CreateRoleNode"; }
+};
+
+/**
+ * @brief DROP ROLE语句AST节点
+ */
+class DropRoleNode : public ASTNode {
+public:
+    std::string roleName;             // 角色名
+    
+    DropRoleNode() {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "DropRoleNode"; }
+};
+
+/**
+ * @brief GRANT语句AST节点
+ */
+class GrantNode : public ASTNode {
+public:
+    bool isRoleGrant;                 // 是否为角色授予（true=GRANT ROLE, false=GRANT PRIVILEGES）
+    std::string roleName;             // 角色名（isRoleGrant=true时使用）
+    std::vector<std::string> privilegeTypes;  // 权限类型列表（isRoleGrant=false时使用，如"SELECT", "INSERT"等）
+    std::string objectType;           // 对象类型（"TABLE", "DATABASE"等，isRoleGrant=false时使用）
+    std::string objectName;           // 对象名（表名或数据库名，isRoleGrant=false时使用）
+    std::string grantee;              // 被授予者（用户名）
+    bool withGrantOption;             // 是否有GRANT OPTION
+    
+    GrantNode() : isRoleGrant(false), withGrantOption(false) {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "GrantNode"; }
+};
+
+/**
+ * @brief REVOKE语句AST节点
+ */
+class RevokeNode : public ASTNode {
+public:
+    bool isRoleRevoke;                // 是否为角色撤销（true=REVOKE ROLE, false=REVOKE PRIVILEGES）
+    std::string roleName;             // 角色名（isRoleRevoke=true时使用）
+    std::vector<std::string> privilegeTypes;  // 权限类型列表（isRoleRevoke=false时使用）
+    std::string objectType;           // 对象类型（"TABLE", "DATABASE"等，isRoleRevoke=false时使用）
+    std::string objectName;           // 对象名（表名或数据库名，isRoleRevoke=false时使用）
+    std::string revokee;              // 被撤销者（用户名）
+    
+    RevokeNode() : isRoleRevoke(false) {}
+    
+    void accept(ASTVisitor* visitor) override;
+    std::string getNodeType() const override { return "RevokeNode"; }
+};
+
+/**
  * @brief AST访问者接口（Visitor模式）
  */
 class ASTVisitor {
@@ -300,9 +407,19 @@ public:
     virtual void visitEditTable(EditTableNode* node) = 0;
     virtual void visitRenameTable(RenameTableNode* node) = 0;
     virtual void visitDropTable(DropTableNode* node) = 0;
+    virtual void visitCreateIndex(CreateIndexNode* node) = 0;
+    virtual void visitDropIndex(DropIndexNode* node) = 0;
     virtual void visitInsert(InsertNode* node) = 0;
     virtual void visitDelete(DeleteNode* node) = 0;
     virtual void visitUpdate(UpdateNode* node) = 0;
     virtual void visitSelect(SelectNode* node) = 0;
+    // 权限相关节点
+    virtual void visitCreateUser(CreateUserNode* node) = 0;
+    virtual void visitAlterUser(AlterUserNode* node) = 0;
+    virtual void visitDropUser(DropUserNode* node) = 0;
+    virtual void visitCreateRole(CreateRoleNode* node) = 0;
+    virtual void visitDropRole(DropRoleNode* node) = 0;
+    virtual void visitGrant(GrantNode* node) = 0;
+    virtual void visitRevoke(RevokeNode* node) = 0;
 };
 

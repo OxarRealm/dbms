@@ -532,12 +532,16 @@ IndexAdvisor类：
   - `ViewManager` - 视图管理器
 - **实现状态**：计划在第二阶段实现
 
-#### 3.10 用户和权限管理设计（计划中）
+#### 3.10 用户和权限管理设计 ✅
 - **职责**：用户认证和权限控制
 - **主要类**：
-  - `UserManager` - 用户管理器
-  - `PermissionManager` - 权限管理器
-- **实现状态**：计划在第二阶段实现（必须）
+  - `UserManager` - 用户管理器（用户CRUD、认证、密码哈希）
+  - `RoleManager` - 角色管理器（角色CRUD、用户-角色关联）
+  - `PermissionManager` - 权限管理器（权限授予/撤销、权限检查、角色继承）
+  - `SessionManager` - 会话管理器（会话管理、当前用户跟踪）
+  - `UserStorageManager` - 存储路径管理器（文件路径管理）
+- **实现状态**：已完成（2026-01-18）
+- **详细设计**：见"9. 用户权限管理系统"章节
 
 #### 3.9 GUI界面设计（进行中）
 
@@ -851,3 +855,9 @@ IndexAdvisor类：
 - 完善了SQL执行测试用例文档（添加JOIN查询测试用例）
 - 文档重新分类和归档（2026-01-16）
 - 生成GUI和SQL全面测试指南（2026-01-16）
+- 用户权限管理系统实现完成（2026-01-18）
+  - 核心权限管理模块（UserManager, RoleManager, PermissionManager, SessionManager）
+  - SQL解析器扩展（支持CREATE USER, ALTER USER, DROP USER, CREATE ROLE, DROP ROLE, GRANT, REVOKE）
+  - DDL执行器集成（用户权限相关Handler）
+  - GUI界面实现（登录、用户管理、角色管理、权限管理）
+  - 关键Bug修复（REVOKE操作、内存和文件数据一致性等）

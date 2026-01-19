@@ -34,7 +34,10 @@ ExecutionResult QueryExecutor::execute(const std::string& sql) {
             result.errorMessage = m_lastError;
         } else {
             result.type = ExecutionResultType::SUCCESS;
-            result.formattedOutput = "DDL statement executed successfully";
+            // executeDDL已经设置了formattedOutput（可能包含调试信息），不要覆盖它
+            if (result.formattedOutput.empty()) {
+                result.formattedOutput = "DDL statement executed successfully";
+            }
         }
     } else if (statementType == "DML") {
         if (!executeDML(sql, result)) {
@@ -243,6 +246,26 @@ bool QueryExecutor::executeDDL(const std::string& sql, ExecutionResult& result) 
         return false;
     }
     result.affectedRows = 0;  // DDL语句不影响记录数
+    
+    // 对于REVOKE语句，添加调试信息到formattedOutput
+    std::string upperSql = sql;
+    std::transform(upperSql.begin(), upperSql.end(), upperSql.begin(), ::toupper);
+    if (upperSql.find("REVOKE") == 0) {
+        // 从DDLExecutor获取最后的错误信息（可能包含调试信息）
+        std::string lastError = m_ddlExecutor.getLastError();
+        if (!lastError.empty() && lastError.find("REVOKE executed") != std::string::npos) {
+            // 包含调试信息
+            result.formattedOutput = lastError;
+        } else if (!lastError.empty()) {
+            // 只有错误信息
+            result.formattedOutput = "REVOKE statement executed successfully. " + lastError;
+        } else {
+            result.formattedOutput = "REVOKE statement executed successfully";
+        }
+    } else {
+        result.formattedOutput = "DDL statement executed successfully";
+    }
+    
     return true;
 }
 

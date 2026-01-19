@@ -1569,4 +1569,206 @@
 - 运行测试脚本验证功能正确性
 - 考虑GUI界面集成索引推荐功能（如需要）
 
+---
+
+## 2026-01-18 - 智能索引推荐系统索引识别修复
+
+**时间**：2026-01-18
+
+**完成工作**：
+
+1. ✅ **修复智能索引推荐系统索引识别问题**
+   - **问题描述**：智能索引推荐系统无法识别已有索引，即使存在索引也显示"无索引"
+   - **根本原因**：`IndexAdvisor`类内部使用独立的索引对象（`m_adjacentIndex`、`m_hashIndex`、`m_btreeIndex`），这些对象的`m_indices`映射表未从`.idx`文件加载索引数据，导致`hasIndex()`检查失败
+   - **解决方案**：在`IndexAdvisor`类中添加`IndexManager`指针支持，优先使用`IndexManager`检查索引（`IndexManager`会从`.idx`文件加载索引数据）
+
+2. ✅ **IndexAdvisor类修改**
+   - 添加`m_indexManager`指针成员变量
+   - 添加`setIndexManager(IndexManager* indexManager)`方法
+   - 添加`checkHasIndex(const std::string& tableName, const std::string& fieldName)`私有方法
+   - 修改`analyzeQueryLogs()`方法，使用`checkHasIndex()`替代直接调用内部索引对象的`hasIndex()`
+   - 修改`evaluateIndexEffect()`方法，使用`checkHasIndex()`检查索引
+   - 保持向后兼容：如果未设置`IndexManager`，仍使用内部索引对象检查
+   - **修改文件**：
+     - `include/index/index_advisor.h` - 添加`IndexManager`前向声明、`setIndexManager()`方法和`checkHasIndex()`方法
+     - `src/index/index_advisor.cpp` - 实现`setIndexManager()`和`checkHasIndex()`方法，更新索引检查调用
+
+3. ✅ **QueryExecutor集成修改**
+   - 在`QueryExecutor::setDatabasePath()`方法中，设置`IndexManager`到`IndexAdvisor`
+   - 确保`IndexAdvisor`能够访问已加载索引的`IndexManager`
+   - **修改文件**：`src/query/query_executor.cpp`
+
+4. ✅ **GUI代码修改**
+   - 在`IndexManagementWidget::setIndexAdvisor()`方法中，设置`IndexManager`到`IndexAdvisor`
+   - 在`refreshRecommendations()`和`onViewRecommendations()`方法中，为临时创建的`IndexAdvisor`也设置`IndexManager`
+   - 确保所有使用`IndexAdvisor`的地方都能正确检查索引
+   - **修改文件**：`src/gui/index_management_widget.cpp`
+
+**技术决策**：
+- 使用`IndexManager`作为索引检查的统一数据源（因为它会从`.idx`文件加载索引数据）
+- 保持向后兼容：如果未设置`IndexManager`，仍使用内部索引对象检查（避免破坏现有代码）
+- 在GUI中统一使用`IndexManager`进行索引检查，确保数据一致性
+
+**修复效果**：
+- 智能索引推荐系统现在能够正确识别已有索引
+- SQL建议区域和索引管理推荐区域都能正确显示索引状态
+- 索引检查结果与SQL查询反馈结果保持一致
+
+**修改的源文件**：
+- `include/index/index_advisor.h` - 添加`IndexManager`支持
+- `src/index/index_advisor.cpp` - 实现索引检查修复
+- `src/query/query_executor.cpp` - 集成`IndexManager`到`IndexAdvisor`
+- `src/gui/index_management_widget.cpp` - GUI中设置`IndexManager`
+
+**最后更新时间**：2026-01-18
+
+---
+
+## 2026-01-18
+
+### 用户权限管理系统完整实现
+
+**时间**：2026-01-18
+
+**完成工作**：
+
+1. ✅ **核心管理器实现**
+   - `UserManager`：用户CRUD、密码哈希（SHA256）、用户状态管理（启用/禁用）、文件持久化（.usr文件）
+   - `RoleManager`：角色CRUD、用户-角色关联管理、文件持久化（.role和.usrr文件）
+   - `PermissionManager`：权限授予/撤销、权限检查（支持用户权限、角色权限、ALL_PRIVILEGES）、文件持久化（.perm文件）
+   - `SessionManager`：会话管理（登录/登出、当前用户状态）
+   - **实现文件**：
+     - `src/core/user_manager.cpp`
+     - `src/core/role_manager.cpp`
+     - `src/core/permission_manager.cpp`
+     - `src/core/session_manager.cpp`
+     - `src/core/user_storage.cpp`
+
+2. ✅ **SQL解析器完整实现**
+   - 所有用户权限相关SQL语句的解析功能已完成
+   - 支持CREATE USER、ALTER USER、DROP USER、CREATE ROLE、DROP ROLE、GRANT、REVOKE
+   - **实现文件**：`src/sql_parser/parser_user_permission.cpp`
+
+3. ✅ **SQL执行器集成**
+   - `DDLExecutor`已集成所有用户权限处理器：
+     - `CreateUserHandler`、`AlterUserHandler`、`DropUserHandler`
+     - `CreateRoleHandler`、`DropRoleHandler`
+     - `GrantHandler`、`RevokeHandler`
+   - 所有处理器已正确路由到`DDLExecutor::execute()`
+   - **实现文件**：
+     - `include/ddl/user_permission_handler.h`
+     - `src/ddl/user_permission_handler.cpp`
+     - `src/ddl/ddl_executor.cpp`
+
+4. ✅ **GUI界面完整实现**
+   - **登录对话框**（`LoginDialog`）：
+     - 启动时自动显示
+     - 支持用户名和密码输入
+     - 默认管理员账户：admin/admin
+   - **用户管理界面**（`UserManagementWidget`）：
+     - 用户列表显示和刷新
+     - 创建用户（带密码输入）
+     - 删除用户（带确认对话框）
+     - 启用/禁用用户
+     - 修改密码
+     - 用户信息显示（用户名、状态、角色列表、权限列表）
+     - 管理用户角色（打开角色管理对话框）
+     - 管理用户权限（打开权限管理对话框）
+   - **角色管理对话框**（`RoleManagementDialog`）：
+     - 显示可用角色列表和用户角色列表
+     - 授予角色给用户
+     - 撤销用户角色
+     - 刷新功能
+   - **权限管理对话框**（`PermissionManagementDialog`）：
+     - 权限列表表格显示（对象类型、对象名称、权限列表、Grant Option）
+     - 授予权限（支持Table/Database对象类型、多权限选择、WITH GRANT OPTION）
+     - 撤销权限（从表格选择权限记录）
+     - 刷新功能
+   - **主窗口集成**：
+     - 启动时显示登录对话框
+     - 新增"User Management" Tab
+     - 自动刷新用户信息
+   - **实现文件**：
+     - `include/gui/login_dialog.h` / `src/gui/login_dialog.cpp`
+     - `include/gui/user_management_widget.h` / `src/gui/user_management_widget.cpp`
+     - `include/gui/role_management_dialog.h` / `src/gui/role_management_dialog.cpp`
+     - `include/gui/permission_management_dialog.h` / `src/gui/permission_management_dialog.cpp`
+     - `src/gui/main_window.cpp`（集成代码）
+
+5. ✅ **编译错误修复**
+   - 修复`PermissionInfo::permissionType`类型错误（std::string而非PermissionType枚举）
+   - 修复`permission_management_dialog.cpp`和`user_management_widget.cpp`中的类型转换错误
+   - 修复Qt库链接问题（为测试可执行文件添加Qt6::Core链接）
+
+**技术决策**：
+- 使用SHA256哈希算法存储密码（通过Qt的`QCryptographicHash`实现）
+- 权限信息使用字符串存储（`PermissionInfo::permissionType`为`std::string`），便于扩展和显示
+- GUI界面使用英文文本（符合项目规范），所有用户可见文本使用Segoe UI字体
+- 权限检查支持角色继承：用户通过角色获得的权限会自动合并显示
+
+**支持的功能**：
+
+1. **用户管理**：
+   - 创建用户（带密码）
+   - 删除用户
+   - 启用/禁用用户
+   - 修改密码
+   - 查看用户信息（状态、角色、权限）
+
+2. **角色管理**：
+   - 创建角色
+   - 删除角色
+   - 授予角色给用户
+   - 撤销用户角色
+
+3. **权限管理**：
+   - 授予表权限（SELECT, INSERT, UPDATE, DELETE, ALTER, DROP, CREATE TABLE, ALL PRIVILEGES）
+   - 授予数据库权限
+   - 撤销权限
+   - 支持WITH GRANT OPTION
+
+4. **SQL语句支持**：
+   - `CREATE USER username IDENTIFIED BY 'password';`
+   - `ALTER USER username IDENTIFIED BY 'newpassword';`
+   - `ALTER USER username ENABLE/DISABLE;`
+   - `DROP USER username;`
+   - `CREATE ROLE role_name;`
+   - `DROP ROLE role_name;`
+   - `GRANT privilege_list ON TABLE table_name TO username [WITH GRANT OPTION];`
+   - `GRANT ALL PRIVILEGES ON DATABASE TO username;`
+   - `GRANT role_name TO username;`
+   - `REVOKE privilege_list ON TABLE table_name FROM username;`
+   - `REVOKE role_name FROM username;`
+
+**数据存储**：
+- 用户数据：`.usr`文件（数据库目录下）
+- 角色数据：`.role`文件（数据库目录下）
+- 用户-角色关联：`.usrr`文件（数据库目录下）
+- 权限数据：`.perm`文件（数据库目录下）
+
+**修改的文件**：
+- `include/core/user_mode.h` - 数据结构定义
+- `include/core/user_manager.h` / `src/core/user_manager.cpp` - 用户管理
+- `include/core/role_manager.h` / `src/core/role_manager.cpp` - 角色管理
+- `include/core/permission_manager.h` / `src/core/permission_manager.cpp` - 权限管理
+- `include/core/session_manager.h` / `src/core/session_manager.cpp` - 会话管理
+- `include/core/user_storage.h` / `src/core/user_storage.cpp` - 存储路径管理
+- `include/sql_parser/token.h` / `src/sql_parser/token.cpp` - Token扩展
+- `include/sql_parser/ast_node.h` / `src/sql_parser/ast_node.cpp` - AST节点扩展
+- `include/sql_parser/parser.h` / `src/sql_parser/parser.cpp` - Parser主流程
+- `src/sql_parser/parser_user_permission.cpp` - 权限SQL解析实现
+- `include/ddl/user_permission_handler.h` / `src/ddl/user_permission_handler.cpp` - SQL处理器
+- `include/ddl/ddl_executor.h` / `src/ddl/ddl_executor.cpp` - DDL执行器集成
+- `include/gui/login_dialog.h` / `src/gui/login_dialog.cpp` - 登录对话框
+- `include/gui/user_management_widget.h` / `src/gui/user_management_widget.cpp` - 用户管理界面
+- `include/gui/role_management_dialog.h` / `src/gui/role_management_dialog.cpp` - 角色管理对话框
+- `include/gui/permission_management_dialog.h` / `src/gui/permission_management_dialog.cpp` - 权限管理对话框
+- `include/gui/main_window.h` / `src/gui/main_window.cpp` - 主窗口集成
+- `CMakeLists.txt` - 构建配置更新
+
+**待完成功能**：
+- 权限检查中间件（在执行SQL时验证用户权限）
+- 默认admin用户初始化（首次启动时自动创建）
+- 为Student和Grade数据库创建示例用户和角色（可通过SQL语句完成）
+
 **最后更新时间**：2026-01-18

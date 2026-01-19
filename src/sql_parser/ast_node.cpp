@@ -51,3 +51,31 @@ void SelectNode::accept(ASTVisitor* visitor) {
     visitor->visitSelect(this);
 }
 
+void CreateUserNode::accept(ASTVisitor* visitor) {
+    visitor->visitCreateUser(this);
+}
+
+void AlterUserNode::accept(ASTVisitor* visitor) {
+    visitor->visitAlterUser(this);
+}
+
+void DropUserNode::accept(ASTVisitor* visitor) {
+    visitor->visitDropUser(this);
+}
+
+void CreateRoleNode::accept(ASTVisitor* visitor) {
+    visitor->visitCreateRole(this);
+}
+
+void DropRoleNode::accept(ASTVisitor* visitor) {
+    visitor->visitDropRole(this);
+}
+
+void GrantNode::accept(ASTVisitor* visitor) {
+    visitor->visitGrant(this);
+}
+
+void RevokeNode::accept(ASTVisitor* visitor) {
+    visitor->visitRevoke(this);
+}
+

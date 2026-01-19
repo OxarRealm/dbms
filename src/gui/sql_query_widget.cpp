@@ -612,12 +612,31 @@ QStringList SQLQueryWidget::splitSQLStatements(const QString& sqlText)
     QString currentStatement;
     bool inString = false;
     char stringChar = '\0';
+    bool inComment = false;
     
     for (int i = 0; i < sqlText.length(); ++i) {
         QChar ch = sqlText[i];
         
+        // Handle single-line comments (--)
+        if (!inString && !inComment && i < sqlText.length() - 1 && 
+            ch == '-' && sqlText[i+1] == '-') {
+            // Skip the rest of the line (comment)
+            while (i < sqlText.length() && sqlText[i] != '\n') {
+                i++;
+            }
+            // If we have accumulated a statement, add it before the comment
+            if (!currentStatement.trimmed().isEmpty()) {
+                currentStatement = currentStatement.trimmed();
+                if (!currentStatement.isEmpty()) {
+                    statements.append(currentStatement);
+                }
+                currentStatement.clear();
+            }
+            continue;
+        }
+        
         // Handle string literals
-        if (!inString && (ch == '\'' || ch == '"')) {
+        if (!inString && !inComment && (ch == '\'' || ch == '"')) {
             inString = true;
             stringChar = ch.toLatin1();
             currentStatement += ch;
@@ -628,7 +647,7 @@ QStringList SQLQueryWidget::splitSQLStatements(const QString& sqlText)
                 stringChar = '\0';
             }
             currentStatement += ch;
-        } else if (!inString && ch == ';') {
+        } else if (!inString && !inComment && ch == ';') {
             // End of statement - include semicolon
             currentStatement += ch;  // Include the semicolon
             currentStatement = currentStatement.trimmed();
@@ -636,7 +655,7 @@ QStringList SQLQueryWidget::splitSQLStatements(const QString& sqlText)
                 statements.append(currentStatement);
             }
             currentStatement.clear();
-        } else {
+        } else if (!inString && !inComment) {
             currentStatement += ch;
         }
     }
