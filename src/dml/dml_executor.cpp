@@ -40,7 +40,7 @@ bool DMLExecutor::execute(const std::string& sql) {
             break;
             
         case StatementType::DELETE:
-            result = m_deleteHandler.execute(sql);
+            result = m_deleteHandler.execute(sql, m_databasePath);
             if (result) {
                 m_affectedRows = m_deleteHandler.getDeletedCount();
             } else {

@@ -643,9 +643,12 @@ bool PermissionManager::permissionIncludes(const std::string& permissionType, Pe
 }
 
 bool PermissionManager::loadPermissions() {
+    // 关键修复：总是先清空内存数据，确保从文件重新加载
+    m_userPermissions.clear();
+    m_rolePermissions.clear();
+    
     if (m_dbFilePath.empty()) {
-        m_userPermissions.clear();
-        m_rolePermissions.clear();
+        // 如果没有设置数据库路径，返回（已清空）
         return true;
     }
     

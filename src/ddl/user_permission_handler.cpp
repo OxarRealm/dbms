@@ -17,11 +17,17 @@ CreateUserHandler::~CreateUserHandler() {
 }
 
 void CreateUserHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_userManager.setDatabasePath(dbPath);
 }
 
 bool CreateUserHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_userManager.setDatabasePath(m_dbFilePath);  // 这会触发loadUsers()
+    }
     
     // 解析SQL语句
     Parser parser(sql);
@@ -78,11 +84,17 @@ AlterUserHandler::~AlterUserHandler() {
 }
 
 void AlterUserHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_userManager.setDatabasePath(dbPath);
 }
 
 bool AlterUserHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_userManager.setDatabasePath(m_dbFilePath);  // 这会触发loadUsers()
+    }
     
     Parser parser(sql);
     std::unique_ptr<ASTNode> node = parser.parse();
@@ -147,11 +159,17 @@ DropUserHandler::~DropUserHandler() {
 }
 
 void DropUserHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_userManager.setDatabasePath(dbPath);
 }
 
 bool DropUserHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_userManager.setDatabasePath(m_dbFilePath);  // 这会触发loadUsers()
+    }
     
     Parser parser(sql);
     std::unique_ptr<ASTNode> node = parser.parse();
@@ -193,18 +211,24 @@ void DropUserHandler::setError(const std::string& error) {
 
 // ==================== CreateRoleHandler ====================
 
-CreateRoleHandler::CreateRoleHandler() {
+CreateRoleHandler::CreateRoleHandler() : m_dbFilePath("") {
 }
 
 CreateRoleHandler::~CreateRoleHandler() {
 }
 
 void CreateRoleHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_roleManager.setDatabasePath(dbPath);
 }
 
 bool CreateRoleHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_roleManager.setDatabasePath(m_dbFilePath);  // 这会触发loadRoles()
+    }
     
     Parser parser(sql);
     std::unique_ptr<ASTNode> node = parser.parse();
@@ -252,13 +276,14 @@ void CreateRoleHandler::setError(const std::string& error) {
 
 // ==================== DropRoleHandler ====================
 
-DropRoleHandler::DropRoleHandler() {
+DropRoleHandler::DropRoleHandler() : m_dbFilePath("") {
 }
 
 DropRoleHandler::~DropRoleHandler() {
 }
 
 void DropRoleHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_roleManager.setDatabasePath(dbPath);
 }
 
@@ -323,6 +348,13 @@ void GrantHandler::setCurrentUser(const std::string& userName) {
 
 bool GrantHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_userManager.setDatabasePath(m_dbFilePath);      // 这会触发loadUsers()
+        m_roleManager.setDatabasePath(m_dbFilePath);      // 这会触发loadRoles()和loadUserRoles()
+        m_permissionManager.setDatabasePath(m_dbFilePath); // 这会触发loadPermissions()
+    }
     
     Parser parser(sql);
     std::unique_ptr<ASTNode> node = parser.parse();
@@ -423,13 +455,14 @@ char GrantHandler::stringToObjectType(const std::string& str) const {
 
 // ==================== RevokeHandler ====================
 
-RevokeHandler::RevokeHandler() {
+RevokeHandler::RevokeHandler() : m_dbFilePath("") {
 }
 
 RevokeHandler::~RevokeHandler() {
 }
 
 void RevokeHandler::setDatabasePath(const std::string& dbPath) {
+    m_dbFilePath = dbPath;
     m_userManager.setDatabasePath(dbPath);
     m_roleManager.setDatabasePath(dbPath);
     m_permissionManager.setDatabasePath(dbPath);
@@ -441,6 +474,13 @@ void RevokeHandler::setCurrentUser(const std::string& userName) {
 
 bool RevokeHandler::execute(const std::string& sql) {
     m_lastError = "";
+    
+    // 关键修复：重新设置数据库路径以触发数据重新加载，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        m_userManager.setDatabasePath(m_dbFilePath);      // 这会触发loadUsers()
+        m_roleManager.setDatabasePath(m_dbFilePath);      // 这会触发loadRoles()和loadUserRoles()
+        m_permissionManager.setDatabasePath(m_dbFilePath); // 这会触发loadPermissions()
+    }
     
     Parser parser(sql);
     std::unique_ptr<ASTNode> node = parser.parse();

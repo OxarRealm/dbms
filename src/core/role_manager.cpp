@@ -55,6 +55,11 @@ bool RoleManager::createRole(const std::string& roleName, const std::string& des
         return false;
     }
     
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadRoles();
+    }
+    
     // 检查角色是否已存在
     if (roleExists(roleName)) {
         std::cerr << "Error: Role already exists: " << roleName << std::endl;
@@ -81,6 +86,12 @@ bool RoleManager::createRole(const std::string& roleName, const std::string& des
 }
 
 bool RoleManager::deleteRole(const std::string& roleName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadRoles();
+        loadUserRoles();
+    }
+    
     if (!roleExists(roleName)) {
         std::cerr << "Error: Role does not exist: " << roleName << std::endl;
         return false;
@@ -135,6 +146,12 @@ bool RoleManager::getAllRoleNames(std::vector<std::string>& roleNames) const {
 }
 
 bool RoleManager::grantRoleToUser(const std::string& roleName, const std::string& userName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadRoles();
+        loadUserRoles();
+    }
+    
     if (!roleExists(roleName)) {
         std::cerr << "Error: Role does not exist: " << roleName << std::endl;
         return false;
@@ -165,6 +182,11 @@ bool RoleManager::grantRoleToUser(const std::string& roleName, const std::string
 }
 
 bool RoleManager::revokeRoleFromUser(const std::string& roleName, const std::string& userName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUserRoles();
+    }
+    
     if (!userHasRole(userName, roleName)) {
         // 用户不拥有此角色，不算错误
         return true;
@@ -208,8 +230,11 @@ bool RoleManager::userHasRole(const std::string& userName, const std::string& ro
 }
 
 bool RoleManager::loadRoles() {
+    // 关键修复：总是先清空内存数据，确保从文件重新加载
+    m_roles.clear();
+    
     if (m_dbFilePath.empty()) {
-        m_roles.clear();
+        // 如果没有设置数据库路径，返回（已清空）
         return true;
     }
     
@@ -386,8 +411,11 @@ bool RoleManager::saveRoles() const {
 }
 
 bool RoleManager::loadUserRoles() {
+    // 关键修复：总是先清空内存数据，确保从文件重新加载
+    m_userRoles.clear();
+    
     if (m_dbFilePath.empty()) {
-        m_userRoles.clear();
+        // 如果没有设置数据库路径，返回（已清空）
         return true;
     }
     

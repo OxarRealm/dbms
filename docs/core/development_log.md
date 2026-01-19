@@ -1767,8 +1767,89 @@
 - `CMakeLists.txt` - 构建配置更新
 
 **待完成功能**：
-- 权限检查中间件（在执行SQL时验证用户权限）
-- 默认admin用户初始化（首次启动时自动创建）
-- 为Student和Grade数据库创建示例用户和角色（可通过SQL语句完成）
+- 权限检查中间件（在执行SQL时验证用户权限）✅
+- 默认admin用户初始化（首次启动时自动创建）✅
+- 为Student和Grade数据库创建示例用户和角色（可通过SQL语句完成）✅
 
-**最后更新时间**：2026-01-18
+---
+
+## 2026-01-19
+
+### 用户权限检查功能实现和登录流程优化
+
+**时间**：2026-01-19
+
+**完成工作**：
+
+1. ✅ **权限检查中间件实现**
+   - 在`QueryExecutor`中添加权限检查逻辑
+   - 实现`checkPermission()`方法，检查用户对表对象的权限
+   - 支持SELECT、INSERT、UPDATE、DELETE权限检查
+   - admin用户自动拥有所有权限
+   - 支持角色权限继承
+
+2. ✅ **SELECT查询权限检查**
+   - 在`executeQuery()`中添加SELECT权限检查
+   - 解析SELECT语句提取表名
+   - 在执行查询前检查用户是否有SELECT权限
+   - 无权限时返回"Permission denied"错误
+
+3. ✅ **DML操作权限检查**
+   - 在`executeDML()`中添加INSERT、UPDATE、DELETE权限检查
+   - 解析INSERT、UPDATE、DELETE语句提取表名和操作类型
+   - 在执行DML操作前检查用户是否有相应权限
+   - 无权限时返回"Permission denied"错误
+
+4. ✅ **登录流程优化**
+   - 修改应用启动流程：启动时不需要登录
+   - 在打开数据库时显示用户选择对话框
+   - 创建`UserSelectionDialog`类，支持选择用户并输入密码
+   - admin/admin始终可用作为默认用户
+   - 其他用户从数据库的.usr文件加载
+
+5. ✅ **密码哈希存储修复**
+   - 修复密码哈希长度问题：从64字节改为65字节（64字符+1个\0）
+   - 修复密码哈希存储逻辑，确保完整存储64个字符
+   - 修复密码哈希读取逻辑，确保正确提取
+   - 添加调试信息，显示存储和计算的哈希值
+
+6. ✅ **测试SQL脚本生成**
+   - 创建`scripts/testing/test_permission_queries.sql`
+   - 包含30个测试用例，覆盖学生、教师、admin用户的权限测试
+   - 测试SELECT、INSERT、UPDATE、DELETE权限
+   - 测试权限边界情况和复杂查询
+
+**技术决策**：
+- 权限检查在SQL执行前进行，避免无效操作
+- 使用`SessionManager`获取当前登录用户
+- 使用`PermissionManager`和`RoleManager`检查权限
+- admin用户绕过所有权限检查，拥有完全权限
+- 权限检查失败时返回明确的错误信息
+
+**实现位置**：
+- `include/query/query_executor.h` - 添加权限管理器和角色管理器成员
+- `src/query/query_executor.cpp` - 实现权限检查逻辑
+- `include/gui/user_selection_dialog.h` - 用户选择对话框头文件（新建）
+- `src/gui/user_selection_dialog.cpp` - 用户选择对话框实现（新建）
+- `src/gui/main_window.cpp` - 修改启动和数据库打开逻辑
+- `src/core/user_manager.cpp` - 修复密码哈希存储和读取逻辑
+- `include/core/user_mode.h` - 修改PASSWORD_HASH_LENGTH为65
+
+**测试文件**：
+- `scripts/testing/test_permission_queries.sql` - 权限测试SQL脚本（新建）
+
+**遇到的问题和解决方案**：
+1. **问题**：非admin用户登录时密码验证失败
+   - **原因**：密码哈希长度定义错误，存储时只存储了63个字符
+   - **解决**：将`PASSWORD_HASH_LENGTH`从64改为65，确保完整存储64个字符+1个\0
+
+2. **问题**：权限检查逻辑未实现
+   - **原因**：QueryExecutor中缺少权限检查调用
+   - **解决**：在`executeQuery()`和`executeDML()`中添加权限检查，调用`checkPermission()`方法
+
+**下一步计划**：
+1. 测试权限检查功能是否正常工作
+2. 根据测试结果修复可能的bug
+3. 完善权限错误提示信息
+
+**最后更新时间**：2026-01-19

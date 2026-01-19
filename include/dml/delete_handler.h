@@ -26,9 +26,10 @@ public:
     /**
      * @brief 执行DELETE语句
      * @param sql DELETE SQL语句
+     * @param basePath 数据库基础路径（可选，用于解析相对路径的数据库文件名）
      * @return 成功返回true，失败返回false
      */
-    bool execute(const std::string& sql);
+    bool execute(const std::string& sql, const std::string& basePath = "");
     
     /**
      * @brief 获取最后的错误信息

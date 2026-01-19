@@ -6,6 +6,9 @@
 #include "sql_parser/parser.h"
 #include "index/index_advisor.h"
 #include "core/index_manager.h"
+#include "core/permission_manager.h"
+#include "core/role_manager.h"
+#include "core/session_manager.h"
 #include <string>
 #include <memory>
 #include <chrono>
@@ -145,5 +148,17 @@ private:
      * @param fields 输出参数，字段名列表
      */
     void extractWhereFields(const WhereCondition* condition, std::vector<std::string>& fields);
+    
+    /**
+     * @brief 检查权限
+     * @param objectType 对象类型（1=表, 2=数据库, 3=系统）
+     * @param objectName 对象名（表名或数据库名）
+     * @param permissionType 权限类型
+     * @return 有权限返回true，否则返回false
+     */
+    bool checkPermission(char objectType, const std::string& objectName, PermissionType permissionType);
+    
+    mutable PermissionManager m_permissionManager;  // 权限管理器（mutable以便在const方法中重新加载数据）
+    mutable RoleManager m_roleManager;             // 角色管理器（mutable以便在const方法中重新加载数据）
 };
 

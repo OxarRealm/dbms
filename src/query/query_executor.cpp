@@ -5,15 +5,18 @@
 
 #include "query/query_executor.h"
 #include "core/index_storage.h"
+#include "core/session_manager.h"
 #include "sql_parser/lexer.h"
 #include "sql_parser/parser.h"
 #include "sql_parser/ast_node.h"
+#include "core/user_mode.h"
 #include <sstream>
 #include <iomanip>
 #include <algorithm>
 #include <cstring>
 #include <chrono>
 #include <string>
+#include <iostream>
 
 QueryExecutor::QueryExecutor() {
 }
@@ -76,6 +79,8 @@ void QueryExecutor::setDatabasePath(const std::string& dbPath) {
     m_selectHandler.setDatabasePath(dbPath);
     m_indexAdvisor.setDatabasePath(dbPath);
     m_indexManager.setDatabasePath(dbPath);
+    m_permissionManager.setDatabasePath(dbPath);
+    m_roleManager.setDatabasePath(dbPath);
     
     // Load indices from .idx file to ensure we can detect index usage
     if (!dbPath.empty()) {
@@ -270,6 +275,38 @@ bool QueryExecutor::executeDDL(const std::string& sql, ExecutionResult& result) 
 }
 
 bool QueryExecutor::executeDML(const std::string& sql, ExecutionResult& result) {
+    // 解析SQL以提取表名和操作类型
+    Parser parser(sql);
+    std::unique_ptr<ASTNode> ast = parser.parse();
+    
+    if (!ast) {
+        setError("SQL parsing failed: " + parser.getLastError());
+        return false;
+    }
+    
+    std::string tableName = "";
+    PermissionType permissionType = PermissionType::SELECT;
+    
+    // 识别DML语句类型并提取表名
+    if (InsertNode* insertNode = dynamic_cast<InsertNode*>(ast.get())) {
+        tableName = insertNode->tableName;
+        permissionType = PermissionType::INSERT;
+    } else if (UpdateNode* updateNode = dynamic_cast<UpdateNode*>(ast.get())) {
+        tableName = updateNode->tableName;
+        permissionType = PermissionType::UPDATE;
+    } else if (DeleteNode* deleteNode = dynamic_cast<DeleteNode*>(ast.get())) {
+        tableName = deleteNode->tableName;
+        permissionType = PermissionType::DELETE;
+    }
+    
+    // 权限检查
+    if (!tableName.empty() && !checkPermission(OBJECT_TYPE_TABLE, tableName, permissionType)) {
+        std::string permissionStr = (permissionType == PermissionType::INSERT) ? "INSERT" :
+                                    (permissionType == PermissionType::UPDATE) ? "UPDATE" : "DELETE";
+        setError("Permission denied: User does not have " + permissionStr + " permission on table '" + tableName + "'");
+        return false;
+    }
+    
     if (!m_dmlExecutor.execute(sql)) {
         setError(m_dmlExecutor.getLastError());
         return false;
@@ -293,6 +330,12 @@ bool QueryExecutor::executeQuery(const std::string& sql, ExecutionResult& result
         SelectNode* selectNode = dynamic_cast<SelectNode*>(ast.get());
         if (selectNode && !selectNode->fromTables.empty()) {
             tableName = selectNode->fromTables[0];  // 单表查询，取第一个表
+            
+            // 权限检查：检查SELECT权限
+            if (!checkPermission(OBJECT_TYPE_TABLE, tableName, PermissionType::SELECT)) {
+                setError("Permission denied: User does not have SELECT permission on table '" + tableName + "'");
+                return false;
+            }
             
             // 提取WHERE字段（简单字段或从WHERE条件中提取）
             if (!selectNode->whereField.empty()) {
@@ -371,5 +414,43 @@ void QueryExecutor::extractWhereFields(const WhereCondition* condition, std::vec
     if (condition->right) {
         extractWhereFields(condition->right.get(), fields);
     }
+}
+
+bool QueryExecutor::checkPermission(char objectType, const std::string& objectName, PermissionType permissionType) {
+    // 获取当前用户
+    std::string currentUser = SessionManager::getInstance().getCurrentUser();
+    
+    // 如果未登录，拒绝所有操作（除了admin）
+    if (currentUser.empty()) {
+        std::cerr << "Debug: No user logged in, permission denied" << std::endl;
+        return false;
+    }
+    
+    // admin用户拥有所有权限
+    if (currentUser == "admin") {
+        return true;
+    }
+    
+    // 关键修复：在权限检查前重新加载权限数据，确保使用最新的权限信息
+    // 这很重要，因为权限可能在运行时被修改（通过GRANT/REVOKE）
+    if (!m_databasePath.empty()) {
+        m_permissionManager.setDatabasePath(m_databasePath);  // 这会触发loadPermissions()
+        m_roleManager.setDatabasePath(m_databasePath);        // 这会触发loadRoles()和loadUserRoles()
+    }
+    
+    // 获取用户的角色
+    std::vector<std::string> userRoles;
+    m_roleManager.getUserRoles(currentUser, userRoles);
+    
+    // 检查用户权限（包括角色权限）
+    bool hasPerm = m_permissionManager.hasPermission(currentUser, objectType, objectName, permissionType, userRoles);
+    
+    // 调试信息
+    std::cerr << "Debug: Permission check - User: " << currentUser 
+              << ", Object: " << objectName 
+              << ", Permission: " << static_cast<int>(permissionType)
+              << ", HasPermission: " << (hasPerm ? "Yes" : "No") << std::endl;
+    
+    return hasPerm;
 }
 

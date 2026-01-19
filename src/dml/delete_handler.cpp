@@ -12,6 +12,7 @@
 #include <cstring>
 #include <cstddef>
 #include <climits>
+#include <filesystem>
 
 DeleteHandler::DeleteHandler() : m_constraintManager(&m_dataManager), m_deletedCount(0) {
 }
@@ -19,7 +20,7 @@ DeleteHandler::DeleteHandler() : m_constraintManager(&m_dataManager), m_deletedC
 DeleteHandler::~DeleteHandler() {
 }
 
-bool DeleteHandler::execute(const std::string& sql) {
+bool DeleteHandler::execute(const std::string& sql, const std::string& basePath) {
     m_lastError = "";
     m_deletedCount = 0;
     
@@ -39,9 +40,60 @@ bool DeleteHandler::execute(const std::string& sql) {
         return false;
     }
     
+    // 解析数据库路径：如果提供了basePath，使用它来解析相对路径
+    // 否则，假设databaseFileName是完整路径或当前目录下的文件名
+    std::string dbPath = deleteNode->databaseFileName;
+    if (!basePath.empty()) {
+        // 如果basePath是完整路径，提取目录部分
+        std::string baseDir = basePath;
+        size_t lastSlash = baseDir.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            baseDir = baseDir.substr(0, lastSlash + 1);
+        } else {
+            baseDir = "";  // 如果basePath没有路径分隔符，使用当前目录
+        }
+        // 组合完整路径
+        if (!baseDir.empty()) {
+            dbPath = baseDir + deleteNode->databaseFileName;
+        }
+    }
+    
     // 设置数据库路径
-    m_tableManager.setDatabasePath(deleteNode->databaseFileName);
-    m_dataManager.setDatabasePath(deleteNode->databaseFileName);
+    m_tableManager.setDatabasePath(dbPath);
+    m_dataManager.setDatabasePath(dbPath);
+    
+    // 提取数据库名（baseName）用于约束查询
+    // 约束注册时使用baseName，所以这里也需要提取baseName
+    // 注意：这里使用deleteNode->databaseFileName（SQL中的数据库名），而不是dbPath（完整路径）
+    std::string dbNameForConstraints = deleteNode->databaseFileName;
+    try {
+        // 尝试从路径中提取文件名（不含扩展名）
+        std::filesystem::path dbPathObj(deleteNode->databaseFileName);
+        std::string fileName = dbPathObj.filename().string();
+        // 移除扩展名（如果有）
+        size_t dotPos = fileName.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            fileName = fileName.substr(0, dotPos);
+        }
+        if (!fileName.empty()) {
+            dbNameForConstraints = fileName;
+        }
+    } catch (...) {
+        // 如果filesystem操作失败，使用原始值
+        // 尝试手动提取
+        std::string dbPathStr = deleteNode->databaseFileName;
+        size_t lastSlash = dbPathStr.find_last_of("/\\");
+        if (lastSlash != std::string::npos) {
+            dbPathStr = dbPathStr.substr(lastSlash + 1);
+        }
+        size_t dotPos = dbPathStr.find_last_of('.');
+        if (dotPos != std::string::npos) {
+            dbPathStr = dbPathStr.substr(0, dotPos);
+        }
+        if (!dbPathStr.empty()) {
+            dbNameForConstraints = dbPathStr;
+        }
+    }
     
     // 读取表结构
     TableInfo tableInfo;
@@ -77,7 +129,7 @@ bool DeleteHandler::execute(const std::string& sql) {
     
     // 先检查外键约束
     for (size_t recordIndex : recordsToDelete) {
-        if (!checkForeignKeyConstraints(deleteNode->tableName, tableInfo, records[recordIndex], deleteNode->databaseFileName)) {
+        if (!checkForeignKeyConstraints(deleteNode->tableName, tableInfo, records[recordIndex], dbNameForConstraints)) {
             return false;
         }
     }

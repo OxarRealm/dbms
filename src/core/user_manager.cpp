@@ -49,8 +49,8 @@ bool UserManager::createUser(const std::string& userName, const std::string& pas
         return false;
     }
     
-    // 确保用户数据已加载
-    if (m_users.empty() && !m_dbFilePath.empty()) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
         loadUsers();
     }
     
@@ -91,6 +91,11 @@ bool UserManager::createUser(const std::string& userName, const std::string& pas
 }
 
 bool UserManager::changePassword(const std::string& userName, const std::string& newPassword) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUsers();
+    }
+    
     // 检查用户是否存在
     if (!userExists(userName)) {
         std::cerr << "Error: User does not exist: " << userName << std::endl;
@@ -116,6 +121,11 @@ bool UserManager::changePassword(const std::string& userName, const std::string&
 }
 
 bool UserManager::enableUser(const std::string& userName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUsers();
+    }
+    
     if (!userExists(userName)) {
         std::cerr << "Error: User does not exist: " << userName << std::endl;
         return false;
@@ -132,6 +142,11 @@ bool UserManager::enableUser(const std::string& userName) {
 }
 
 bool UserManager::disableUser(const std::string& userName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUsers();
+    }
+    
     if (!userExists(userName)) {
         std::cerr << "Error: User does not exist: " << userName << std::endl;
         return false;
@@ -148,6 +163,11 @@ bool UserManager::disableUser(const std::string& userName) {
 }
 
 bool UserManager::deleteUser(const std::string& userName) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUsers();
+    }
+    
     if (!userExists(userName)) {
         std::cerr << "Error: User does not exist: " << userName << std::endl;
         return false;
@@ -254,9 +274,11 @@ bool UserManager::verifyPassword(const std::string& password, const std::string&
 }
 
 bool UserManager::loadUsers() {
+    // 关键修复：总是先清空内存数据，确保从文件重新加载
+    m_users.clear();
+    
     if (m_dbFilePath.empty()) {
-        // 如果没有设置数据库路径，清空内存数据
-        m_users.clear();
+        // 如果没有设置数据库路径，返回（已清空）
         return true;
     }
     

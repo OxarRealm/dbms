@@ -44,6 +44,7 @@ public:
 
 private:
     UserManager m_userManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
 };
@@ -62,6 +63,7 @@ public:
 
 private:
     UserManager m_userManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
 };
@@ -80,6 +82,7 @@ public:
 
 private:
     UserManager m_userManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
 };
@@ -98,6 +101,7 @@ public:
 
 private:
     RoleManager m_roleManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
 };
@@ -116,6 +120,7 @@ public:
 
 private:
     RoleManager m_roleManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
 };
@@ -137,6 +142,7 @@ private:
     UserManager m_userManager;
     RoleManager m_roleManager;
     PermissionManager m_permissionManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
     
@@ -168,6 +174,7 @@ private:
     UserManager m_userManager;
     RoleManager m_roleManager;
     PermissionManager m_permissionManager;
+    std::string m_dbFilePath;  // 保存数据库路径，用于重新加载数据
     std::string m_lastError;
     void setError(const std::string& error);
     
