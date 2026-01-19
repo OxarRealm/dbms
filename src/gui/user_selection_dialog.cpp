@@ -5,6 +5,7 @@
 
 #include "gui/user_selection_dialog.h"
 #include "core/user_manager.h"
+#include "core/user_mode.h"
 #include <QFont>
 #include <QMessageBox>
 #include <iostream>
@@ -153,6 +154,20 @@ void UserSelectionDialog::onOkClicked()
     // For other users, verify using UserManager
     UserManager userManager;
     userManager.setDatabasePath(m_databasePath);
+    
+    // 获取用户信息用于调试
+    UserInfo userInfo;
+    bool userExistsFlag = userManager.getUserInfo(selectedUser.toStdString(), userInfo);
+    std::string storedHash = "";
+    std::string calculatedHash = "";
+    
+    if (userExistsFlag) {
+        storedHash = std::string(userInfo.passwordHash);
+        // 计算输入密码的哈希
+        std::string passwordStr = password.toStdString();
+        calculatedHash = UserManager::hashPassword(passwordStr);
+    }
+    
     bool authResult = userManager.authenticate(selectedUser.toStdString(), password.toStdString());
     
     if (authResult) {
@@ -160,7 +175,20 @@ void UserSelectionDialog::onOkClicked()
         accept();
         return;
     } else {
-        QMessageBox::warning(this, "Login Failed", "Invalid username or password.");
+        // 显示详细的错误信息（包含调试信息）
+        QString errorMsg = QString("Invalid username or password.\n\n");
+        errorMsg += QString("Debug Information:\n");
+        errorMsg += QString("Username: %1\n").arg(selectedUser);
+        errorMsg += QString("User exists: %1\n").arg(userExistsFlag ? "Yes" : "No");
+        errorMsg += QString("Input password: %1\n").arg(password);
+        if (userExistsFlag) {
+            errorMsg += QString("Stored hash length: %1\n").arg(storedHash.length());
+            errorMsg += QString("Stored hash (first 16): %1\n").arg(QString::fromStdString(storedHash.substr(0, 16)));
+            errorMsg += QString("Calculated hash (first 16): %1\n").arg(QString::fromStdString(calculatedHash.substr(0, 16)));
+            errorMsg += QString("Hashes match: %1").arg(storedHash == calculatedHash ? "Yes" : "No");
+        }
+        
+        QMessageBox::warning(this, "Login Failed", errorMsg);
         m_passwordEdit->clear();
         m_passwordEdit->setFocus();
         return;

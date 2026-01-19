@@ -65,8 +65,11 @@ bool UserManager::createUser(const std::string& userName, const std::string& pas
     
     // 计算密码哈希
     std::string passwordHash = hashPassword(password);
-    strncpy(userInfo.passwordHash, passwordHash.c_str(), PASSWORD_HASH_LENGTH - 1);
-    userInfo.passwordHash[PASSWORD_HASH_LENGTH - 1] = '\0';
+    // SHA256哈希是64个字符，存储在65字节的数组中（64字符 + 1个\0）
+    // 可以完整存储64个字符
+    size_t copyLen = std::min(passwordHash.length(), static_cast<size_t>(PASSWORD_HASH_LENGTH - 1));
+    strncpy(userInfo.passwordHash, passwordHash.c_str(), copyLen);
+    userInfo.passwordHash[copyLen] = '\0';
     
     // 设置创建时间
     userInfo.createTime = std::time(nullptr);
@@ -98,9 +101,10 @@ bool UserManager::changePassword(const std::string& userName, const std::string&
     std::string passwordHash = hashPassword(newPassword);
     
     // 更新用户密码哈希
-    m_users[userName].passwordHash[0] = '\0';
-    strncpy(m_users[userName].passwordHash, passwordHash.c_str(), PASSWORD_HASH_LENGTH - 1);
-    m_users[userName].passwordHash[PASSWORD_HASH_LENGTH - 1] = '\0';
+    // SHA256哈希是64个字符，存储在65字节的数组中（64字符 + 1个\0）
+    size_t copyLen = std::min(passwordHash.length(), static_cast<size_t>(PASSWORD_HASH_LENGTH - 1));
+    strncpy(m_users[userName].passwordHash, passwordHash.c_str(), copyLen);
+    m_users[userName].passwordHash[copyLen] = '\0';
     
     // 保存到文件
     if (!saveUsers()) {
@@ -162,6 +166,11 @@ bool UserManager::deleteUser(const std::string& userName) {
 }
 
 bool UserManager::authenticate(const std::string& userName, const std::string& password) {
+    // 关键修复：总是重新加载数据，确保与文件同步
+    if (!m_dbFilePath.empty()) {
+        loadUsers();
+    }
+    
     // 检查用户是否存在
     if (!userExists(userName)) {
         return false;
@@ -174,8 +183,18 @@ bool UserManager::authenticate(const std::string& userName, const std::string& p
     }
     
     // 验证密码
-    std::string storedHash = m_users[userName].passwordHash;
-    if (!verifyPassword(password, storedHash)) {
+    // 从char数组正确提取密码哈希（确保正确终止）
+    std::string storedHash = std::string(m_users[userName].passwordHash);
+    std::string calculatedHash = hashPassword(password);
+    
+    // 调试信息：输出密码哈希（仅用于调试）
+    std::cerr << "Debug - User: " << userName << std::endl;
+    std::cerr << "Debug - Stored hash length: " << storedHash.length() << std::endl;
+    std::cerr << "Debug - Stored hash (first 16): " << storedHash.substr(0, 16) << std::endl;
+    std::cerr << "Debug - Calculated hash (first 16): " << calculatedHash.substr(0, 16) << std::endl;
+    std::cerr << "Debug - Hashes match: " << (storedHash == calculatedHash ? "Yes" : "No") << std::endl;
+    
+    if (storedHash != calculatedHash) {
         return false;
     }
     
@@ -301,6 +320,8 @@ bool UserManager::loadUsers() {
             file.close();
             return false;
         }
+        // 确保字符串正确终止（防止读取到未初始化的数据）
+        userInfo.passwordHash[PASSWORD_HASH_LENGTH - 1] = '\0';
         
         // 读取创建时间
         file.read(reinterpret_cast<char*>(&userInfo.createTime), sizeof(time_t));

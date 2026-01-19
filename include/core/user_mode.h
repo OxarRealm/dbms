@@ -14,7 +14,7 @@
 
 // 常量定义
 #define USER_NAME_LENGTH 32           // 用户名最大长度
-#define PASSWORD_HASH_LENGTH 64       // 密码哈希最大长度（SHA256）
+#define PASSWORD_HASH_LENGTH 65       // 密码哈希最大长度（SHA256是64个字符，需要65字节存储，包括\0）
 #define ROLE_NAME_LENGTH 32           // 角色名最大长度
 #define PERMISSION_TYPE_LENGTH 16     // 权限类型最大长度
 #define OBJECT_NAME_LENGTH 64         // 对象名最大长度（表名或数据库名）
